@@ -28,7 +28,11 @@ impl Writer {
                 while let Ok(request) = receive.recv() {
                     let result = match request.operation {
                         Operation::Append(record, profile) => {
-                            history.append(record.as_ref(), profile.as_ref())
+                            if record.schema >= 4 {
+                                history.append(record.as_ref(), &profile.policy_snapshot())
+                            } else {
+                                history.append(record.as_ref(), profile.as_ref())
+                            }
                         }
                         Operation::Export(path) => history.export(path).map(|_| 0),
                         Operation::Reset => history.reset("DELETE").map(|_| 0),

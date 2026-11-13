@@ -99,6 +99,7 @@ exhaustive alignment, learner/controller boundaries, scripted sessions, binary
 restart, crash recovery, export, and reset. Simulations establish software behavior,
 not superior learning outcomes.
 
+The [requirement audit](docs/requirements-audit.md) maps capabilities to evidence.
 The [OpenSpec package](openspec/changes/define-adaptive-cw-training/README.md) records
 requirements, mathematics, architecture, and outstanding physical verification.
 See [storage](docs/storage.md), [learner model](docs/learner-model.md),

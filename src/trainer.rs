@@ -243,6 +243,7 @@ struct Runtime {
     fatal: Option<String>,
     history_failed: bool,
     session_id: String,
+    session_mode_override: Option<Mode>,
     rng: Random,
 }
 impl Runtime {
@@ -296,6 +297,7 @@ impl Runtime {
             fatal: None,
             history_failed: false,
             session_id: String::new(),
+            session_mode_override: None,
             rng: Random::new(seed),
         })
     }
@@ -480,7 +482,14 @@ impl Runtime {
             }
         }
     }
-    fn save(&mut self, record: Record) -> Result<Record> {
+    fn save(&mut self, mut record: Record) -> Result<Record> {
+        if record.is_practice()
+            && let Some(mode) = self.session_mode_override
+        {
+            record
+                .selection_reason
+                .push_str(&format!("\nLearner-selected mode: {mode:?}."));
+        }
         if self.history_failed {
             return Err("history commit status is unknown; reopen before writing".into());
         }
@@ -749,7 +758,7 @@ impl Runtime {
             let mut view = View::message(
                 "Recognition",
                 format!(
-                    "Listen, then type one character.\n\nResponse: {} · rejected input: {}\nCharacter speed: {c} WPM · remaining response window: {} s\n{}",
+                    "Listen, then type one character.\n\nResponse: {} · rejected input: {}\nCharacter speed: {c} WPM · response window: {} s after sound\n{}",
                     capture.response.map_or_else(
                         || if capture.unknown {
                             "I don't know".into()
@@ -770,7 +779,7 @@ impl Runtime {
                 ),
             );
             view.footer =
-                "Tab: I don’t know · F5: pause · F6: assisted replay · Esc: end session".into();
+                "First answer only · Tab: unknown · F5: pause · F6: replay · Esc: end".into();
             self.show(view);
             if self.quit.load(Ordering::Acquire) {
                 stop = true;
@@ -922,9 +931,6 @@ impl Runtime {
             }
         }
         if entry {
-            // A completed placement is bounded to one introductory assessment.
-            // Remaining symbols enter normal teaching/coverage slots in later sessions.
-            self.profile.entry_complete = !stopped;
             for c in ['K', 'M'] {
                 if stopped {
                     break;
@@ -946,12 +952,14 @@ impl Runtime {
                         .disclose(c, chrono::Utc::now().timestamp_millis());
                 }
             }
+            // Include the bootstrap acknowledgment in entry completion.
+            self.profile.entry_complete = !stopped;
             record.selection_reason="Placement: sample current knowledge; introduced symbols are not automatically mastered".into();
         }
         record.transport_end_ns = self.now();
         record.completed = !stopped;
         record.clock_calibrated &= self.clock.calibrated();
-        if let Some(error) = &self.audio_error {
+        if let Some(error) = self.fatal.as_ref().or(self.audio_error.as_ref()) {
             record.compromised = Some(error.clone());
         }
         record.repertoire = commands::canonical_repertoire(&self.profile.introduced);
@@ -969,7 +977,8 @@ impl Runtime {
         self.review(
             "Recognition block saved",
             &format!(
-                "{accuracy}\n{}\nIntroduced: {}\n{}",
+                "{accuracy}\n{}\n{}\nIntroduced: {}\n{}",
+                saved.selection_reason,
                 saved.decision,
                 self.profile.introduced,
                 if entry && !self.profile.entry_complete {
@@ -1030,10 +1039,6 @@ impl Runtime {
         record.corpus_id = plan.corpus_id.clone();
         record.corpus_version =
             (plan.material == Material::Text).then(|| planner::CORPUS_VERSION.to_string());
-        if let Some(id) = &plan.corpus_id {
-            self.profile.seen_text.insert(id.clone());
-        }
-        self.profile.used_checks.insert(plan.content.clone());
         let rate = self.audio.as_ref().unwrap().sample_rate;
         let schedule = Schedule::compile(
             &plan.content,
@@ -1085,6 +1090,8 @@ impl Runtime {
             for note in notes {
                 match note.kind {
                     EventKind::Started => {
+                        self.profile
+                            .presented(&record.content, record.corpus_id.as_deref());
                         record.transport_start_ns = note.at;
                         source_start_frame = Some(note.frame);
                     }
@@ -1264,7 +1271,7 @@ impl Runtime {
                 stopped = true;
                 self.controls.stop.store(true, Ordering::Release);
             }
-            if let Some(error) = self.audio_error.as_ref().or(self.fatal.as_ref()) {
+            if let Some(error) = self.fatal.as_ref().or(self.audio_error.as_ref()) {
                 record.compromised = Some(error.clone());
                 stopped = true;
                 self.stop_audio();
@@ -1342,7 +1349,7 @@ impl Runtime {
         } else {
             0
         };
-        record.completed = finished && !stopped;
+        record.complete_copying(finished, stopped);
         let saved = self.save(record)?;
         if stopped {
             return Ok(false);
@@ -1351,9 +1358,10 @@ impl Runtime {
             v.map_or_else(|| "unavailable".into(), |a| format!("{:.1}%", 100.0 * a))
         };
         let summary = format!(
-            "Attempt accuracy: {} · final: {}\n{}\n{}\n{}\nAssistance: {} catch-up gaps.\n{}",
+            "Attempt accuracy: {} · final: {}\n{}\n{}\n{}\n{}\nAssistance: {} catch-up gaps.\n{}",
             accuracy(saved.metrics.attempt_accuracy),
             accuracy(saved.metrics.final_accuracy),
+            saved.selection_reason,
             saved.decision,
             saved.evidence_summary(),
             saved.pace_summary(),
@@ -1398,6 +1406,7 @@ impl Runtime {
         }
     }
     fn session(&mut self, mode: Option<Mode>) -> Result<()> {
+        self.session_mode_override = mode.or(self.options.mode);
         self.session_id = format!(
             "{}-{}",
             chrono::Utc::now().timestamp_millis(),
@@ -1440,12 +1449,16 @@ impl Runtime {
                 &chrono::Local::now().date_naive().to_string(),
             )
         {
-            let date = chrono::Local::now().date_naive().to_string();
-            self.profile.offered_dates.insert(date);
-            self.checkpoint(
+            let mut offered = self.new_record(
+                Context::recognition(self.profile.recognition_c),
                 Kind::CheckOffered,
-                "Optional three-minute steady-pace check offered",
-            )?;
+            );
+            self.profile
+                .offered_dates
+                .insert(offered.local_date.clone());
+            offered.completed = true;
+            offered.decision = "Optional three-minute steady-pace check offered".into();
+            self.save(offered)?;
             if self.notice("Optional progress check",&format!("Three minutes at {}/{} WPM, no automatic rescue.\nEnter accepts; Esc skips and continues normal practice.",context.character_wpm,context.effective_wpm))?{continuing=self.copying_block(Some((context,repertoire)))?;}
         }
         while continuing && !self.quit.load(Ordering::Acquire) {

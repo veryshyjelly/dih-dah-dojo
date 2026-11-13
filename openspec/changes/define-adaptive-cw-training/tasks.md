@@ -1,7 +1,7 @@
 # Implementation tasks
 
 These tasks track the implementation and its evidence, not artifact existence.
-Software implementation is complete under cw-policy-v1.1 with legacy-v1 replay.
+Software implementation is complete under cw-policy-v1.2 with legacy-v1 replay.
 Physical verification in 1.2 and part of 8.1 remains open; unverified-route practice
 is explicitly labeled. Reference: [design](design.md),
 [verification](../../../docs/session-verification.md), and the Rust tests.
@@ -81,7 +81,7 @@ is explicitly labeled. Reference: [design](design.md),
 
 ## Evidence and remaining boundary
 
-- Software: `cargo test --locked` (79 checks), strict Clippy, rustfmt, release build,
+- Software: `cargo test --locked` (89 checks), strict Clippy, rustfmt, release build,
   exhaustive alignment/prefix reference, frozen-clock policy/session traces,
   transactional restart/crash/export/reset checks, and OpenSpec strict validation.
 - Native: recognition and copying terminal sessions, long pause/resume, partial stop,

@@ -1,4 +1,4 @@
-//! Durable record schema v3 (v2 remains readable). Change schema/version before changing binary field layouts.
+//! Durable record schema v4 (v2/v3 remain readable). Change schema/version before changing binary field layouts.
 use crate::{
     learner::{Context, Material, Mode, Observation, POLICY},
     scoring::{Outcome, score_copy},
@@ -95,7 +95,7 @@ impl Record {
     pub fn new(session_id: &str, context: Context, kind: Kind) -> Self {
         let now = chrono::Local::now();
         Self {
-            schema: 3,
+            schema: 4,
             policy: POLICY.into(),
             session_id: session_id.into(),
             utc_ms: now.timestamp_millis(),
@@ -137,8 +137,15 @@ impl Record {
         controller: &mut crate::control::Controller,
         profile: &mut crate::learner::Profile,
     ) {
-        let before_profile = profile.clone();
+        let before_profile = if self.schema >= 4 {
+            profile.policy_snapshot()
+        } else {
+            profile.clone()
+        };
         let before_controller = controller.clone();
+        if self.policy == "cw-policy-v1.2" && self.kind == Kind::Entry && !self.completed {
+            profile.entry_complete = false;
+        }
         for observation in &self.observations {
             if observation.context.mode == Mode::Recognition
                 && let Some(review) = profile.reviews.get_mut(&observation.symbol)
@@ -157,9 +164,17 @@ impl Record {
         self.policy_audit = Some(Box::new(PolicyAudit {
             before_profile,
             before_controller,
-            after_profile: profile.clone(),
+            after_profile: if self.schema >= 4 {
+                profile.policy_snapshot()
+            } else {
+                profile.clone()
+            },
             after_controller: controller.clone(),
         }));
+    }
+    pub fn complete_copying(&mut self, source_finished: bool, stopped: bool) {
+        self.completed =
+            source_finished && !stopped && (self.kind != Kind::Check || self.compromised.is_none());
     }
     pub fn characters_per_minute(&self) -> Option<f64> {
         let audio_ns = self.scheduled_ns.saturating_add(self.rescue_ns);
@@ -208,8 +223,8 @@ impl Record {
         )
     }
     pub fn validate(&self) -> Result<(), &'static str> {
-        if ![2, 3].contains(&self.schema)
-            || ![POLICY, "cw-policy-v1"].contains(&self.policy.as_str())
+        if ![2, 3, 4].contains(&self.schema)
+            || ![POLICY, "cw-policy-v1.1", "cw-policy-v1"].contains(&self.policy.as_str())
             || !self.context.valid()
         {
             return Err("unsupported/invalid practice record");

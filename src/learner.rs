@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use statrs::distribution::{Beta, ContinuousCDF};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-pub const POLICY: &str = "cw-policy-v1.1";
+pub const POLICY: &str = "cw-policy-v1.2";
 pub const DAY_MS: i64 = 86_400_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Mode {
@@ -276,6 +276,87 @@ impl Default for Profile {
     }
 }
 impl Profile {
+    /// Control/review state excludes indexes reconstructed from immutable presentation records.
+    pub fn policy_snapshot(&self) -> Self {
+        Self {
+            volume: self.volume,
+            tone_hz: self.tone_hz,
+            total_trials: self.total_trials,
+            disclosures: self.disclosures.clone(),
+            introduced: self.introduced.clone(),
+            entry_complete: self.entry_complete,
+            entry_seen: self.entry_seen.clone(),
+            recognition_c: self.recognition_c,
+            copying_c: self.copying_c,
+            copying_e: self.copying_e,
+            timeout_seconds: self.timeout_seconds,
+            sessions: self.sessions,
+            reviews: self.reviews.clone(),
+            offered_dates: BTreeSet::new(),
+            used_checks: BTreeSet::new(),
+            seen_text: BTreeSet::new(),
+            recent_introductions: self.recent_introductions.clone(),
+            group_qualifications: self.group_qualifications.clone(),
+            check_qualifications: self.check_qualifications.clone(),
+        }
+    }
+    pub fn presented(&mut self, content: &str, corpus_id: Option<&str>) {
+        self.used_checks.insert(exercise_id(content));
+        if let Some(id) = corpus_id {
+            self.seen_text.insert(id.into());
+        }
+    }
+    pub fn has_exercise(&self, content: &str) -> bool {
+        self.used_checks.contains(content) || self.used_checks.contains(&exercise_id(content))
+    }
+    pub fn rebuild_presentation_indexes(&mut self, records: &[crate::recording::Record]) {
+        // Retain conservative legacy indexes once; new snapshots omit this duplicate data.
+        if let Some(audit) = records
+            .iter()
+            .rev()
+            .filter(|r| r.schema < 4)
+            .find_map(|r| r.policy_audit.as_ref())
+        {
+            self.used_checks
+                .extend(audit.after_profile.used_checks.iter().cloned());
+            self.offered_dates
+                .extend(audit.after_profile.offered_dates.iter().cloned());
+            self.seen_text
+                .extend(audit.after_profile.seen_text.iter().cloned());
+        }
+        self.used_checks = self
+            .used_checks
+            .iter()
+            .map(|value| {
+                if value.starts_with("sha256:")
+                    && value.len() == 71
+                    && value[7..].bytes().all(|b| b.is_ascii_hexdigit())
+                {
+                    value.to_ascii_lowercase()
+                } else {
+                    exercise_id(value)
+                }
+            })
+            .collect();
+        for record in records {
+            if matches!(
+                record.kind,
+                crate::recording::Kind::Copying | crate::recording::Kind::Check
+            ) && !record.content.is_empty()
+                && (!record.onsets.is_empty()
+                    || record
+                        .delivery
+                        .iter()
+                        .any(|event| event.kind == crate::transport::EventKind::Started))
+            {
+                self.presented(&record.content, record.corpus_id.as_deref());
+            }
+            if record.kind == crate::recording::Kind::CheckOffered {
+                self.offered_dates.insert(record.local_date.clone());
+            }
+        }
+    }
+
     pub fn disclose(&mut self, symbol: char, utc_ms: i64) {
         self.disclosures.insert(
             symbol,
@@ -342,9 +423,57 @@ impl Profile {
     }
 }
 
+/// Versioned SHA-256 identity for normalized exercise reuse checks (not a learning score).
+pub fn exercise_id(content: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let normalized = content
+        .split_ascii_whitespace()
+        .map(str::to_ascii_uppercase)
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!("sha256:{:x}", Sha256::digest(normalized.as_bytes()))
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn exercise_identity_normalizes_case_and_spacing_and_survives_index_rebuild() {
+        assert_eq!(exercise_id(" k  m\nk m "), exercise_id("K M K M"));
+        assert_ne!(exercise_id("KM"), exercise_id("K M"));
+        let mut profile = Profile::default();
+        profile.used_checks.insert("K M".into());
+        profile.rebuild_presentation_indexes(&[]);
+        assert!(profile.has_exercise("k   m"));
+        assert!(
+            profile
+                .used_checks
+                .iter()
+                .all(|id| id.starts_with("sha256:") && id.len() == 71)
+        );
+    }
+    #[test]
+    fn policy_snapshot_size_is_independent_of_growing_presentation_indexes() {
+        use crate::recording::{Kind, Record};
+        let mut profile = Profile::default();
+        let mut baseline = Record::new("size", Context::recognition(20), Kind::Teaching);
+        baseline.apply_policy(&mut crate::control::Controller::default(), &mut profile);
+        let baseline_size = postcard::to_allocvec(&baseline).unwrap().len();
+        for i in 0..1000 {
+            profile
+                .used_checks
+                .insert(format!("{i:04X} {}", "KM".repeat(200)));
+            profile.offered_dates.insert(format!("date-{i}"));
+            profile.seen_text.insert(format!("passage-{i}"));
+        }
+        let mut compact = Record::new("size", Context::recognition(20), Kind::Teaching);
+        compact.apply_policy(&mut crate::control::Controller::default(), &mut profile);
+        assert!(postcard::to_allocvec(&compact).unwrap().len() <= baseline_size + 32);
+        let mut legacy = compact.clone();
+        legacy.schema = 3;
+        legacy.apply_policy(&mut crate::control::Controller::default(), &mut profile);
+        assert!(postcard::to_allocvec(&legacy).unwrap().len() > 800_000);
+        assert!(profile.policy_snapshot().used_checks.is_empty());
+    }
     fn observation(correct: bool, day: i64) -> Observation {
         Observation {
             symbol: 'A',

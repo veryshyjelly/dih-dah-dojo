@@ -1,7 +1,7 @@
 # Adaptive CW specification and mathematical design
 
 Status: the Rust trainer, mathematical core, binary history, adaptive sessions,
-checks, and analytics are implemented. Current policy is cw-policy-v1.1; legacy v1
+checks, and analytics are implemented. Current policy is cw-policy-v1.2; legacy v1
 transitions replay unchanged. Software checks and measured native observations are
 recorded in [integrated verification](../../../docs/session-verification.md).
 Physical route/input/UI timing verification remains open (task 1.2 and the physical

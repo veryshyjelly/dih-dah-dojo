@@ -348,7 +348,7 @@ pub fn copying(
             source.push(symbols[rng.choose(&weights).unwrap()]);
         }
         let content = fit_text(&source, c, e, 48000, seconds)?;
-        if !check || !profile.used_checks.contains(&content) {
+        if !check || !profile.has_exercise(&content) {
             return Ok(CopyPlan {
                 content,
                 material: Material::Groups,

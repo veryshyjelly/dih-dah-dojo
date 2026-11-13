@@ -53,16 +53,22 @@ pub fn load(directory: PathBuf) -> Result<Loaded, Box<dyn Error>> {
     if state.is_none() && !records.is_empty() {
         return Err("history has records without committed state; preserve database".into());
     }
-    let profile = state.unwrap_or_default();
+    let mut profile = state.unwrap_or_default();
     profile.validate()?;
     if let Some(audit) = records
         .last()
         .and_then(|record| record.policy_audit.as_ref())
-        && audit.after_profile != profile
+        && audit.after_profile
+            != if records.last().is_some_and(|r| r.schema >= 4) {
+                profile.policy_snapshot()
+            } else {
+                profile.clone()
+            }
     {
         return Err("committed profile differs from its event; preserve history".into());
     }
     let learner = recording::replay(&records)?;
+    profile.rebuild_presentation_indexes(&records);
     Ok(Loaded {
         history,
         profile,
@@ -338,6 +344,8 @@ pub fn check_context(
     if let Some(old) = records.iter().rev().find(|r| {
         r.qualifying_check()
             && r.policy == crate::learner::POLICY
+            && r.context.character_wpm <= profile.copying_c
+            && r.context.effective_wpm <= profile.copying_e
             && (r.context.material != crate::learner::Material::Text
                 || r.corpus_version.as_deref() == Some(crate::planner::CORPUS_VERSION))
             && r.local_date != date
@@ -350,7 +358,9 @@ pub fn check_context(
     profile
         .check_qualifications
         .iter()
-        .filter(|(_, count)| **count >= 2)
+        .filter(|((c, e, _), count)| {
+            **count >= 2 && *c <= profile.copying_c && *e <= profile.copying_e
+        })
         .max_by_key(|((c, e, _), _)| (*e, *c))
         .map(|((c, e, material), _)| {
             (

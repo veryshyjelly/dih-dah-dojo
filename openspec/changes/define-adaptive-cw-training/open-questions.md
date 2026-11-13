@@ -28,9 +28,10 @@ explicit schema refusal, the original CC0 corpus, and bounded manual speed overr
 are implemented. See [verification](../../../docs/session-verification.md) and
 [tasks](tasks.md) for evidence rather than inferring completion from this document.
 
-Physical output loopback, physical key timing, route comparisons, and integrated
-input/UI latency distributions remain unmeasured. Native buffer/render/mapping
-results are recorded, including a 30-minute stress run and a separately observed
+Physical output loopback, physical key timing, route comparisons and physical
+display presentation remain unmeasured. Software input receipt/draw distributions
+and native buffer/render/mapping results are recorded, including a 30-minute
+combined typing/drawing/scoring/storage workload and a separately observed
 CoreAudio underrun. The architecture permits explicitly unverified practice;
 latency claims remain provisional. Tasks 1.2 and the physical portion of 8.1 stay
 open. Application crash recovery tests do not prove physical power-loss behavior.

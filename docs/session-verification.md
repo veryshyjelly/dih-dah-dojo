@@ -1,7 +1,7 @@
 # Integrated trainer verification
 
 Recorded 2026-11-14 on the local Apple silicon Mac, macOS 27.2 (26B123).
-Pinned dependencies and cw-policy-v1.1 are recorded in Cargo.lock and OpenSpec.
+Pinned dependencies and cw-policy-v1.2 are recorded in Cargo.lock and OpenSpec.
 
 ## Native audio stress
 
@@ -62,9 +62,10 @@ Native terminal/audio smoke checks used isolated directories under `/tmp`:
 
 ## Automated software checks
 
-`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 79 tests:
-57 library, 4 history CLI, 2 callback-allocation, 4 scorer CLI, two scoring
-references, and ten integrated policy/session traces.
+`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 89 tests:
+62 library, 4 history CLI, 2 callback-allocation, 4 scorer CLI, two scoring
+references, fourteen integrated policy/session traces, and a streamed-backup
+allocation check.
 
 The exhaustive reference checks 1,922 short timed/untimed string pairs. Session
 traces use frozen clocks and recorded material to verify delayed recognition,
@@ -74,10 +75,10 @@ These traces verify software behavior, not human learning effectiveness.
 
 ## Physical verification still outstanding
 
-No physical output loopback, key-switch timing, wired/Bluetooth route comparison,
-input-handling latency distribution, or UI presentation latency distribution has
-been measured for the integrated trainer. Estimated onset/response latency is
-provisional. Callback frame timing is sample-accurate in software; physical delivery
+Physical output loopback, key-switch timing, wired/Bluetooth route comparisons,
+and physical input/display latency distributions remain unmeasured. Software
+receipt and terminal-draw distributions are reported below. Estimated
+onset/response latency remains provisional. Callback frame timing is sample-accurate in software; physical delivery
 and stop/pause-to-silence tolerances require the protocol in
 [engineering-design.md](../openspec/changes/define-adaptive-cw-training/engineering-design.md).
 
@@ -127,3 +128,26 @@ physical_loopback_performed=false
 The build also passed `cargo build --release --locked --offline`. The earlier
 30-minute result and this short repeat cover different revisions and durations;
 neither replaces physical route/input/UI measurements.
+
+## Thirty-minute interactive software-latency workload
+
+Revision `47ec472` ran the Rust PTY harness for 1,800 seconds on the built-in
+48 kHz stereo f32 route, with 128-frame callbacks. The system PTY was 100×30;
+10 key events/s included corrections and visibly rejected unsupported input.
+Independent exact-scoring and immediate-redb-write workers ran concurrently.
+
+- All 18,000 scripted keys plus Enter/Ctrl-C were handled; zero sequence gaps.
+- Input receipt-to-coordinator p99 upper bound: 1.6 ms; maximum 2.346 ms.
+- View submission-to-terminal-draw completion p99 upper bound: 22.8 ms;
+  maximum 24.226 ms. This is not physical display presentation latency.
+- 674,987 callbacks; zero callback deadline misses or stream faults.
+- 29 records replayed; 28 were saved during the run. The one compromised block
+  was the deliberate final Ctrl-C interruption, not a stream failure.
+- Eight view updates were coalesced by the latest-view queue; no input was dropped.
+- More than 7 million background alignments and 30,000 immediate durable writes
+  completed. These synthetic records are not evidence of human CW ability.
+
+The [plain-text report](measurements/session-load-2026-11-14.txt) contains all
+counters and conservative 100-microsecond histogram upper bounds. Later storage
+and policy hardening is verified separately; this result is tied to its revision.
+Physical loopback, physical key timing and display presentation remain open.

@@ -275,6 +275,17 @@ fn main() -> Result<()> {
     if copying == 0 || (complete as u64) < seconds / 100 || number("compromised_blocks")? > 1 {
         return Err("practice did not continue through the scripted workload".into());
     }
+    if loaded
+        .records
+        .iter()
+        .filter(|r| r.kind == Kind::Copying)
+        .any(|r| {
+            !r.selection_reason
+                .contains("Learner-selected mode: Copying.")
+        })
+    {
+        return Err("mode override was not identified in saved results".into());
+    }
     if !loaded.records.iter().flat_map(|r| &r.inputs).any(|event| {
         matches!(event.edit, dih_dah_dojo::transcript::Edit::Unsupported('@')) && !event.accepted
     }) {

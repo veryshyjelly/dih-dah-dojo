@@ -1,4 +1,4 @@
-# Mathematical design: CW policy v1 / v1.1
+# Mathematical design: CW policy v1 / v1.1 / v1.2
 
 ## Context
 
@@ -19,7 +19,7 @@ curve before sufficient data exists. Remaining engineering decisions are listed 
 [open-questions.md](open-questions.md), not silently settled here.
 
 All thresholds below are initial engineering defaults, not validated CW learning
-constants. The baseline is `cw-policy-v1`; current sessions record `cw-policy-v1.1`. The
+constants. The baseline is `cw-policy-v1`; current sessions record `cw-policy-v1.2`. The
 v1.1 extension below preserves v1 replay and prevents text-entry starvation. Later
 policy changes create a new version rather than changing historical results.
 
@@ -466,3 +466,19 @@ A completed first placement sets entry completion even if its two-minute budget
 leaves unobserved symbols. Those symbols remain eligible for normal taught
 introductions rather than restarting placement on every session. Interrupted first
 placement can resume unobserved coverage later.
+
+## v1.2 boundary clarifications
+
+The two-recognition-block automatic mode cap also applies to completed all-assisted
+blocks with no independent accuracy value. An interrupted copying block discards
+pending low-count accumulation while preserving already-completed eligible-window
+streaks. Stopping during entry/bootstrap leaves placement resumable. Pausing a
+check leaves it incomplete even if the source later finishes. Qualified assessment
+speeds must not exceed the current automatic C/E after regression. Mode-only
+overrides are identified in result metadata without disabling automatic speed.
+Legacy v1/v1.1 transitions replay unchanged; score/evidence mathematics is unchanged.
+
+New record schema 4 stores compact policy-state snapshots. Exercise/date/passage
+indexes rebuild from immutable records, using normalized SHA-256 exercise identities.
+Old schema-2/3 records remain readable. Streaming export preserves the existing
+checksummed Postcard archive bytes while avoiding whole-history working buffers.

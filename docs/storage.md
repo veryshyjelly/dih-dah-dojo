@@ -30,8 +30,12 @@ A dedicated history worker owns writes. No database calls, binary encoding,
 commit waits, or filesystem operations may execute in the audio callback/input
 capture path. The `history::History` API is its storage primitive; trainer records and the
 profile are committed together. The storage container is version 1; typed practice
-records are version 3, with replayable policy boundary snapshots. Schema-2 records remain readable; schema 3 adds an explicitly rejected modified-key
-input variant. Experimental version-1 practice payloads are rejected without modifying the file.
+records are version 4, with compact replayable policy boundary snapshots. Schema-2
+and schema-3 records remain readable; schema 3 added explicit rejected modified-key
+input. Schema 4 omits growing exercise/date/passage indexes from policy snapshots
+and the committed head. They are rebuilt from immutable presentation/offer records,
+with conservative legacy indexes retained. Experimental version-1 practice payloads
+are rejected without modifying the file.
 
 Tables:
 
@@ -84,3 +88,23 @@ abandoned transaction rollback, forced child-process exit before commit, reset
 confirmation/atomicity, corrupt-file preservation, consistent binary export,
 checksum failure, and non-overwriting destinations. Tests use temporary directories,
 not the user's practice history.
+
+## History growth and streaming snapshots
+
+New practice records retain normalized SHA-256 exercise identities in the runtime
+reuse index, rather than duplicating whole exercise strings in every before/after
+policy snapshot. Raw exercises and offer dates remain in their original records.
+`sha2 0.10.9` is pinned; hashing runs off the audio/input capture paths.
+
+A fixture with 1,000 prior exercises makes a legacy policy record exceed 800 KB;
+the compact record stays within 32 bytes of its empty-index baseline. Restart tests
+verify exercise, passage and offered-date indexes rebuild without losing reuse or
+same-day-offer protection.
+
+Export and verification stream the **unchanged Postcard archive format** with an
+incremental CRC and bounded buffers. Golden bytes match the earlier serializer,
+including multi-byte lengths and sequence numbers. The former 256 MiB verifier
+ceiling and whole-archive allocation are removed. Individual values retain the
+8 MiB bound. A >9 MiB archive test observes no verifier heap allocation larger
+than 64 KiB. Streaming remains a consistent read transaction; it does not copy a
+changing live database file or add backup import.

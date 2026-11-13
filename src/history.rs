@@ -4,7 +4,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use std::{
     error::Error,
     fs::{self, File, OpenOptions},
-    io::{self, Read, Write},
+    io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -148,45 +148,85 @@ impl History {
         let read = self.db.begin_read()?;
         let events = read.open_table(EVENTS)?;
         let head = read.open_table(HEAD)?;
-        let state = head.get("state")?.map(|v| v.value().to_vec());
-        let mut rows = Vec::new();
-        for entry in events.iter()? {
-            let (key, value) = entry?;
-            rows.push((key.value(), value.value().to_vec()));
-        }
-        let payload = postcard::to_allocvec(&(SCHEMA, state, rows))?;
+        let metadata = read.open_table(META)?;
+        let count = metadata
+            .get("next")?
+            .ok_or("missing next sequence")?
+            .value()
+            .checked_sub(1)
+            .ok_or("invalid next sequence")?;
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(path.as_ref())?;
         file.write_all(BACKUP_MAGIC)?;
-        file.write_all(&crc32(&payload).to_le_bytes())?;
-        file.write_all(&payload)?;
+        file.write_all(&0u32.to_le_bytes())?;
+        let mut output = ChecksumIo::new(BufWriter::new(file));
+        write_uint(&mut output, SCHEMA)?;
+        if let Some(state) = head.get("state")? {
+            output.write_all(&[1])?;
+            write_value(&mut output, state.value())?;
+        } else {
+            output.write_all(&[0])?;
+        }
+        write_uint(&mut output, count)?;
+        let mut expected = 1u64;
+        for entry in events.iter()? {
+            let (key, value) = entry?;
+            if key.value() != expected {
+                return Err("history sequence gap; preserve database".into());
+            }
+            write_uint(&mut output, key.value())?;
+            write_value(&mut output, value.value())?;
+            expected = expected.checked_add(1).ok_or("history sequence overflow")?;
+        }
+        if expected - 1 != count {
+            return Err("history row count differs from metadata".into());
+        }
+        output.flush()?;
+        let checksum = output.checksum();
+        let file = output.inner.get_mut();
+        file.seek(SeekFrom::Start(8))?;
+        file.write_all(&checksum.to_le_bytes())?;
         file.sync_all()?;
         sync_parent(path.as_ref())?;
         Ok(())
     }
-    /// Validate exports without modifying an existing database. Import is deliberately
-    /// separate from export; arbitrary restore is not part of v1's reset flow.
+    /// Stream the stable Postcard container without allocating its complete history.
     pub fn verify_export(path: impl AsRef<Path>) -> Result<usize> {
-        let mut bytes = Vec::new();
-        File::open(path)?
-            .take(256 * 1024 * 1024 + 1)
-            .read_to_end(&mut bytes)?;
-        if bytes.len() > 256 * 1024 * 1024 || bytes.len() < 12 || &bytes[..8] != BACKUP_MAGIC {
-            return Err("invalid/oversized binary backup".into());
+        let mut file = BufReader::new(File::open(path)?);
+        let mut header = [0u8; 12];
+        file.read_exact(&mut header)?;
+        if &header[..8] != BACKUP_MAGIC {
+            return Err("invalid binary backup magic".into());
         }
-        let expected = u32::from_le_bytes(bytes[8..12].try_into()?);
-        if crc32(&bytes[12..]) != expected {
+        let expected = u32::from_le_bytes(header[8..12].try_into()?);
+        let mut input = ChecksumIo::new(file);
+        if read_uint(&mut input)? != SCHEMA {
+            return Err("unsupported backup schema".into());
+        }
+        let mut workspace = [0u8; 64 * 1024];
+        let mut tag = [0u8; 1];
+        input.read_exact(&mut tag)?;
+        match tag[0] {
+            0 => {}
+            1 => read_value(&mut input, &mut workspace)?,
+            _ => return Err("invalid backup state tag".into()),
+        }
+        let count = usize::try_from(read_uint(&mut input)?)?;
+        for index in 0..count {
+            if read_uint(&mut input)? != index as u64 + 1 {
+                return Err("backup sequence gap".into());
+            }
+            read_value(&mut input, &mut workspace)?;
+        }
+        if input.read(&mut tag)? != 0 {
+            return Err("trailing backup bytes".into());
+        }
+        if input.checksum() != expected {
             return Err("backup checksum mismatch".into());
         }
-        type Snapshot = (u64, Option<Vec<u8>>, Vec<(u64, Vec<u8>)>);
-        let ((schema, _state, rows), rest): (Snapshot, &[u8]) =
-            postcard::take_from_bytes(&bytes[12..])?;
-        if schema != SCHEMA || !rest.is_empty() {
-            return Err("unsupported backup schema or trailing bytes".into());
-        }
-        Ok(rows.len())
+        Ok(count)
     }
 }
 fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>> {
@@ -214,17 +254,104 @@ fn sync_parent(path: &Path) -> io::Result<()> {
     )?
     .sync_all()
 }
-fn crc32(bytes: &[u8]) -> u32 {
-    let mut crc = !0u32;
-    for b in bytes {
-        crc ^= *b as u32;
-        for _ in 0..8 {
-            crc = (crc >> 1) ^ (0xedb88320u32 & (0u32.wrapping_sub(crc & 1)));
+const CRC_TABLE: [u32; 256] = {
+    let mut table = [0; 256];
+    let mut i = 0;
+    while i < 256 {
+        let mut value = i as u32;
+        let mut bit = 0;
+        while bit < 8 {
+            value = (value >> 1) ^ (0xedb88320u32 & 0u32.wrapping_sub(value & 1));
+            bit += 1;
+        }
+        table[i] = value;
+        i += 1;
+    }
+    table
+};
+struct ChecksumIo<T> {
+    inner: T,
+    crc: u32,
+}
+impl<T> ChecksumIo<T> {
+    fn new(inner: T) -> Self {
+        Self { inner, crc: !0 }
+    }
+    fn checksum(&self) -> u32 {
+        !self.crc
+    }
+    fn update(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.crc = CRC_TABLE[((self.crc ^ *byte as u32) & 255) as usize] ^ (self.crc >> 8);
         }
     }
-    !crc
 }
-
+impl<T: Write> Write for ChecksumIo<T> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let count = self.inner.write(bytes)?;
+        self.update(&bytes[..count]);
+        Ok(count)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+impl<T: Read> Read for ChecksumIo<T> {
+    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
+        let count = self.inner.read(bytes)?;
+        self.update(&bytes[..count]);
+        Ok(count)
+    }
+}
+fn write_uint(output: &mut impl Write, value: u64) -> Result<()> {
+    let mut buffer = [0u8; 10];
+    output.write_all(postcard::to_slice(&value, &mut buffer)?)?;
+    Ok(())
+}
+fn write_value(output: &mut impl Write, value: &[u8]) -> Result<()> {
+    if value.len() > MAX_VALUE {
+        return Err("oversized backup value".into());
+    }
+    write_uint(output, value.len() as u64)?;
+    output.write_all(value)?;
+    Ok(())
+}
+fn read_uint(input: &mut impl Read) -> Result<u64> {
+    let mut value = 0u64;
+    for shift in (0..70).step_by(7) {
+        let mut byte = [0u8; 1];
+        input.read_exact(&mut byte)?;
+        if shift == 63 && byte[0] > 1 {
+            return Err("backup varint overflow".into());
+        }
+        value |= ((byte[0] & 127) as u64) << shift;
+        if byte[0] & 128 == 0 {
+            if shift > 0 && byte[0] == 0 {
+                return Err("noncanonical backup varint".into());
+            }
+            return Ok(value);
+        }
+    }
+    Err("unterminated backup varint".into())
+}
+fn read_value(input: &mut impl Read, workspace: &mut [u8]) -> Result<()> {
+    let mut left = usize::try_from(read_uint(input)?)?;
+    if left > MAX_VALUE {
+        return Err("oversized backup value".into());
+    }
+    while left > 0 {
+        let count = left.min(workspace.len());
+        input.read_exact(&mut workspace[..count])?;
+        left -= count;
+    }
+    Ok(())
+}
+#[cfg(test)]
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut checksum = ChecksumIo::new(io::sink());
+    checksum.update(bytes);
+    checksum.checksum()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -287,6 +414,37 @@ mod tests {
         fs::write(&backup, bytes).unwrap();
         assert!(History::verify_export(&backup).is_err());
         assert_eq!(crc32(b"123456789"), 0xcbf43926);
+    }
+    #[test]
+    fn streaming_export_is_byte_identical_to_the_original_postcard_container() {
+        let temp = Temp::new();
+        let mut history = History::open(temp.db()).unwrap();
+        for i in 0..130u64 {
+            history.append(&vec![i as u8; 300], &i).unwrap();
+        }
+        let read = history.db.begin_read().unwrap();
+        let table = read.open_table(EVENTS).unwrap();
+        let rows: Vec<_> = table
+            .iter()
+            .unwrap()
+            .map(|entry| {
+                let (key, value) = entry.unwrap();
+                (key.value(), value.value().to_vec())
+            })
+            .collect();
+        let state = read
+            .open_table(HEAD)
+            .unwrap()
+            .get("state")
+            .unwrap()
+            .map(|v| v.value().to_vec());
+        let original = postcard::to_allocvec(&(SCHEMA, state, rows)).unwrap();
+        let backup = temp.0.join("stream.cwbackup");
+        history.export(&backup).unwrap();
+        let bytes = fs::read(&backup).unwrap();
+        assert_eq!(&bytes[12..], &original);
+        assert_eq!(&bytes[8..12], &crc32(&original).to_le_bytes());
+        assert_eq!(History::verify_export(&backup).unwrap(), 130);
     }
     #[test]
     fn aborted_write_never_changes_head_or_records() {

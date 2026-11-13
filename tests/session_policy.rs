@@ -179,6 +179,7 @@ fn frozen_session_survives_binary_restart_and_detects_policy_tampering() {
             "no-input",
         ] {
             let mut r = copy(&p, behavior);
+            p.presented(&r.content, r.corpus_id.as_deref());
             r.apply_policy(&mut controller, &mut p);
             history.append(&r, &p).unwrap();
             records.push(r);
@@ -405,4 +406,105 @@ fn delivered_character_throughput_includes_rescue_and_excludes_response_tail() {
     assert_eq!(record.characters_per_minute(), Some(20.0));
     record.metrics.target_count = 0;
     assert_eq!(record.characters_per_minute(), None);
+}
+
+#[test]
+fn a_paused_check_remains_incomplete_even_if_its_source_finishes() {
+    let mut record = copy(&profile(), "correct");
+    record.kind = Kind::Check;
+    record.assessment_elapsed_ns = 180_000_000_000;
+    record.compromised = Some("paused by learner".into());
+    record.complete_copying(true, false);
+    assert!(!record.completed && !record.qualifying_check());
+    record.kind = Kind::Copying;
+    record.complete_copying(true, false);
+    assert!(
+        record.completed,
+        "a completed interrupted practice remains separately labeled"
+    );
+    record.complete_copying(true, true);
+    assert!(!record.completed);
+}
+
+#[test]
+fn assessments_never_use_a_past_qualification_above_current_automatic_speed() {
+    let mut p = profile();
+    p.sessions = 3;
+    p.copying_e = 4;
+    p.check_qualifications.insert((20, 10, Material::Groups), 2);
+    assert!(commands::check_context(&p, &[], "2026-11-15").is_none());
+    p.check_qualifications.insert((20, 3, Material::Groups), 2);
+    assert_eq!(
+        commands::check_context(&p, &[], "2026-11-15")
+            .unwrap()
+            .0
+            .effective_wpm,
+        3
+    );
+}
+
+#[test]
+fn compact_writer_heads_rebuild_exercise_passage_and_offer_indexes_on_restart() {
+    use dih_dah_dojo::writer::{Operation, Writer};
+    let path = std::env::temp_dir().join(format!("cw-compact-head-{}", std::process::id()));
+    std::fs::create_dir_all(&path).unwrap();
+    let mut p = profile();
+    let mut controller = Controller::default();
+    let writer = Writer::start(History::open(path.join("practice.redb")).unwrap()).unwrap();
+    let mut offered = Record::new("compact", Context::recognition(20), Kind::CheckOffered);
+    offered.local_date = "2026-11-14".into();
+    p.offered_dates.insert(offered.local_date.clone());
+    offered.apply_policy(&mut controller, &mut p);
+    writer
+        .request(Operation::Append(Box::new(offered), Box::new(p.clone())))
+        .unwrap()
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap()
+        .unwrap();
+    let mut record = copy(&p, "correct");
+    record.context.material = Material::Text;
+    record.corpus_id = Some("practice-1".into());
+    record.derive().unwrap();
+    p.presented(&record.content, record.corpus_id.as_deref());
+    record.apply_policy(&mut controller, &mut p);
+    writer
+        .request(Operation::Append(
+            Box::new(record.clone()),
+            Box::new(p.clone()),
+        ))
+        .unwrap()
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap()
+        .unwrap();
+    writer.finish().unwrap();
+    {
+        let history = History::open(path.join("practice.redb")).unwrap();
+        let head: Profile = history.state().unwrap().unwrap();
+        assert!(
+            head.used_checks.is_empty()
+                && head.seen_text.is_empty()
+                && head.offered_dates.is_empty()
+        );
+    }
+    let loaded = commands::load(path.clone()).unwrap();
+    assert_eq!(loaded.profile, p);
+    assert!(loaded.profile.has_exercise(&record.content));
+    assert!(loaded.profile.seen_text.contains("practice-1"));
+    assert!(loaded.profile.offered_dates.contains("2026-11-14"));
+    drop(loaded);
+    std::fs::remove_dir_all(path).unwrap();
+}
+
+#[test]
+fn interrupted_bootstrap_cannot_leave_placement_complete_without_a_practice_repertoire() {
+    let mut p = Profile {
+        entry_complete: true,
+        ..Profile::default()
+    };
+    let mut record = Record::new("bootstrap-stop", Context::recognition(20), Kind::Entry);
+    record.completed = false;
+    record.apply_policy(&mut Controller::default(), &mut p);
+    assert!(!p.entry_complete);
+    assert!(p.introduced.is_empty());
+    assert!(recording::replay(&[record]).is_ok());
 }

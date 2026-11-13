@@ -59,6 +59,15 @@ impl Controller {
     }
     pub fn observe(&mut self, record: &Record, profile: &mut Profile, overridden: bool) -> String {
         if !record.is_practice() || record.compromised.is_some() || !record.completed {
+            // Preserve completed-window streaks, but a partial sample cannot bridge an interruption.
+            if record.policy == "cw-policy-v1.2"
+                && record.is_practice()
+                && record.context.mode == Mode::Copying
+            {
+                for state in self.copying.values_mut() {
+                    state.pending = None;
+                }
+            }
             return "Interrupted/incomplete practice: hold difficulty and preserve evidence labels"
                 .into();
         }
@@ -74,6 +83,14 @@ impl Controller {
     fn recognition(&mut self, record: &Record, profile: &mut Profile) -> String {
         self.recognition_run = self.recognition_run.saturating_add(1);
         let Some(accuracy) = record.metrics.attempt_accuracy else {
+            if record.policy == "cw-policy-v1.2" {
+                self.next_mode =
+                    if self.recognition_run >= 2 && profile.introduced.chars().count() >= 2 {
+                        Mode::Copying
+                    } else {
+                        Mode::Recognition
+                    };
+            }
             return "No independent recognition attempts: hold difficulty".into();
         };
         let n = record.metrics.target_count;
@@ -492,6 +509,56 @@ mod tests {
         controller.observe(&recognition, &mut profile, false);
         controller.observe(&recognition, &mut profile, false);
         assert_eq!(profile.recognition_c, 21);
+    }
+    #[test]
+    fn assisted_recognition_blocks_still_obey_the_automatic_mode_cap() {
+        let mut profile = Profile::default();
+        profile.introduce('K', 0);
+        profile.introduce('M', 0);
+        let mut record = Record::new("assisted", Context::recognition(20), Kind::Recognition);
+        record.completed = true;
+        let mut controller = Controller::default();
+        controller.observe(&record, &mut profile, false);
+        assert_eq!(controller.next_mode, Mode::Recognition);
+        controller.observe(&record, &mut profile, false);
+        assert_eq!(controller.next_mode, Mode::Copying);
+        assert_eq!(profile.recognition_c, 20);
+        let mut old = Controller::default();
+        record.policy = "cw-policy-v1.1".into();
+        old.observe(&record, &mut profile, false);
+        old.observe(&record, &mut profile, false);
+        assert_eq!(
+            old.next_mode,
+            Mode::Recognition,
+            "preserve historical policy transitions"
+        );
+    }
+    #[test]
+    fn interruption_discards_partial_windows_but_preserves_completed_window_streaks() {
+        let mut profile = Profile::default();
+        let mut controller = Controller::default();
+        let good = copy(1.0, 20);
+        controller.observe(&good, &mut profile, false);
+        let short = copy(1.0, 10);
+        controller.observe(&short, &mut profile, false);
+        assert!(controller.copying[&short.context].pending.is_some());
+        let mut interrupted = short.clone();
+        interrupted.completed = false;
+        interrupted.compromised = Some("input fault".into());
+        controller.observe(&interrupted, &mut profile, false);
+        assert!(controller.copying[&short.context].pending.is_none());
+        assert_eq!(controller.copying[&short.context].up, 1);
+        assert_eq!(profile.copying_e, 5);
+        controller.observe(&short, &mut profile, false);
+        assert_eq!(profile.copying_e, 5);
+        assert_eq!(
+            controller.copying[&short.context]
+                .pending
+                .as_ref()
+                .unwrap()
+                .n,
+            10
+        );
     }
     #[test]
     fn minimum_speed_and_timeout_floors_are_enforced() {
