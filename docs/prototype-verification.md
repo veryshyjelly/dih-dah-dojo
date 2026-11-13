@@ -43,3 +43,12 @@ The prototype does not implement dual schedule-slot handoff, character delivery
 telemetry, pause/restart, live alignment, rescue, or policy updates. Those remain
 explicit tasks in OpenSpec. Full training integration remains gated on engineering
 readiness; this spike does not silently close that gate.
+
+## Offline scoring milestone
+
+The suite now has 23 passing tests: 17 library tests, the render allocation check,
+four CLI checks, and the exhaustive scoring reference. The latter compares all
+1,922 timed/untimed pairs of binary strings through length four, including optimal
+response attribution and marginal edit-operation ranges. See [scoring.md](scoring.md)
+for usage and semantics. These tests do not establish live audio/input alignment;
+the playback probe remains an unscored diagnostic.

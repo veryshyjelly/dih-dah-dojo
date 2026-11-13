@@ -43,3 +43,10 @@ The system SHALL update character outcomes only when every optimal alignment agr
 #### Scenario: Unassigned extra attempt
 - **WHEN** AB is sent and AXB typed
 - **THEN** X affects aggregate accuracy without becoming a proven A/B confusion
+
+### Requirement: Explicit scoring resource limits
+The system SHALL reject comparisons exceeding the scorer's documented resource budget without publishing partial scores or recording the failure as a learner mistake.
+
+#### Scenario: Oversized alignment
+- **WHEN** a comparison needs more than 4,194,304 dynamic-programming cells or an input exceeds 16,384 symbols
+- **THEN** scoring returns an explicit resource-limit error and no attempt or final accuracy is published for that failed comparison

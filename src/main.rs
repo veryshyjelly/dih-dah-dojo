@@ -20,9 +20,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "CW timing/audio spike (not adaptive training yet)\n\n  dih_dah_dojo inspect [TEXT [CHAR_WPM EFFECTIVE_WPM]]\n  dih_dah_dojo probe [TEXT [CHAR_WPM EFFECTIVE_WPM]] [--no-input]\n\nDefaults: PARIS, 20/5 WPM. Probe plays a quiet 600 Hz tone.\nType while listening; Backspace edits your transcript. Esc/Ctrl-C stops.\ninspect does not open audio; --no-input supports noninteractive audio checks."
+            "CW timing/audio spike (not adaptive training yet)\n\n  dih_dah_dojo score TARGET COPY\n  dih_dah_dojo inspect [TEXT [CHAR_WPM EFFECTIVE_WPM]]\n  dih_dah_dojo probe [TEXT [CHAR_WPM EFFECTIVE_WPM]] [--no-input]\n\nDefaults: PARIS, 20/5 WPM. Probe plays a quiet 600 Hz tone.\nType while listening; Backspace edits your transcript. Esc/Ctrl-C stops.\nscore is an untimed offline comparison; COPY accepts \\b for Backspace.\ninspect does not open audio; --no-input supports noninteractive audio checks."
         );
         return Ok(());
+    }
+    if args[0] == "score" {
+        return run_score(&args[1..]);
     }
     let no_input = args.iter().any(|v| v == "--no-input");
     args.retain(|v| v != "--no-input");
@@ -31,7 +34,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     let command = args[0].as_str();
     if !["inspect", "probe"].contains(&command) {
-        return Err("expected inspect or probe".into());
+        return Err("expected score, inspect, or probe".into());
     }
     let text = args.get(1).map_or("PARIS", String::as_str);
     let c = args.get(2).map_or(Ok(20.0), |v| v.parse::<f64>())?;
@@ -177,4 +180,95 @@ fn quantile(values: &[u64], q: f64) -> u64 {
     sorted[((q * sorted.len() as f64).ceil() as usize)
         .saturating_sub(1)
         .min(sorted.len() - 1)]
+}
+
+fn run_score(args: &[String]) -> Result<(), Box<dyn Error>> {
+    use dih_dah_dojo::{
+        scoring::{AlignmentScore, Outcome, score_copy},
+        transcript::{Edit, MAX_INPUT_EVENTS, Symbol, Transcript},
+    };
+    if args.len() != 2 {
+        return Err(
+            "usage: dih_dah_dojo score TARGET COPY (COPY accepts \\b for Backspace)".into(),
+        );
+    }
+    if args.iter().any(|s| s.chars().count() > MAX_INPUT_EVENTS) {
+        return Err("text exceeds scorer input limit".into());
+    }
+    let target: Vec<_> = args[0]
+        .chars()
+        .map(|character| Symbol {
+            character,
+            at_ns: 0,
+        })
+        .collect();
+    let mut transcript = Transcript::default();
+    let mut chars = args[1].chars();
+    while let Some(c) = chars.next() {
+        let edit = match c {
+            '\\' => match chars.next() {
+                Some('b') => Edit::Backspace,
+                _ => return Err("only \\b is supported as an escape in COPY".into()),
+            },
+            '\u{8}' | '\u{7f}' => Edit::Backspace,
+            c => Edit::Type(c),
+        };
+        if !transcript.record(edit, 0)? {
+            return Err(format!("unsupported input: {edit:?}").into());
+        }
+    }
+    let attempts = score_copy(&target, transcript.attempts())?;
+    let final_score = score_copy(&target, transcript.final_text())?;
+    fn accuracy(score: &AlignmentScore) -> String {
+        score.accuracy.map_or_else(
+            || "unavailable (empty target)".into(),
+            |a| format!("{:.2}%", 100.0 * a),
+        )
+    }
+    println!("Untimed comparison: no audio timing or proficiency update.");
+    println!(
+        "Attempts: {}\nFinal:    {}",
+        transcript.attempt_string(),
+        transcript.final_string()
+    );
+    for (label, score) in [
+        ("Attempt", &attempts.primary),
+        ("Final", &final_score.primary),
+    ] {
+        println!(
+            "{label} accuracy: {} | edit distance: {}",
+            accuracy(score),
+            score.distance
+        );
+        println!(
+            "  substitutions {}..{}, omissions {}..{}, insertions {}..{} (marginal ranges)",
+            score.edits.min.substitutions,
+            score.edits.max.substitutions,
+            score.edits.min.omissions,
+            score.edits.max.omissions,
+            score.edits.min.insertions,
+            score.edits.max.insertions
+        );
+    }
+    println!(
+        "Including spaces: attempt {}, final {}",
+        accuracy(&attempts.including_spaces),
+        accuracy(&final_score.including_spaces)
+    );
+    println!("Attempt attribution (zero-based original stream indices):");
+    for item in &attempts.primary.outcomes {
+        let description = match item.outcome {
+            Outcome::Matched { response_index } => format!("matched response {response_index}"),
+            Outcome::Substituted { response_index } => {
+                format!("substituted by response {response_index}")
+            }
+            Outcome::Omitted => "omitted".into(),
+            Outcome::Ambiguous => "ambiguous".into(),
+        };
+        println!(
+            "  target {} {}: {description}",
+            item.target_index, item.target.character
+        );
+    }
+    Ok(())
 }

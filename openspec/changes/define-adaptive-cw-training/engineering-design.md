@@ -140,6 +140,13 @@ before further scored input. This prevents pathological input from unboundedly
 expanding edit-distance work. Raw terminal timing is receipt time, not physical
 key-switch time.
 
+The pure copying scorer additionally limits each alignment to 4,194,304 DP cells,
+with at most 16,384 symbols per input. Exceeding the resource limit is an explicit
+scoring error, not an omission or learner mistake; callers must mark affected live
+results unavailable/compromised rather than publishing partial scores. The numerical
+scoring semantics remain exact within the admitted size. This limit is independent
+of the input event cap and must be exercised by worker stress tests.
+
 ## Analysis, clocks and event ordering
 
 Incremental live alignment runs outside the coordinator/callback, targeting a

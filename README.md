@@ -9,6 +9,10 @@ Requires Rust 1.94+ and a local audio output device for playback. The currently
 exercised platform is macOS. Dependencies are pinned in Cargo.lock.
 
 ```sh
+# Compare copying without audio or a terminal:
+cargo run --locked -- score ABCDE ABDE
+cargo run --locked -- score AB 'AX\bB'
+
 # Inspect the exact schedule without opening audio hardware:
 cargo run --locked -- inspect PARIS 20 10
 
@@ -52,8 +56,12 @@ integrity, bounded stop fade, and allocation/deallocation-free sample rendering.
 
 See [prototype verification](docs/prototype-verification.md) for observed results
 and limitations. Physical output latency, clock calibration, long-run glitch
-freedom, pause/resume, rescue, adaptive training, scoring, durable history, and a
+freedom, pause/resume, rescue, adaptive training, live playback scoring, durable history, and a
 polished TUI are not implemented or certified by this spike.
+
+The [offline scorer](docs/scoring.md) now implements attempt/final scores, time-gated
+alignment, and conservative attribution. It is not yet connected to live playback
+and does not update a learner model. `score` runs in shell runners without a TTY.
 
 ## Design and next work
 
