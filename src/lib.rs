@@ -1,11 +1,14 @@
 pub mod audio;
+pub mod clock;
 pub mod control;
 pub mod history;
 pub mod input;
 pub mod learner;
+pub mod live_audio;
 pub mod planner;
 pub mod recording;
 pub mod scoring;
 pub mod synth;
 pub mod timing;
 pub mod transcript;
+pub mod transport;

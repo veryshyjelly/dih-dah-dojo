@@ -39,6 +39,17 @@ impl Synth {
             stopped: false,
         })
     }
+    /// Reset transport at a known schedule boundary; no allocation or phase reset.
+    pub fn seek(&mut self, frame: u64) {
+        self.frame = frame.min(self.schedule.frames);
+        self.segment = self
+            .schedule
+            .segments
+            .partition_point(|s| s.end <= self.frame)
+            .min(self.schedule.segments.len().saturating_sub(1));
+        self.stop_remaining = None;
+        self.stopped = false;
+    }
     pub fn frame(&self) -> u64 {
         self.frame
     }

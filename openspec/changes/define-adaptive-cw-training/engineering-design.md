@@ -73,23 +73,19 @@ from a preallocated oscillator table/phase accumulator with no callback allocati
 Do not change device, frequency, sample rate, or block C/E while a character sounds.
 The tone controls are defaults for audio implementation, not changes to CW policy.
 
-Precompile the entire block into tone/silence descriptors and character-boundary
-metadata outside the callback. Use two preallocated schedule slots, each holding
-up to 32,768 segments and 4,096 characters. The planner writes only a free slot;
-publication uses release/acquire ownership transfer via a small Copy descriptor.
-The callback acknowledges a slot as retired before it may be reused. Owners and
-backing allocations live until stream shutdown and are destroyed off the callback.
-Reject oversized material before playback; never truncate silently or allocate
-additional schedule storage on the callback thread.
+Precompile the complete renderer, source schedule and character metadata outside
+playback. A bounded ready queue moves preallocated Box<Prepared> ownership into the
+callback; a bounded retirement queue returns it for destruction off-thread. Moving
+a Box is constant-size pointer movement, not allocation. A full retirement queue
+retains the engine in one pending slot and faults to silence without dropping it.
+This safe-Rust ownership protocol replaces the proposed shared two-slot arena and
+avoids introducing a custom UnsafeCell synchronization layer. See
+[transport proof obligations](../../../docs/audio-transport.md).
 
-Each segment contains frame duration, tone/silence kind, and fixed identifiers.
-The callback walks descriptors and synthesizes directly into the supplied output
-buffer. Full-block descriptor readiness is required before playback; variable
-planning duration cannot create holes during a character. Transport advances only
-while playing; the hardware output frame counter advances for every output frame,
-including pause/rescue silence. The callback emits actual start/end frame markers,
-so inserted silence shifts subsequent delivery observations rather than invalidating
-schedule times retrospectively.
+Transport advances only while playing; hardware output frames advance through all
+silence. Character markers carry actual frame positions, so rescue/pause shifts are
+captured explicitly. No unprepared schedule may start. Stream teardown stops output
+before callback resources are destroyed outside the data callback.
 
 ## Controls and rescue
 
@@ -126,8 +122,9 @@ unbounded quiet interval by failing to respond.
 | Coordinator -> UI | Latest snapshot | Replace stale snapshot; losing renders is harmless |
 | Coordinator -> history | 4,096 bounded batches of at most 64 events | End/pause active training as compromised before overflow; surface writer failure |
 
-Callbacks queue only fixed-size Copy records; no Arc clones/drops, Vec, String,
-Box ownership transfer, or formatting in the callback. An atomic fault word carries
+Telemetry queues carry only fixed-size Copy records. Prepared-engine boxes may move
+through bounded handoff/retirement queues but must never be destroyed in the data
+callback. No Arc clones/drops, Vec/String allocation, or formatting is allowed there. An atomic fault word carries
 callback failures even when telemetry is full. Device error reporting records a
 small status and requests shutdown; log details and rebuild devices outside audio
 execution. No spinning until a full/empty real-time queue changes.

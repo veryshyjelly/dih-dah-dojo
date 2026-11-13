@@ -46,3 +46,39 @@ fn prepared_sample_loop_never_allocates_or_deallocates() {
     ACTIVE.with(|a| a.set(false));
     assert_eq!(CALLS.with(Cell::get), 0);
 }
+
+#[test]
+fn transport_handoff_and_full_retirement_queue_do_not_allocate_or_deallocate() {
+    use dih_dah_dojo::transport::{Controls, Kernel, Prepared};
+    use std::sync::Arc;
+    let (mut ready, receive) = rtrb::RingBuffer::new(2);
+    let (retire, _retired) = rtrb::RingBuffer::new(1);
+    let (events, _events) = rtrb::RingBuffer::new(8192);
+    let controls = Arc::new(Controls::new());
+    for id in [1, 2] {
+        ready
+            .push(
+                Prepared::new(
+                    id,
+                    Schedule::compile("E", Timing::new(20.0, 20.0).unwrap(), 1000).unwrap(),
+                    100.0,
+                    false,
+                )
+                .unwrap(),
+            )
+            .ok()
+            .unwrap();
+    }
+    let mut kernel = Kernel::new(receive, retire, events, controls.clone());
+    CALLS.with(|c| c.set(0));
+    ACTIVE.with(|a| a.set(true));
+    for frame in 0..2048 {
+        if frame % 128 == 0 {
+            kernel.begin_callback();
+        }
+        std::hint::black_box(kernel.sample());
+    }
+    ACTIVE.with(|a| a.set(false));
+    assert_eq!(CALLS.with(Cell::get), 0);
+    assert!(controls.fault.load(std::sync::atomic::Ordering::Acquire));
+}
