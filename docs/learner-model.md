@@ -23,7 +23,7 @@ within 0–800 ms, and otherwise halve to a ten-minute minimum. Intervals cap at
 90 days. Early or assisted practice never postpones a due review. Correct but slow
 responses retain accuracy credit even when their next review is earlier.
 
-`recording.rs` defines schema-v2 binary block records: policy and clock context,
+`recording.rs` defines schema-v3 binary block records: policy and clock context,
 source events, delivery estimates, trial results, assistance/interruption status,
 conditions, and derived evidence. `derive` computes evidence from source inputs;
 `replay` recomputes metrics, observations, review updates, controller transitions, and decision text from stored boundary snapshots, and rejects mismatches instead of

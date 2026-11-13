@@ -16,6 +16,7 @@ pub enum Edit {
     Type(char),
     Backspace,
     PasteRejected,
+    Unsupported(char),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -79,7 +80,7 @@ impl Transcript {
                 self.final_text.pop();
                 true
             }
-            Edit::PasteRejected => false,
+            Edit::PasteRejected | Edit::Unsupported(_) => false,
         };
         self.events.push(InputRecord {
             edit,

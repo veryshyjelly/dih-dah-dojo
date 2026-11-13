@@ -39,6 +39,7 @@ struct Options {
     effective: Option<u8>,
     known: Option<String>,
     skip_readiness: bool,
+    latency_report: Option<PathBuf>,
 }
 impl Options {
     fn parse(args: &[String]) -> Result<Self> {
@@ -52,6 +53,7 @@ impl Options {
             effective: None,
             known: None,
             skip_readiness: false,
+            latency_report: None,
         };
         let mut i = 0;
         while i < args.len() {
@@ -92,6 +94,11 @@ impl Options {
                     out.known = Some(commands::canonical_repertoire(&value));
                 }
                 "--skip-readiness" => out.skip_readiness = true,
+                "--latency-report" => {
+                    i += 1;
+                    out.latency_report =
+                        Some(args.get(i).ok_or("missing latency report path")?.into());
+                }
                 _ => return Err(format!("unknown train option: {}", args[i]).into()),
             }
             i += 1;
@@ -119,6 +126,7 @@ struct RecognitionCapture {
     unknown: bool,
     replay: bool,
     answered: bool,
+    rejected: u32,
 }
 impl RecognitionCapture {
     fn receive(
@@ -146,12 +154,18 @@ impl RecognitionCapture {
                 self.unknown = true;
                 self.answered = true;
             }
-            Key::Character(character) if onset.is_some_and(|onset| at >= onset) => {
+            Key::Character(character)
+                if crate::timing::pattern(character).is_some()
+                    && onset.is_some_and(|onset| at >= onset) =>
+            {
                 self.response = Some(Symbol {
                     character: character.to_ascii_uppercase(),
                     at_ns: at,
                 });
                 self.answered = true;
+            }
+            Key::Character(_) | Key::Unsupported(_) | Key::PasteRejected => {
+                self.rejected = self.rejected.saturating_add(1);
             }
             _ => {}
         }
@@ -170,17 +184,29 @@ pub fn run(args: &[String]) -> Result<()> {
                 .into(),
         );
     }
-    let loaded = commands::load(options.directory.clone())?;
-    let origin = Instant::now();
-    let controls = Arc::new(Controls::new());
-    let quit = Arc::new(AtomicBool::new(false));
-    let input = Input::start(controls.stop.clone(), controls.fault.clone())?;
-    let worker_quit = quit.clone();
-    screen::run(quit, move |ui| {
-        Runtime::new(options, loaded, input, controls, worker_quit, origin, ui)
-            .and_then(|mut runtime| runtime.run())
-            .map_err(|e| e.to_string())
-    })
+    let report = options
+        .latency_report
+        .as_ref()
+        .map(|path| crate::latency::Report::create(path))
+        .transpose()?;
+    let measurements = report.as_ref().map(|report| report.measurements.clone());
+    let result = (|| {
+        let loaded = commands::load(options.directory.clone())?;
+        let origin = Instant::now();
+        let controls = Arc::new(Controls::new());
+        let quit = Arc::new(AtomicBool::new(false));
+        let input = Input::start(controls.stop.clone(), controls.fault.clone())?;
+        let worker_quit = quit.clone();
+        screen::run(quit, measurements, move |ui| {
+            Runtime::new(options, loaded, input, controls, worker_quit, origin, ui)
+                .and_then(|mut runtime| runtime.run())
+                .map_err(|e| e.to_string())
+        })
+    })();
+    if let Some(report) = report {
+        report.finish(result.is_ok())?;
+    }
+    result
 }
 #[derive(Clone, Copy)]
 struct Note {
@@ -283,6 +309,9 @@ impl Runtime {
             self.controls.stop.store(true, Ordering::Release);
         }
         while let Ok(event) = self.input.events.pop() {
+            if let Some(metrics) = &self.ui.measurements {
+                metrics.input(event.sequence, event.received.elapsed());
+            }
             if matches!(event.key, Key::Resize) {
                 self.ui.redraw();
                 continue;
@@ -313,7 +342,11 @@ impl Runtime {
                             self.controls.stop.store(true, Ordering::Release);
                         }
                     }
-                    EventKind::RenderStats => {}
+                    EventKind::RenderStats => {
+                        if let Some(metrics) = &self.ui.measurements {
+                            metrics.audio(event.character, audio.sample_rate, event.value);
+                        }
+                    }
                     _ => {
                         let at = self
                             .clock
@@ -346,6 +379,15 @@ impl Runtime {
                 self.audio_error
                     .get_or_insert("audio callbacks stopped for two seconds".into());
                 self.controls.stop.store(true, Ordering::Release);
+            }
+        }
+        if let Some(metrics) = &self.ui.measurements {
+            metrics.clock_residual(self.clock.residual_p99_ns);
+            if self.controls.fault.load(Ordering::Acquire)
+                || self.audio_error.is_some()
+                || self.fatal.is_some()
+            {
+                metrics.fault();
             }
         }
         thread::sleep(Duration::from_millis(1));
@@ -477,6 +519,9 @@ impl Runtime {
         }
         for observation in &record.observations {
             self.learner.observe(observation.clone())?;
+        }
+        if let Some(metrics) = &self.ui.measurements {
+            metrics.saved(record.compromised.is_some());
         }
         self.records.push(record.clone());
         Ok(record)
@@ -704,10 +749,18 @@ impl Runtime {
             let mut view = View::message(
                 "Recognition",
                 format!(
-                    "Listen, then type one character.\n\nResponse: {}\nCharacter speed: {c} WPM · remaining response window: {} s\n{}",
-                    capture
-                        .response
-                        .map_or_else(|| "…".into(), |s| s.character.to_string()),
+                    "Listen, then type one character.\n\nResponse: {} · rejected input: {}\nCharacter speed: {c} WPM · remaining response window: {} s\n{}",
+                    capture.response.map_or_else(
+                        || if capture.unknown {
+                            "I don't know".into()
+                        } else if capture.replay {
+                            "Replay requested".into()
+                        } else {
+                            "…".into()
+                        },
+                        |s| s.character.to_string()
+                    ),
+                    capture.rejected,
                     self.profile.timeout_seconds,
                     if assisted || capture.replay {
                         "Assisted repetition — separate from independent evidence"
@@ -1003,6 +1056,7 @@ impl Runtime {
         let mut submitted_revision = None;
         let mut last_input = self.now();
         let mut last_backlog = 0u32;
+        let mut last_backlog_max = 0u32;
         let baseline = self
             .records
             .iter()
@@ -1095,7 +1149,7 @@ impl Runtime {
                     }
                     Key::Backspace => Some(Edit::Backspace),
                     Key::Unknown => Some(Edit::Type(' ')),
-                    Key::Unsupported(c) => Some(Edit::Type(c)),
+                    Key::Unsupported(c) => Some(Edit::Unsupported(c)),
                     Key::PasteRejected => Some(Edit::PasteRejected),
                     Key::Escape | Key::Quit => {
                         stopped = true;
@@ -1180,6 +1234,7 @@ impl Runtime {
                     match result.result {
                         Ok(alignment) => {
                             last_backlog = alignment.backlog_min;
+                            last_backlog_max = alignment.backlog_max;
                             let sample = Backlog {
                                 at_ns: result.at_ns,
                                 min: alignment.backlog_min,
@@ -1247,13 +1302,15 @@ impl Runtime {
                     "Continuous copying"
                 },
                 format!(
-                    "{}\n{}/{} WPM · {} s · backlog {} · catch-up gaps {}\n\n{}\n\n{}",
+                    "{}\n{}/{} WPM · {} s · backlog {}..{} · catch-up gaps {}\nRejected input: {} (paste, modifiers, unsupported symbols)\n\n{}\n\n{}",
                     record.selection_reason,
                     work.copying_c,
                     work.copying_e,
                     elapsed,
                     last_backlog,
+                    last_backlog_max,
                     record.rescues,
+                    transcript.events().iter().filter(|e| !e.accepted).count(),
                     transcript.final_string(),
                     if finished {
                         "Response tail: Enter submits; recording remains bounded."
@@ -1801,5 +1858,34 @@ mod tests {
         assert!(!timeout.answered);
         timeout.expire(8_000_000_200, Some(200), 8);
         assert!(timeout.answered && timeout.response.is_none());
+    }
+    #[test]
+    fn space_and_modified_keys_cannot_create_invalid_recognition_history() {
+        let mut capture = RecognitionCapture::default();
+        for key in [
+            Key::Character(' '),
+            Key::Unsupported('K'),
+            Key::PasteRejected,
+        ] {
+            capture.receive(key, 150, Some(100), Some(200), 4, false);
+        }
+        assert!(!capture.answered && capture.response.is_none());
+        assert_eq!(capture.rejected, 3);
+        capture.receive(Key::Character('m'), 150, Some(100), Some(200), 4, false);
+        assert_eq!(capture.response.unwrap().character, 'M');
+        let mut record = Record::new("invalid-space", Context::recognition(20), Kind::Recognition);
+        record.trials.push(RecognitionTrial {
+            symbol: 'K',
+            onset_ns: 100,
+            end_ns: 200,
+            response: Some(Symbol {
+                character: ' ',
+                at_ns: 250,
+            }),
+            assisted: false,
+            compromised: false,
+            explicit_unknown: false,
+        });
+        assert!(record.validate().is_err());
     }
 }

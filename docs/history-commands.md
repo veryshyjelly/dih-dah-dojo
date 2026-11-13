@@ -44,3 +44,29 @@ data that is cleaned up after completion. The report is plain text, not JSON. It
 records observed buffers, callback render budgets, detected misses, stream faults,
 and clock-mapping residual. No physical loopback is performed, so it cannot certify
 sound-at-ear latency or physical key-switch timing.
+
+## Interactive software latency report
+
+`train --latency-report FILE.txt` reserves a new plain-text diagnostic report and
+writes it after normal shutdown. It refuses to overwrite an existing path. Bounded
+histograms record input receipt-to-coordinator, view submission-to-draw completion,
+draw duration, callback work and queue/commit counters; p99 values are conservative
+100-microsecond bucket upper bounds. Metrics run off the input/audio capture paths.
+Draw completion measures terminal output submission, not physical presentation.
+
+For a reproducible macOS synthetic workload, build and run:
+
+```sh
+cargo build --release --locked --bins --examples
+target/release/examples/measure_session 1800
+```
+
+The Rust harness uses the system `script` utility to provide a 100×30 PTY, injects
+10 key events/second (including corrections and unsupported input), and drains
+output while native muted audio, exact scoring and immediate redb writes run. Its
+profile and load database are isolated under the system temporary directory. It
+requires continuous callback/practice coverage, handled input counts, zero sequence
+gaps/deadline misses/faults, latency targets and successful history replay. Synthetic
+learning records are not human proficiency evidence and never touch the normal
+profile. Preserve the printed report path on failure; do not call a failed run a
+physical-route certification.

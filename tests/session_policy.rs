@@ -366,3 +366,43 @@ fn frozen_clock_crosses_midnight_and_equal_timestamp_records_keep_sequence_order
     std::fs::remove_file(&path).unwrap();
     let _ = std::fs::remove_file(path.with_extension("lock"));
 }
+
+#[test]
+fn rejected_modified_letters_never_become_copying_evidence_and_v2_remains_readable() {
+    let mut record = copy(&profile(), "correct");
+    record.inputs.insert(
+        0,
+        dih_dah_dojo::transcript::InputRecord {
+            edit: Edit::Unsupported('K'),
+            at_ns: 0,
+            accepted: false,
+        },
+    );
+    record.derive().unwrap();
+    assert_eq!(record.metrics.attempt_accuracy, Some(1.0));
+    assert_eq!(record.metrics.target_count, 24);
+    assert!(record.observations.iter().all(|o| o.correct));
+    let encoded = postcard::to_allocvec(&record).unwrap();
+    let decoded: Record = postcard::from_bytes(&encoded).unwrap();
+    assert!(recording::replay(&[decoded]).is_ok());
+    let mut legacy = copy(&profile(), "correct");
+    legacy.schema = 2;
+    assert!(recording::replay(&[legacy]).is_ok());
+}
+
+#[test]
+fn delivered_character_throughput_includes_rescue_and_excludes_response_tail() {
+    let mut record = copy(&profile(), "correct");
+    record.metrics.target_count = 15;
+    record.scheduled_ns = 30_000_000_000;
+    record.rescue_ns = 15_000_000_000;
+    assert_eq!(record.characters_per_minute(), Some(20.0));
+    record.inputs.push(dih_dah_dojo::transcript::InputRecord {
+        edit: Edit::Type('K'),
+        at_ns: 90_000_000_000,
+        accepted: true,
+    });
+    assert_eq!(record.characters_per_minute(), Some(20.0));
+    record.metrics.target_count = 0;
+    assert_eq!(record.characters_per_minute(), None);
+}

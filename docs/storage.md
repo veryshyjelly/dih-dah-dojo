@@ -30,8 +30,8 @@ A dedicated history worker owns writes. No database calls, binary encoding,
 commit waits, or filesystem operations may execute in the audio callback/input
 capture path. The `history::History` API is its storage primitive; trainer records and the
 profile are committed together. The storage container is version 1; typed practice
-records are version 2, with replayable policy boundary snapshots. Experimental
-version-1 practice payloads are rejected without modifying the file.
+records are version 3, with replayable policy boundary snapshots. Schema-2 records remain readable; schema 3 adds an explicitly rejected modified-key
+input variant. Experimental version-1 practice payloads are rejected without modifying the file.
 
 Tables:
 

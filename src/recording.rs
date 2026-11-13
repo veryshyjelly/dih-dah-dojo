@@ -1,4 +1,4 @@
-//! Durable record schema v2. Change schema/version before changing binary field layouts.
+//! Durable record schema v3 (v2 remains readable). Change schema/version before changing binary field layouts.
 use crate::{
     learner::{Context, Material, Mode, Observation, POLICY},
     scoring::{Outcome, score_copy},
@@ -95,7 +95,7 @@ impl Record {
     pub fn new(session_id: &str, context: Context, kind: Kind) -> Self {
         let now = chrono::Local::now();
         Self {
-            schema: 2,
+            schema: 3,
             policy: POLICY.into(),
             session_id: session_id.into(),
             utc_ms: now.timestamp_millis(),
@@ -161,6 +161,11 @@ impl Record {
             after_controller: controller.clone(),
         }));
     }
+    pub fn characters_per_minute(&self) -> Option<f64> {
+        let audio_ns = self.scheduled_ns.saturating_add(self.rescue_ns);
+        (self.context.mode == Mode::Copying && audio_ns > 0 && self.metrics.target_count > 0)
+            .then(|| 60e9 * self.metrics.target_count as f64 / audio_ns as f64)
+    }
     pub fn pace_summary(&self) -> String {
         let audio_ns = self.scheduled_ns.saturating_add(self.rescue_ns);
         let adjusted = if audio_ns > 0 {
@@ -176,8 +181,11 @@ impl Record {
             .max()
             .unwrap_or(self.transport_end_ns)
             .saturating_sub(self.transport_end_ns);
+        let throughput = self
+            .characters_per_minute()
+            .map_or_else(|| "unavailable".into(), |value| format!("{value:.2}"));
         format!(
-            "Requested {}/{} WPM · gap-adjusted reference E {:.2}\nAudio {:.2} s · extra gaps {:.2} s · last response after audio {:.2} s",
+            "Requested {}/{} WPM · gap-adjusted reference E {:.2}\nDelivered non-space throughput {throughput} characters/min\nAudio {:.2} s · extra gaps {:.2} s · last response after audio {:.2} s",
             self.context.character_wpm,
             self.context.effective_wpm,
             adjusted,
@@ -200,7 +208,7 @@ impl Record {
         )
     }
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.schema != 2
+        if ![2, 3].contains(&self.schema)
             || ![POLICY, "cw-policy-v1"].contains(&self.policy.as_str())
             || !self.context.valid()
         {
@@ -216,6 +224,14 @@ impl Record {
                 .is_some_and(|v| !v.is_finite() || !(0.0..=1.0).contains(&v))
         {
             return Err("invalid saved accuracy");
+        }
+        if self.trials.iter().any(|trial| {
+            crate::timing::pattern(trial.symbol).is_none()
+                || trial
+                    .response
+                    .is_some_and(|response| crate::timing::pattern(response.character).is_none())
+        }) {
+            return Err("unsupported recognition symbol or response");
         }
         if self.onsets.len() != self.ends_ns.len() {
             return Err("onset/end record mismatch");

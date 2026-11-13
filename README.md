@@ -75,6 +75,7 @@ lanes. The application callback does not allocate, deallocate, lock, or access d
 cargo run --locked -- inspect PARIS 20 10
 cargo run --locked -- score AB 'AX\bB'
 cargo run --release --locked -- diagnose --seconds 60 --silent --stress --report timing.txt
+cargo run --release --locked -- train --latency-report session-timing.txt
 ```
 
 Backend playback timestamps estimate delivery; they do not measure sound at the ear.

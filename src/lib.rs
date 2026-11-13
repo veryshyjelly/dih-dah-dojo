@@ -6,6 +6,7 @@ pub mod control;
 pub mod diagnostics;
 pub mod history;
 pub mod input;
+pub mod latency;
 pub mod learner;
 pub mod live_audio;
 pub mod planner;

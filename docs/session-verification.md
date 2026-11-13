@@ -62,9 +62,9 @@ Native terminal/audio smoke checks used isolated directories under `/tmp`:
 
 ## Automated software checks
 
-`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 75 tests:
-55 library, 4 history CLI, 2 callback-allocation, 4 scorer CLI, two scoring
-references, and eight integrated policy/session traces.
+`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 79 tests:
+57 library, 4 history CLI, 2 callback-allocation, 4 scorer CLI, two scoring
+references, and ten integrated policy/session traces.
 
 The exhaustive reference checks 1,922 short timed/untimed string pairs. Session
 traces use frozen clocks and recorded material to verify delayed recognition,

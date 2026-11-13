@@ -14,7 +14,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,9 +40,14 @@ impl View {
         }
     }
 }
+struct QueuedView {
+    view: View,
+    submitted: Instant,
+}
 pub struct Sender {
-    queue: Producer<View>,
-    pending: Option<View>,
+    queue: Producer<QueuedView>,
+    pending: Option<QueuedView>,
+    pub measurements: Option<Arc<crate::latency::Measurements>>,
     last: Option<View>,
 }
 impl Sender {
@@ -51,6 +56,15 @@ impl Sender {
             return;
         }
         self.last = Some(view.clone());
+        if self.pending.take().is_some()
+            && let Some(metrics) = &self.measurements
+        {
+            metrics.coalesced_view();
+        }
+        let view = QueuedView {
+            view,
+            submitted: Instant::now(),
+        };
         match self.queue.push(view) {
             Ok(()) => self.pending = None,
             Err(PushError::Full(view)) => self.pending = Some(view),
@@ -159,12 +173,17 @@ impl Drop for TerminalGuard {
         let _ = crossterm::terminal::disable_raw_mode();
     }
 }
-pub fn run<F>(quit: Arc<AtomicBool>, coordinator: F) -> Result<(), Box<dyn std::error::Error>>
+pub fn run<F>(
+    quit: Arc<AtomicBool>,
+    measurements: Option<Arc<crate::latency::Measurements>>,
+    coordinator: F,
+) -> Result<(), Box<dyn std::error::Error>>
 where
     F: FnOnce(Sender) -> Result<(), String> + Send + 'static,
 {
     let mut terminal = TerminalGuard::enter()?;
-    let (queue, mut receive): (Producer<View>, Consumer<View>) = RingBuffer::new(2);
+    let (queue, mut receive): (Producer<QueuedView>, Consumer<QueuedView>) = RingBuffer::new(2);
+    let worker_measurements = measurements.clone();
     let worker = thread::Builder::new()
         .name("cw-coordinator".into())
         .spawn(move || {
@@ -172,23 +191,37 @@ where
                 queue,
                 pending: None,
                 last: None,
+                measurements: worker_measurements,
             })
         })?;
-    let mut current = View::message(
-        "Starting CW DOJO",
-        "Loading local history and preparing practice...",
-    );
+    let mut current = QueuedView {
+        view: View::message(
+            "Starting CW DOJO",
+            "Loading local history and preparing practice...",
+        ),
+        submitted: Instant::now(),
+    };
     let mut draw_error = None;
     while !worker.is_finished() {
         let mut changed = false;
         while let Ok(view) = receive.pop() {
+            if changed && let Some(metrics) = &measurements {
+                metrics.coalesced_view();
+            }
             current = view;
             changed = true;
         }
-        if changed && let Err(error) = terminal.terminal.draw(|frame| paint(frame, &current)) {
-            draw_error = Some(error);
-            quit.store(true, Ordering::Release);
-            break;
+        if changed {
+            let started = Instant::now();
+            let result = terminal.terminal.draw(|frame| paint(frame, &current.view));
+            if let Some(metrics) = &measurements {
+                metrics.draw(current.submitted.elapsed(), started.elapsed());
+            }
+            if let Err(error) = result {
+                draw_error = Some(error);
+                quit.store(true, Ordering::Release);
+                break;
+            }
         }
         thread::sleep(Duration::from_millis(16));
     }

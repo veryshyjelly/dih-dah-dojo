@@ -81,7 +81,7 @@ is explicitly labeled. Reference: [design](design.md),
 
 ## Evidence and remaining boundary
 
-- Software: `cargo test --locked` (75 checks), strict Clippy, rustfmt, release build,
+- Software: `cargo test --locked` (79 checks), strict Clippy, rustfmt, release build,
   exhaustive alignment/prefix reference, frozen-clock policy/session traces,
   transactional restart/crash/export/reset checks, and OpenSpec strict validation.
 - Native: recognition and copying terminal sessions, long pause/resume, partial stop,

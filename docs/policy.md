@@ -50,7 +50,7 @@ invalidate the text-entry gate forever. If no bundled text fits the introduced
 repertoire, group practice can progress normally. The existing one-new-symbol
 priority similarly prevents recognition speed changes from starving introductions.
 
-Record schema 2 stores the policy string. v1 records continue to replay their
+Record schema 3 stores the policy string. v1 records continue to replay their
 original controller transitions; v1.1 uses the text-transfer precedence. Statistics
 and score semantics are unchanged. Checks are paired only within one stored policy
 version. Optional checks use a demonstrated qualifying speed, rather than the
