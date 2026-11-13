@@ -14,10 +14,12 @@ independently without starting application integration. Reference: [design](desi
 
 - [ ] 1.5 Select and pin numerical/dependency releases in Cargo.lock; verify CPAL API/timestamp compatibility, Beta quantile tolerance, and build the Rust audio/input spike against the recorded architecture.
 
+- [x] 1.6 Build the Rust audio/input spike with pinned CPAL/rtrb/Crossterm, callback diagnostics, and a dedicated terminal reader; verify native short playback, concurrent typing/backspace/stop, no-allocation sample rendering, and document limitations in docs/prototype-verification.md.
+
 ## 2. Events and Morse timing
 
 - [ ] 2.1 Implement versioned raw observation and decision records with monotonic sequence ordering and stored evaluation/date context; verify equal-timestamp ordering and fixed-clock replay fixtures.
-- [ ] 2.2 Implement ITU repertoire, PARIS/Farnsworth timing, and cumulative sample rounding; verify equal-speed, stretched-spacing, invalid-speed, and half-sample-boundary fixtures in mathematical-fixtures.md.
+- [x] 2.2 Implement ITU repertoire, PARIS/Farnsworth timing, and cumulative sample rounding; verify equal-speed, stretched-spacing, invalid-speed, and cumulative-duration fixtures across the automatic speed grid at three sample rates in src/timing.rs tests.
 - [ ] 2.3 Implement block scheduling and delivered-pace summaries; verify full-character limits, final gaps, rescue accounting, and exclusion of response-tail time from WPM.
 - [ ] 2.4 Document public timing/event interfaces and units; verify the interface examples reproduce the golden timing calculations.
 

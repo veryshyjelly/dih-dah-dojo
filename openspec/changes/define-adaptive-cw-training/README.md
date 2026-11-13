@@ -1,7 +1,7 @@
 # Adaptive CW specification and mathematical design
 
 Status: product requirements, cw-policy-v1 mathematical design, and future
-implementation tasks are drafted. Application code is not implemented. Engineering
+implementation tasks are drafted. The Rust timing/audio/input spike is implemented; full adaptive training remains pending. Engineering
 readiness decisions remain explicitly gated.
 
 Read in order:
@@ -47,5 +47,5 @@ Run `openspec validate define-adaptive-cw-training --strict --no-interactive` an
 `openspec status --change define-adaptive-cw-training`.
 
 Artifact completeness checks file structure, not application implementation or
-learning effectiveness. Resolve tasks section 1 before application coding. Keep
+learning effectiveness. The engineering spike is authorized before full readiness. Resolve remaining tasks section 1 before full trainer integration. Keep
 this change unarchived until the actual implementation and checks are complete.

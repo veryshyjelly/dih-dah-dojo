@@ -10,6 +10,6 @@ context: |
   no async runtime, allocation, locks, or I/O in the application audio callback.
   Numerical dependencies, measured audio/input acceptance, persistence durability,
   and bundled corpus content remain engineering readiness work.
-  Implementation tasks may be planned, but their engineering-readiness gate must be
-  completed before starting application implementation. Preserve uncertain evidence
+  The Rust audio/input spike is authorized before gate closure; full adaptive-trainer
+  integration still requires the engineering-readiness gate. Preserve uncertain evidence
   and distinguish artifact validity from runtime or learning-effectiveness claims.
