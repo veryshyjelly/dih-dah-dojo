@@ -30,7 +30,7 @@ Input consists of the selected text, block type, character/effective speeds,
 estimated audible character onsets `a_i` and ends `z_i`, scheduled final gap,
 printable inputs with capture timestamps `t_j`, backspaces, pause/resume, failures,
 answer disclosures, overrides, rescue intervals, and completion events. Preserve
-raw values as well as normalized values. Character identities use the 43 supported
+raw values as well as normalized values. Character identities use the 42 supported
 symbols: A–Z, 0–9, and `. , ? / = +`.
 
 Use monotonic seconds inside a session and UTC instants for history. Store the
@@ -188,7 +188,7 @@ before latency may support a difficulty increase. Initial response-fluency crite
 
 For each state, count attributable substitutions by response symbol using the same
 100-outcome window and age weights. Conditional on a substitution, use a symmetric
-Dirichlet prior of one on each of the other 42 symbols. Counts for omissions,
+Dirichlet prior of one on each of the other 41 symbols. Counts for omissions,
 uncertainty, and timeout remain separate. Emphasize a directed confusion only after
 three unweighted eligible substitutions of that pair; report assistance separately.
 
@@ -236,7 +236,7 @@ unit-cost edit distance between dot/dash patterns and introduced patterns. Break
 ties by A–Z, 0–9, then `. , ? / = +`. This is an initial separation heuristic, not
 an empirically optimal curriculum. Teach by reveal/replay before scored attempts.
 
-First-use assessment shuffles the 43 symbols without replacement and probes for at
+First-use assessment shuffles the 42 symbols without replacement and probes for at
 most two minutes with four-second response windows. Do not start a trial after
 that limit; finish any sounding character. Correctly recognized symbols become
 introduced, not mastered. Explicitly unfamiliar symbols receive instruction before
