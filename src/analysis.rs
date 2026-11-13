@@ -147,3 +147,62 @@ impl Drop for Analysis {
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn mandatory_final_scoring_survives_a_full_live_result_queue() {
+        use crate::{
+            learner::Context,
+            recording::{Kind, RecognitionTrial},
+        };
+        let mut analysis = Analysis::start().unwrap();
+        // Four published results fill the result channel; job five blocks publication
+        // and job six occupies the work queue before final scoring is submitted.
+        for revision in 0..6 {
+            analysis
+                .sender
+                .as_ref()
+                .unwrap()
+                .send(Job::Live {
+                    block: 1,
+                    revision,
+                    at_ns: 0,
+                    target: vec![Symbol {
+                        character: 'K',
+                        at_ns: 0,
+                    }],
+                    response: vec![Symbol {
+                        character: 'K',
+                        at_ns: 0,
+                    }],
+                })
+                .unwrap();
+        }
+        let mut record = Record::new("pressure", Context::recognition(20), Kind::Recognition);
+        record.trials.push(RecognitionTrial {
+            symbol: 'K',
+            onset_ns: 0,
+            end_ns: 1,
+            response: Some(Symbol {
+                character: 'K',
+                at_ns: 2,
+            }),
+            assisted: false,
+            compromised: false,
+            explicit_unknown: false,
+        });
+        let reply = analysis.final_score(record).unwrap();
+        let start = std::time::Instant::now();
+        loop {
+            while analysis.results.try_recv().is_ok() {}
+            analysis.flush();
+            if let Ok(result) = reply.try_recv() {
+                assert_eq!(result.unwrap().metrics.attempt_accuracy, Some(1.0));
+                break;
+            }
+            assert!(start.elapsed() < std::time::Duration::from_secs(2));
+            thread::sleep(std::time::Duration::from_millis(1));
+        }
+    }
+}

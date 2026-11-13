@@ -18,7 +18,7 @@ Green tests alone do not establish physical timing or human learning effectivene
 | Progress assessment | Offered-date guard, unfamiliar pools, fixed 180-second checks, repeated-day milestones, comparable trends | Native 180-second synthetic check; date/repertoire/material/policy/corpus pairing and trend tests |
 | Local history | One offline learner, atomic record+state, explicit reset, binary snapshot export, refusal of unsupported/corrupt data | CLI restart/export/reset, compact-index rebuilding, child-exit recovery, advisory-lock, byte-compatibility and streaming-allocation tests |
 | Session experience | Default terminal launch, readiness/volume, mixed blocks, summaries, early retention, keyboard controls | Native sessions, long pause, normal/Ctrl-C restoration; real-PTY typing/drawing workload |
-| Real-time execution | Prepared native CPAL output, safe bounded ownership transfer, input/UI/analysis/writer isolation | Allocation/queue-pressure tests; native stress and software latency reports; **physical timing remains open** |
+| Real-time execution | Prepared native CPAL output, safe bounded ownership transfer, input/UI/analysis/writer isolation | Allocation/telemetry-loss/retirement/blocked-renderer/full-analysis-queue tests; native stress and software latency reports; **physical timing remains open** |
 
 ## Required verification still open
 

@@ -236,6 +236,25 @@ where
 mod tests {
     use super::*;
     #[test]
+    fn blocked_renderer_coalesces_bounded_work_and_retains_the_latest_view() {
+        let (queue, mut receive) = RingBuffer::new(1);
+        let mut sender = Sender {
+            queue,
+            pending: None,
+            measurements: None,
+            last: None,
+        };
+        sender.send(View::message("first", "queued"));
+        for i in 0..1000 {
+            sender.send(View::message(format!("latest-{i}"), "replace stale work"));
+        }
+        assert_eq!(receive.pop().unwrap().view.title, "first");
+        sender.flush();
+        assert_eq!(receive.pop().unwrap().view.title, "latest-999");
+        assert!(receive.pop().is_err());
+        assert!(sender.pending.is_none());
+    }
+    #[test]
     fn terminal_view_shows_controls_and_selection_without_audio() {
         let backend = ratatui::backend::TestBackend::new(80, 24);
         let mut terminal = Terminal::new(backend).unwrap();

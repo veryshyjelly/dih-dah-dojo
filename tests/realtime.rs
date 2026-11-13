@@ -82,3 +82,48 @@ fn transport_handoff_and_full_retirement_queue_do_not_allocate_or_deallocate() {
     assert_eq!(CALLS.with(Cell::get), 0);
     assert!(controls.fault.load(std::sync::atomic::Ordering::Acquire));
 }
+
+#[test]
+fn telemetry_loss_requests_silence_and_retires_ownership_without_callback_allocation() {
+    use dih_dah_dojo::transport::{Controls, Kernel, Prepared};
+    use std::sync::{Arc, atomic::Ordering};
+    let (mut ready, receive) = rtrb::RingBuffer::new(1);
+    let (retire, mut retired) = rtrb::RingBuffer::new(1);
+    let (events, _undrained_events) = rtrb::RingBuffer::new(1);
+    let controls = Arc::new(Controls::new());
+    controls.busy.store(true, Ordering::Release);
+    ready
+        .push(
+            Prepared::new(
+                1,
+                Schedule::compile("KM", Timing::new(20.0, 20.0).unwrap(), 1000).unwrap(),
+                100.0,
+                false,
+            )
+            .unwrap(),
+        )
+        .ok()
+        .unwrap();
+    let mut kernel = Kernel::new(receive, retire, events, controls.clone());
+    CALLS.with(|count| count.set(0));
+    ACTIVE.with(|active| active.set(true));
+    let mut late_peak = 0.0f32;
+    for frame in 0..1024 {
+        if frame % 128 == 0 {
+            kernel.begin_callback();
+        }
+        let sample = kernel.sample();
+        if frame >= 32 {
+            late_peak = late_peak.max(sample.abs());
+        }
+    }
+    ACTIVE.with(|active| active.set(false));
+    assert_eq!(CALLS.with(Cell::get), 0);
+    assert!(controls.fault.load(Ordering::Acquire));
+    assert!(!controls.busy.load(Ordering::Acquire));
+    assert_eq!(late_peak, 0.0);
+    assert!(
+        retired.pop().is_ok(),
+        "destroy the prepared renderer outside the callback"
+    );
+}

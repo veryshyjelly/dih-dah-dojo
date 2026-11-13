@@ -62,8 +62,8 @@ Native terminal/audio smoke checks used isolated directories under `/tmp`:
 
 ## Automated software checks
 
-`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 89 tests:
-62 library, 4 history CLI, 2 callback-allocation, 4 scorer CLI, two scoring
+`cargo test --locked`, strict Clippy, and rustfmt pass. The suite includes 92 tests:
+64 library, 4 history CLI, 3 callback-allocation, 4 scorer CLI, two scoring
 references, fourteen integrated policy/session traces, and a streamed-backup
 allocation check.
 
@@ -151,3 +151,20 @@ The [plain-text report](measurements/session-load-2026-11-14.txt) contains all
 counters and conservative 100-microsecond histogram upper bounds. Later storage
 and policy hardening is verified separately; this result is tied to its revision.
 Physical loopback, physical key timing and display presentation remain open.
+
+## Post-hardening workload and fault pressure
+
+Revision `db93541` passed a 120-second repeat after compact heads, streamed backups,
+and v1.2 boundary fixes. All 1,200 scripted keys were handled; five records replayed,
+including reconstructed presentation indexes and explicit mode-override labels.
+Input p99 upper bound was 1.6 ms; terminal-draw submission p99 was 22.9 ms. One input
+handling outlier reached 54.1 ms; its phase/cause was not attributed. These are p99
+targets, not worst-case guarantees. There were zero sequence gaps, callback deadline
+misses or stream faults. See the [full report](measurements/session-load-final-2026-11-14.txt).
+
+Additional deterministic pressure tests verify that a blocked renderer retains the
+latest bounded view, a full live-result queue cannot discard mandatory final
+scoring, and telemetry loss requests silence/retirement with zero callback
+allocation or deallocation. The revised streaming archive is byte-identical to the
+previous container, and compact-head restart reconstructs exercise, passage and
+offer indexes. No physical timing check is closed by these tests.
