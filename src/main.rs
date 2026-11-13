@@ -24,6 +24,15 @@ fn run() -> Result<(), Box<dyn Error>> {
         );
         return Ok(());
     }
+    if matches!(
+        args[0].as_str(),
+        "progress" | "replay" | "export" | "verify-export" | "reset"
+    ) {
+        return dih_dah_dojo::commands::run(&args[0], &args[1..]);
+    }
+    if args[0] == "diagnose" {
+        return dih_dah_dojo::diagnostics::run(&args[1..]);
+    }
     if args[0] == "score" {
         return run_score(&args[1..]);
     }
@@ -87,15 +96,16 @@ fn run() -> Result<(), Box<dyn Error>> {
                 needs_draw = true;
                 match event.key {
                     Key::Character(c) => {
-                        transcript.push(c);
-                        attempts.push(c);
+                        transcript.push(c.to_ascii_uppercase());
+                        attempts.push(c.to_ascii_uppercase());
                     }
                     Key::Backspace => {
                         transcript.pop();
                     }
-                    Key::PasteRejected | Key::Unsupported => {
+                    Key::PasteRejected | Key::Unsupported(_) => {
                         rejected += 1;
                     }
+                    _ => {}
                 }
             }
         }

@@ -38,11 +38,20 @@ pub struct Metrics {
     pub end_backlog: f64,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Delivery {
+    pub kind: crate::transport::EventKind,
+    pub engine: u64,
+    pub character: u32,
+    pub output_frame: u64,
+    pub estimated_ns: u64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Record {
     pub schema: u16,
     pub policy: String,
     pub session_id: String,
     pub utc_ms: i64,
+    pub wall_anchor_ns: u64,
     pub local_date: String,
     pub utc_offset_seconds: i32,
     pub kind: Kind,
@@ -52,12 +61,16 @@ pub struct Record {
     pub corpus_id: Option<String>,
     pub corpus_version: Option<String>,
     pub inputs: Vec<InputRecord>,
+    pub delivery: Vec<Delivery>,
+    pub clock_residual_p99_ns: u64,
+    pub clock_calibrated: bool,
     pub onsets: Vec<Symbol>,
     pub ends_ns: Vec<u64>,
     pub trials: Vec<RecognitionTrial>,
     pub transport_start_ns: u64,
     pub transport_end_ns: u64,
     pub backlog: Vec<(u64, u32, u32)>,
+    pub assessment_elapsed_ns: u64,
     pub scheduled_ns: u64,
     pub rescue_ns: u64,
     pub rescues: u8,
@@ -65,6 +78,8 @@ pub struct Record {
     pub compromised: Option<String>,
     pub metrics: Metrics,
     pub observations: Vec<Observation>,
+    pub selection_reason: String,
+    pub manual_override: bool,
     pub decision: String,
 }
 impl Record {
@@ -75,6 +90,7 @@ impl Record {
             policy: POLICY.into(),
             session_id: session_id.into(),
             utc_ms: now.timestamp_millis(),
+            wall_anchor_ns: 0,
             local_date: now.date_naive().to_string(),
             utc_offset_seconds: now.offset().local_minus_utc(),
             kind,
@@ -84,12 +100,16 @@ impl Record {
             corpus_id: None,
             corpus_version: None,
             inputs: Vec::new(),
+            delivery: Vec::new(),
+            clock_residual_p99_ns: 0,
+            clock_calibrated: false,
             onsets: Vec::new(),
             ends_ns: Vec::new(),
             trials: Vec::new(),
             transport_start_ns: 0,
             transport_end_ns: 0,
             backlog: Vec::new(),
+            assessment_elapsed_ns: 0,
             scheduled_ns: 0,
             rescue_ns: 0,
             rescues: 0,
@@ -97,6 +117,8 @@ impl Record {
             compromised: None,
             metrics: Metrics::default(),
             observations: Vec::new(),
+            selection_reason: String::new(),
+            manual_override: false,
             decision: String::new(),
         }
     }
@@ -152,14 +174,15 @@ impl Record {
                     .map(|v| signed_difference(v.at_ns, trial.end_ns));
                 let mut context = self.context;
                 context.assisted = trial.assisted;
+                let (utc_ms, local_date) = self.observation_time(trial.end_ns);
                 self.observations.push(Observation {
                     symbol: trial.symbol,
                     context,
                     correct: success,
                     response,
                     latency_ns: latency,
-                    utc_ms: self.utc_ms,
-                    local_date: self.local_date.clone(),
+                    utc_ms,
+                    local_date,
                 });
                 if !trial.assisted {
                     independent += 1;
@@ -211,14 +234,15 @@ impl Record {
                         )
                     }
                 };
+                let (utc_ms, local_date) = self.observation_time(self.ends_ns[item.target_index]);
                 self.observations.push(Observation {
                     symbol: item.target.character,
                     context,
                     correct,
                     response,
                     latency_ns: latency,
-                    utc_ms: self.utc_ms,
-                    local_date: self.local_date.clone(),
+                    utc_ms,
+                    local_date,
                 });
             }
         }
@@ -251,6 +275,14 @@ impl Record {
         self.metrics.end_backlog = median(late);
         Ok(())
     }
+    fn observation_time(&self, at_ns: u64) -> (i64, String) {
+        let delta = (at_ns as i128 - self.wall_anchor_ns as i128) / 1_000_000;
+        let utc = (self.utc_ms as i128 + delta).clamp(i64::MIN as i128, i64::MAX as i128) as i64;
+        let local = utc.saturating_add(self.utc_offset_seconds as i64 * 1000);
+        let date = chrono::DateTime::from_timestamp_millis(local)
+            .map_or_else(|| self.local_date.clone(), |v| v.date_naive().to_string());
+        (utc, date)
+    }
     pub fn backlog_covered(&self) -> bool {
         self.backlog.iter().any(|(at, _, _)| {
             *at >= self.transport_start_ns
@@ -262,6 +294,8 @@ impl Record {
     }
     pub fn qualifying_check(&self) -> bool {
         self.kind == Kind::Check
+            && self.assessment_elapsed_ns >= 180_000_000_000
+            && !self.context.assisted
             && self.completed
             && self.compromised.is_none()
             && self.rescues == 0
@@ -367,6 +401,7 @@ mod tests {
             Kind::Check,
         );
         r.completed = true;
+        r.assessment_elapsed_ns = 180_000_000_000;
         r.metrics.target_count = 20;
         r.metrics.attempt_accuracy = Some(1.0);
         assert!(r.qualifying_check());

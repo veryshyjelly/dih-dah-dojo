@@ -32,7 +32,7 @@ impl Controls {
             .store((value.min(100) as f32 / 100.0).to_bits(), Ordering::Release);
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EventKind {
     Started,
     CharacterStart,

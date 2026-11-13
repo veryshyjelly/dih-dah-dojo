@@ -21,7 +21,18 @@ pub enum Key {
     Character(char),
     Backspace,
     PasteRejected,
-    Unsupported,
+    Unsupported(char),
+    Enter,
+    Unknown,
+    Up,
+    Down,
+    Left,
+    Right,
+    Pause,
+    Replay,
+    Progress,
+    Escape,
+    Quit,
 }
 #[derive(Debug, Clone, Copy)]
 pub struct InputEvent {
@@ -62,21 +73,33 @@ impl Input {
                             Event::Key(k) if k.kind != KeyEventKind::Release => match k.code {
                                 KeyCode::Esc => {
                                     stop.store(true, Ordering::Release);
-                                    return Ok(());
+                                    Some(Key::Escape)
                                 }
                                 KeyCode::Char('c')
                                     if k.modifiers.contains(KeyModifiers::CONTROL) =>
                                 {
                                     stop.store(true, Ordering::Release);
-                                    return Ok(());
+                                    Some(Key::Quit)
                                 }
                                 KeyCode::Backspace => Some(Key::Backspace),
+                                KeyCode::Enter => Some(Key::Enter),
+                                KeyCode::Tab => Some(Key::Unknown),
+                                KeyCode::Up => Some(Key::Up),
+                                KeyCode::Down => Some(Key::Down),
+                                KeyCode::Left => Some(Key::Left),
+                                KeyCode::Right => Some(Key::Right),
+                                KeyCode::F(5) => Some(Key::Pause),
+                                KeyCode::F(6) => Some(Key::Replay),
+                                KeyCode::F(1) => Some(Key::Progress),
                                 KeyCode::Char(c)
-                                    if crate::timing::pattern(c).is_some() || c == ' ' =>
+                                    if (crate::timing::pattern(c).is_some() || c == ' ')
+                                        && !k.modifiers.intersects(
+                                            KeyModifiers::CONTROL | KeyModifiers::ALT,
+                                        ) =>
                                 {
-                                    Some(Key::Character(c.to_ascii_uppercase()))
+                                    Some(Key::Character(c))
                                 }
-                                KeyCode::Char(_) => Some(Key::Unsupported),
+                                KeyCode::Char(c) => Some(Key::Unsupported(c)),
                                 _ => None,
                             },
                             Event::Paste(_) => Some(Key::PasteRejected),
@@ -84,14 +107,13 @@ impl Input {
                         };
                         if let Some(key) = key {
                             sequence += 1;
-                            if sequence > 16384
-                                || sender
-                                    .push(InputEvent {
-                                        key,
-                                        received,
-                                        sequence,
-                                    })
-                                    .is_err()
+                            if sender
+                                .push(InputEvent {
+                                    key,
+                                    received,
+                                    sequence,
+                                })
+                                .is_err()
                             {
                                 return Err(io::Error::other("input event limit/queue exceeded"));
                             }

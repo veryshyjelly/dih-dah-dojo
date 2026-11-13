@@ -224,9 +224,19 @@ impl Review {
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Disclosure {
+    pub utc_ms: i64,
+    pub other_trials_remaining: u8,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Profile {
+    pub volume: u8,
+    pub tone_hz: u16,
+    pub total_trials: u64,
+    pub disclosures: BTreeMap<char, Disclosure>,
     pub introduced: String,
     pub entry_complete: bool,
+    pub entry_seen: BTreeSet<char>,
     pub recognition_c: u8,
     pub copying_c: u8,
     pub copying_e: u8,
@@ -243,8 +253,13 @@ pub struct Profile {
 impl Default for Profile {
     fn default() -> Self {
         Self {
+            volume: 50,
+            tone_hz: 600,
+            total_trials: 0,
+            disclosures: BTreeMap::new(),
             introduced: String::new(),
             entry_complete: false,
+            entry_seen: BTreeSet::new(),
             recognition_c: 20,
             copying_c: 20,
             copying_e: 5,
@@ -261,6 +276,29 @@ impl Default for Profile {
     }
 }
 impl Profile {
+    pub fn disclose(&mut self, symbol: char, utc_ms: i64) {
+        self.disclosures.insert(
+            symbol,
+            Disclosure {
+                utc_ms,
+                other_trials_remaining: 5,
+            },
+        );
+    }
+    pub fn assisted(&self, symbol: char, utc_ms: i64) -> bool {
+        self.disclosures.get(&symbol).is_some_and(|d| {
+            utc_ms.saturating_sub(d.utc_ms) < 60_000 || d.other_trials_remaining > 0
+        })
+    }
+    pub fn finish_trial(&mut self, symbol: char) {
+        self.total_trials = self.total_trials.saturating_add(1);
+        for (c, disclosure) in &mut self.disclosures {
+            if *c != symbol {
+                disclosure.other_trials_remaining =
+                    disclosure.other_trials_remaining.saturating_sub(1);
+            }
+        }
+    }
     pub fn introduce(&mut self, symbol: char, now: i64) -> bool {
         if pattern(symbol).is_none()
             || symbol.is_ascii_lowercase()
@@ -279,6 +317,15 @@ impl Profile {
             || !(4..=8).contains(&self.timeout_seconds)
         {
             return Err("invalid saved speed/timeout");
+        }
+        if self.volume > 100
+            || !(300..=1000).contains(&self.tone_hz)
+            || self
+                .disclosures
+                .iter()
+                .any(|(c, d)| pattern(*c).is_none() || d.other_trials_remaining > 5)
+        {
+            return Err("invalid audio/disclosure settings");
         }
         let mut seen = BTreeSet::new();
         for c in self.introduced.chars() {
@@ -422,5 +469,19 @@ mod tests {
                 }
             }
         }
+    }
+    #[test]
+    fn disclosure_requires_both_elapsed_time_and_five_other_symbol_trials() {
+        let mut p = Profile::default();
+        p.disclose('A', 0);
+        for _ in 0..5 {
+            p.finish_trial('A');
+        }
+        assert!(p.assisted('A', 60_000));
+        for _ in 0..5 {
+            p.finish_trial('B');
+        }
+        assert!(p.assisted('A', 59_999));
+        assert!(!p.assisted('A', 60_000));
     }
 }

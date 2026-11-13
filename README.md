@@ -67,6 +67,10 @@ The [transactional history backend](docs/storage.md) now uses redb and versioned
 Postcard binary records, with no JSON persistence. It is crash-tested as a library;
 trainer integration and history commands are still being built.
 
+Offline [history commands and native diagnostics](docs/history-commands.md) are now
+available: `progress`, `replay`, `export`, `verify-export`, `reset`, and `diagnose`.
+They use redb binary data and need no terminal except for interactive playback.
+
 ## Design and next work
 
 The [OpenSpec package](openspec/changes/define-adaptive-cw-training/README.md)
