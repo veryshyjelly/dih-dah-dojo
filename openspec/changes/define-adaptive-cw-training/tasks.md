@@ -25,7 +25,7 @@ independently without starting application integration. Reference: [design](desi
 
 ## 3. Copying and recognition scoring
 
-- [ ] 3.1 Implement normalized attempt and tail-editable final streams with surviving-input timestamps; verify backspace, unsupported input, case, spaces, and correction examples.
+- [x] 3.1 Implement normalized attempt and tail-editable final streams with surviving-input timestamps; verify backspace, unsupported input, case, spaces, and correction examples.
 - [ ] 3.2 Implement onset-gated unit edit distance and bounded primary/secondary scores; verify empty, all-wrong, excess-input, skip/rejoin, and premature-input fixtures.
 - [ ] 3.3 Implement all-optimal-path outcome agreement and operation-count ranges; verify repeated-symbol ambiguity and compare tiny-string results against exhaustive path enumeration.
 - [ ] 3.4 Implement recognition first-response, timeout, disclosure, assistance separation, and compromised-trial rules; verify early input, eight-second maximum timeout, post-reveal repetitions, and technical interruptions.
