@@ -12,7 +12,7 @@ independently without starting application integration. Reference: [design](desi
 - [x] 1.3 Define history durability, export format, reset scope, recovery, and version migration; verify crash/partial-write and reset acceptance scenarios are specified before selecting storage implementation.
 - [ ] 1.4 Select or author a licensed, versioned offline text corpus with disjoint practice/check pools; verify repertoire validation, unique record identities, eligibility filtering, and exhaustion behavior.
 
-- [ ] 1.5 Select and pin numerical/dependency releases in Cargo.lock; verify CPAL API/timestamp compatibility, Beta quantile tolerance, and build the Rust audio/input spike against the recorded architecture.
+- [x] 1.5 Select and pin numerical/dependency releases in Cargo.lock; verify CPAL API/timestamp compatibility, Beta quantile tolerance, and build the Rust audio/input spike against the recorded architecture.
 
 - [x] 1.6 Build the Rust audio/input spike with pinned CPAL/rtrb/Crossterm, callback diagnostics, and a dedicated terminal reader; verify native short playback, concurrent typing/backspace/stop, no-allocation sample rendering, and document limitations in docs/prototype-verification.md.
 
@@ -33,10 +33,10 @@ independently without starting application integration. Reference: [design](desi
 
 ## 4. Learner state and review
 
-- [ ] 4.1 Implement exact-context windows, time discounting, Beta summaries and reliability guards; verify prior, half-life, evidence/date thresholds, context separation, and reference quantiles.
-- [ ] 4.2 Implement nearest-rank latency summaries and conditional confusion estimates; verify negative-latency exclusion, minimum sample counts, directed substitution thresholds, and omission separation.
-- [ ] 4.3 Implement due review interval updates and disclosure eligibility; verify growth/caps, halving/floors, early practice, assisted exclusions, and slow-correct accuracy retention.
-- [ ] 4.4 Document uncertainty and retention semantics; verify UI terminology does not claim observed forgetting solely from elapsed time or calibrated certainty from approximate evidence.
+- [x] 4.1 Implement exact-context windows, time discounting, Beta summaries and reliability guards; verify prior, half-life, evidence/date thresholds, context separation, and reference quantiles.
+- [x] 4.2 Implement nearest-rank latency summaries and conditional confusion estimates; verify negative-latency exclusion, minimum sample counts, directed substitution thresholds, and omission separation.
+- [x] 4.3 Implement due review interval updates and disclosure eligibility; verify growth/caps, halving/floors, early practice, assisted exclusions, and slow-correct accuracy retention.
+- [x] 4.4 Document uncertainty and retention semantics; verify UI terminology does not claim observed forgetting solely from elapsed time or calibrated certainty from approximate evidence.
 
 ## 5. Practice selection
 

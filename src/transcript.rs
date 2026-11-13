@@ -5,27 +5,27 @@ use std::fmt;
 pub const MAX_INPUT_EVENTS: usize = 16_384;
 
 /// Nanoseconds are relative to the same monotonic session origin as audio onsets.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Symbol {
     pub character: char,
     pub at_ns: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Edit {
     Type(char),
     Backspace,
     PasteRejected,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InputRecord {
     pub edit: Edit,
     pub at_ns: u64,
     pub accepted: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum InputError {
     TimeWentBackwards,
     EventLimit,
