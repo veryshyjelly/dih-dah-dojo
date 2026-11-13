@@ -66,6 +66,7 @@ ranges for all 1,922 pairs of binary strings of length zero through four, both
 untimed and with staggered onset/response timestamps. CLI tests execute the documented
 examples without a terminal or audio device.
 
-Live probe input is not yet connected to this scorer: its audio-to-input clock
-mapping, response tail, and interruption status must be established before treating
-playback results as scored training evidence.
+The interactive trainer connects this scorer to delivered-character estimates,
+timestamped input, bounded response tails, and interruption labels. The independent
+`probe` command remains an unscored audio/input diagnostic. Physical delivery
+accuracy remains provisional; see [integrated verification](session-verification.md).

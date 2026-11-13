@@ -212,10 +212,11 @@ Stop transport, wait for callback/stream shutdown, retire schedule ownership,
 join workers, finalize/flush history with immediate redb transaction acknowledgments, and restore terminal state with an RAII guard. Unexpected exits recover the last committed state through redb; pending writes are
 not acknowledged as saved. The callback cannot provide persistence guarantees.
 
-The architecture closes the Rust/runtime/audio/input ownership decision. Before
-integrated application coding, verify statrs numeric fixtures, connect typed records to redb,
-and finalize corpus assets and execute the hardware acceptance spike. Hardware results may
-require buffer tuning without altering the mathematical policy.
+The Rust/runtime/audio/input ownership, statrs fixtures, typed redb records,
+dedicated writer, and original CC0 corpus are implemented. Native software
+measurements are recorded in docs/session-verification.md. Physical route, input,
+and UI acceptance measurements remain open; practice uses explicit unverified
+labels. Hardware results may require buffer tuning without altering score semantics.
 
 ## Transactional history selection
 

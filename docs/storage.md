@@ -73,7 +73,7 @@ reporting success. A failed export may leave a partial destination: it must not 
 reported as complete; `verify_export` rejects truncated/corrupt/unknown-format files.
 Do not copy the live database file while it may be changing.
 
-`verify_export` is available as a library operation. Archive restoration is not yet
+`verify_export` is available as a library operation and the `verify-export` CLI. Archive restoration is not yet
 implemented; export is not a promise that an arbitrary future format can be imported.
 CSV progress export can be layered on typed records without changing database storage.
 

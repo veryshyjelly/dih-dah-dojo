@@ -44,6 +44,13 @@ Native terminal/audio smoke checks used isolated directories under `/tmp`:
   ended audio, accepted the bounded tail, saved a completed assisted block, and
   reduced E from 5 to 4. Further audio required explicit Enter. Restart/replay
   reproduced the saved target and controller state.
+- A muted native three-minute check used an isolated synthetic readiness profile
+  (not human proficiency evidence). It completed a 180,000,000,000 ns assessment
+  window, scheduling 253 characters and their gaps in 179.76 s. No rescue occurred;
+  the ten-second response tail was bounded. Zero responses produced 0% accuracy and
+  no milestone. The offered date persisted, another same-day offer was suppressed,
+  and all five records replayed successfully. Skipping readiness left the initial
+  calibration flag false; no physical timing claim is inferred.
 - Terminal raw mode, bracketed paste mode, cursor, and alternate screen were restored
   after normal exit and Ctrl-C.
 - One copying run during concurrent compilation reported a CoreAudio Xrun (code 2).
@@ -95,3 +102,28 @@ full statistics. Exhaustive prefix-frontier comparisons and 100 longer timed
 attribution comparisons pass. These are isolated worker measurements, not a universal
 latency guarantee. Work exceeding 100 ms compromises the block; bounded workspace
 failure retains a technical record without partial proficiency credit.
+
+## Final release smoke
+
+A five-second muted scoring/storage stress repeat on the integrated release build
+reported:
+
+```text
+elapsed_seconds=5.042071208
+callbacks=1870
+actual_buffer_min=128
+actual_buffer_max=128
+render_p99_ms=0.001667
+max_render_budget_percent=0.161
+callback_deadline_misses=0
+clock_mapping_residual_p99_ms=0.005125
+clock_calibrated=true
+fault=false
+backend_fault_code=0
+clock_or_worker_error=None
+physical_loopback_performed=false
+```
+
+The build also passed `cargo build --release --locked --offline`. The earlier
+30-minute result and this short repeat cover different revisions and durations;
+neither replaces physical route/input/UI measurements.
