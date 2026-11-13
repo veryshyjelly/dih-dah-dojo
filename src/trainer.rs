@@ -112,6 +112,56 @@ impl Options {
         self.character.is_some() || self.effective.is_some()
     }
 }
+/// First accepted response wins; capture time, not delayed handling time, gates deadlines.
+#[derive(Default)]
+struct RecognitionCapture {
+    response: Option<Symbol>,
+    unknown: bool,
+    replay: bool,
+    answered: bool,
+}
+impl RecognitionCapture {
+    fn receive(
+        &mut self,
+        key: Key,
+        at: u64,
+        onset: Option<u64>,
+        end: Option<u64>,
+        timeout: u8,
+        paused: bool,
+    ) {
+        if self.answered || paused {
+            return;
+        }
+        if end.is_some_and(|end| at > end.saturating_add(timeout as u64 * 1_000_000_000)) {
+            self.answered = true;
+            return;
+        }
+        match key {
+            Key::Replay => {
+                self.replay = true;
+                self.answered = true;
+            }
+            Key::Unknown if onset.is_some_and(|onset| at >= onset) => {
+                self.unknown = true;
+                self.answered = true;
+            }
+            Key::Character(character) if onset.is_some_and(|onset| at >= onset) => {
+                self.response = Some(Symbol {
+                    character: character.to_ascii_uppercase(),
+                    at_ns: at,
+                });
+                self.answered = true;
+            }
+            _ => {}
+        }
+    }
+    fn expire(&mut self, now: u64, end: Option<u64>, timeout: u8) {
+        if end.is_some_and(|end| now >= end.saturating_add(timeout as u64 * 1_000_000_000)) {
+            self.answered = true;
+        }
+    }
+}
 pub fn run(args: &[String]) -> Result<()> {
     let options = Options::parse(args)?;
     if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
@@ -165,6 +215,7 @@ struct Runtime {
     last_view: Instant,
     audio_error: Option<String>,
     fatal: Option<String>,
+    history_failed: bool,
     session_id: String,
     rng: Random,
 }
@@ -217,6 +268,7 @@ impl Runtime {
             last_view: Instant::now() - Duration::from_secs(1),
             audio_error: None,
             fatal: None,
+            history_failed: false,
             session_id: String::new(),
             rng: Random::new(seed),
         })
@@ -231,6 +283,10 @@ impl Runtime {
             self.controls.stop.store(true, Ordering::Release);
         }
         while let Ok(event) = self.input.events.pop() {
+            if matches!(event.key, Key::Resize) {
+                self.ui.redraw();
+                continue;
+            }
             if matches!(event.key, Key::Quit) {
                 self.quit.store(true, Ordering::Release);
             }
@@ -383,8 +439,24 @@ impl Runtime {
         }
     }
     fn save(&mut self, record: Record) -> Result<Record> {
-        let reply = self.analysis.final_score(record)?;
-        let mut record = *self.wait_reply(reply, "Evaluating practice")?;
+        if self.history_failed {
+            return Err("history commit status is unknown; reopen before writing".into());
+        }
+        let evaluated = self
+            .analysis
+            .final_score(record)
+            .map_err(|error| -> Box<dyn Error> { error.into() })
+            .and_then(|reply| self.wait_reply(reply, "Evaluating practice"));
+        let mut record = match evaluated {
+            Ok(record) => *record,
+            Err(error) => {
+                self.fatal = Some(format!(
+                    "Final evaluation failed; this block could not be saved: {error}"
+                ));
+                self.quit.store(true, Ordering::Release);
+                return Err(error);
+            }
+        };
         record.apply_policy(&mut self.controller, &mut self.profile);
         let reply = match self.writer.as_ref().unwrap().request(Operation::Append(
             Box::new(record.clone()),
@@ -410,6 +482,7 @@ impl Runtime {
         Ok(record)
     }
     fn persistence_failed(&mut self, message: &str) {
+        self.history_failed = true;
         self.fatal = Some(format!(
             "Local persistence failed; restart and inspect history: {message}"
         ));
@@ -472,6 +545,9 @@ impl Runtime {
         loop {
             self.pump();
             if self.quit.load(Ordering::Acquire) {
+                return Ok(false);
+            }
+            if self.audio_error.is_some() || self.fatal.is_some() {
                 return Ok(false);
             }
             for event in self.keys() {
@@ -569,12 +645,9 @@ impl Runtime {
         let id = self.start_sound(&symbol.to_string(), c, c, false)?;
         let mut onset = None;
         let mut end = None;
-        let mut response = None;
-        let mut unknown = false;
-        let mut answered = false;
+        let mut capture = RecognitionCapture::default();
         let mut finished = false;
         let mut compromised = false;
-        let mut replay = false;
         let mut stop = false;
         let assisted = self
             .profile
@@ -617,43 +690,26 @@ impl Runtime {
                             self.controls.stop.store(true, Ordering::Release);
                         }
                     }
-                    Key::Replay if !answered => {
-                        replay = true;
-                        answered = true;
-                    }
-                    Key::Unknown if !answered && onset.is_some_and(|a| at >= a) => {
-                        unknown = true;
-                        answered = true;
-                    }
-                    Key::Character(ch)
-                        if !answered
-                            && onset.is_some_and(|a| at >= a)
-                            && !self.controls.pause.load(Ordering::Acquire) =>
-                    {
-                        response = Some(Symbol {
-                            character: ch.to_ascii_uppercase(),
-                            at_ns: at,
-                        });
-                        answered = true;
-                    }
-                    _ => {}
+                    key => capture.receive(
+                        key,
+                        at,
+                        onset,
+                        end,
+                        self.profile.timeout_seconds,
+                        self.controls.pause.load(Ordering::Acquire),
+                    ),
                 }
             }
-            if !answered
-                && end.is_some_and(|at| {
-                    self.now()
-                        >= at.saturating_add(self.profile.timeout_seconds as u64 * 1_000_000_000)
-                })
-            {
-                answered = true;
-            }
+            capture.expire(self.now(), end, self.profile.timeout_seconds);
             let mut view = View::message(
                 "Recognition",
                 format!(
                     "Listen, then type one character.\n\nResponse: {}\nCharacter speed: {c} WPM · remaining response window: {} s\n{}",
-                    response.map_or_else(|| "…".into(), |s| s.character.to_string()),
+                    capture
+                        .response
+                        .map_or_else(|| "…".into(), |s| s.character.to_string()),
                     self.profile.timeout_seconds,
-                    if assisted || replay {
+                    if assisted || capture.replay {
                         "Assisted repetition — separate from independent evidence"
                     } else {
                         "Independent attempt"
@@ -674,7 +730,7 @@ impl Runtime {
                 self.stop_audio();
                 break;
             }
-            if finished && (answered || stop) {
+            if finished && (capture.answered || stop) {
                 break;
             }
         }
@@ -685,12 +741,12 @@ impl Runtime {
                 symbol,
                 onset_ns: onset,
                 end_ns: end,
-                response,
-                assisted: assisted || replay,
+                response: capture.response,
+                assisted: assisted || capture.replay,
                 compromised,
-                explicit_unknown: unknown,
+                explicit_unknown: capture.unknown,
             },
-            replay,
+            capture.replay,
             stop,
         ))
     }
@@ -813,7 +869,9 @@ impl Runtime {
             }
         }
         if entry {
-            self.profile.entry_complete = self.profile.entry_seen.len() == SYMBOLS.len();
+            // A completed placement is bounded to one introductory assessment.
+            // Remaining symbols enter normal teaching/coverage slots in later sessions.
+            self.profile.entry_complete = !stopped;
             for c in ['K', 'M'] {
                 if stopped {
                     break;
@@ -1105,6 +1163,17 @@ impl Runtime {
             }
             while let Ok(result) = self.analysis.results.try_recv() {
                 if result.block == id
+                    && (result.processing_ns > 100_000_000
+                        || (result.revision == revision
+                            && now.saturating_sub(result.at_ns) > 100_000_000))
+                {
+                    record.compromised =
+                        Some("live analysis exceeded its 100 ms freshness limit".into());
+                    stopped = true;
+                    self.controls.stop.store(true, Ordering::Release);
+                    continue;
+                }
+                if result.block == id
                     && result.revision == revision
                     && now.saturating_sub(result.at_ns) <= 100_000_000
                 {
@@ -1166,7 +1235,11 @@ impl Runtime {
                 stopped = true;
                 break;
             }
-            let elapsed = now.saturating_sub(record.transport_start_ns) / 1_000_000_000;
+            let elapsed = if source_start_frame.is_some() {
+                now.saturating_sub(record.transport_start_ns) / 1_000_000_000
+            } else {
+                0
+            };
             let mut view = View::message(
                 if is_check {
                     "Unassisted progress check"
@@ -1221,10 +1294,12 @@ impl Runtime {
             v.map_or_else(|| "unavailable".into(), |a| format!("{:.1}%", 100.0 * a))
         };
         let summary = format!(
-            "Attempt accuracy: {} · final: {}\n{}\nAssistance: {} catch-up gaps.\n{}",
+            "Attempt accuracy: {} · final: {}\n{}\n{}\n{}\nAssistance: {} catch-up gaps.\n{}",
             accuracy(saved.metrics.attempt_accuracy),
             accuracy(saved.metrics.final_accuracy),
             saved.decision,
+            saved.evidence_summary(),
+            saved.pace_summary(),
             saved.rescues,
             if saved.qualifying_check() {
                 "Qualifying unassisted result recorded at the displayed conditions."
@@ -1494,6 +1569,15 @@ impl Runtime {
                 trend * 100.0
             ));
         }
+        for context in [Context::recognition(self.profile.recognition_c), context] {
+            if let Some(change) = commands::latency_trend(&self.records, context) {
+                lines.push(format!(
+                    "{:?} comparable response-latency change: {:+.0} ms (typing included)",
+                    context.mode,
+                    change as f64 / 1e6
+                ));
+            }
+        }
         let mut offset = 0u16;
         loop {
             let mut view = View::message(
@@ -1671,4 +1755,51 @@ fn median(mut values: Vec<f64>) -> f64 {
     values.sort_by(f64::total_cmp);
     let n = values.len();
     (values[(n - 1) / 2] + values[n / 2]) / 2.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn recognition_uses_first_eligible_capture_time_and_preserves_early_recognition() {
+        let mut capture = RecognitionCapture::default();
+        capture.receive(Key::Character('x'), 99, Some(100), Some(200), 4, false);
+        assert!(!capture.answered);
+        capture.receive(Key::Character('k'), 150, Some(100), Some(200), 4, false);
+        capture.receive(Key::Character('m'), 250, Some(100), Some(200), 4, false);
+        assert_eq!(
+            capture.response,
+            Some(Symbol {
+                character: 'K',
+                at_ns: 150
+            })
+        );
+        assert!(!capture.replay);
+    }
+    #[test]
+    fn recognition_deadline_unknown_pause_and_replay_are_distinct() {
+        let mut late = RecognitionCapture::default();
+        late.receive(
+            Key::Character('K'),
+            8_000_000_201,
+            Some(100),
+            Some(200),
+            8,
+            false,
+        );
+        assert!(late.answered && late.response.is_none());
+        let mut unknown = RecognitionCapture::default();
+        unknown.receive(Key::Unknown, 150, Some(100), Some(200), 4, true);
+        assert!(!unknown.answered);
+        unknown.receive(Key::Unknown, 150, Some(100), Some(200), 4, false);
+        assert!(unknown.unknown && unknown.response.is_none());
+        let mut replay = RecognitionCapture::default();
+        replay.receive(Key::Replay, 150, Some(100), Some(200), 4, false);
+        assert!(replay.replay && replay.answered);
+        let mut timeout = RecognitionCapture::default();
+        timeout.expire(8_000_000_199, Some(200), 8);
+        assert!(!timeout.answered);
+        timeout.expire(8_000_000_200, Some(200), 8);
+        assert!(timeout.answered && timeout.response.is_none());
+    }
 }

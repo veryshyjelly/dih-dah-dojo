@@ -75,6 +75,15 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     let mut workers = Vec::new();
     let mut stress_directory = None;
     if stress {
+        let directory = std::env::temp_dir().join(format!(
+            "cw-diagnostic-{}-{}",
+            std::process::id(),
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        ));
+        fs::create_dir(&directory)?;
+        let path = directory.join("stress.redb");
+        stress_directory = Some(directory);
+
         let stop = stopped.clone();
         workers.push(thread::spawn(move || -> Result<(), String> {
             let source = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".repeat(8);
@@ -91,14 +100,6 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
             }
             Ok(())
         }));
-        let directory = std::env::temp_dir().join(format!(
-            "cw-diagnostic-{}-{}",
-            std::process::id(),
-            chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
-        ));
-        fs::create_dir(&directory)?;
-        let path = directory.join("stress.redb");
-        stress_directory = Some(directory);
         let stop = stopped.clone();
         workers.push(thread::spawn(move || -> Result<(), String> {
             let mut history = History::open(path).map_err(|e| e.to_string())?;

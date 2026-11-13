@@ -2,7 +2,7 @@
 
 ## Resolved mathematical policy
 
-The accepted baseline is [cw-policy-v1](design.md). Its sections resolve:
+The accepted baseline and implemented v1.1 extension are [documented here](design.md). Its sections resolve:
 
 | Previously open topic | Design section |
 | --- | --- |
@@ -22,26 +22,18 @@ penalties while improving final-transcript accuracy. Do not reinstate a hidden
 
 ## Engineering readiness gate
 
-These are deliberately unresolved, and application implementation tasks depend on
-resolving them. The presence of design/tasks artifacts does not waive the gate.
+Rust/native execution ownership, pinned numerical dependencies, Beta quantile
+checks, redb/Postcard transactions, the dedicated writer, binary export/reset,
+explicit schema refusal, the original CC0 corpus, and bounded manual speed overrides
+are implemented. See [verification](../../../docs/session-verification.md) and
+[tasks](tasks.md) for evidence rather than inferring completion from this document.
 
-- Numerical dependencies and their versions/accuracy checks. Rust, module boundaries,
-  execution lanes and audio/input ownership are decided in
-  [engineering-design.md](engineering-design.md); crate versions are pinned during
-  the first compiled prototype.
-- Execute the audio/input measurement protocol in engineering-design.md on the
-  target Mac. Targets and failure handling are specified; actual route/device
-  measurements and supported buffer configuration remain unverified.
-- Connect typed trainer records to the selected redb/Postcard layer and implement
-  its dedicated writer. Engine, immediate transaction durability, binary export,
-  reset confirmation, and schema refusal are decided in docs/storage.md. Physical
-  power-loss validation remains distinct from application process-exit recovery tests.
-- Licensed/author-owned bundled text corpus, sufficient unseen check material,
-  versioning and record identity. The selection and exhaustion rules are already fixed.
-- Manual speed-setting engineering limits consistent with positive E<=C.
-
-Implementation tasks are in [tasks.md](tasks.md); section 1 records how to close
-this gate before integration. Mathematical fixture prototypes can be verified first.
+Physical output loopback, physical key timing, route comparisons, and integrated
+input/UI latency distributions remain unmeasured. Native buffer/render/mapping
+results are recorded, including a 30-minute stress run and a separately observed
+CoreAudio underrun. The architecture permits explicitly unverified practice;
+latency claims remain provisional. Tasks 1.2 and the physical portion of 8.1 stay
+open. Application crash recovery tests do not prove physical power-loss behavior.
 
 ## Research and later tuning
 

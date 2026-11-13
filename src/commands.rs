@@ -103,9 +103,8 @@ pub fn run(command: &str, args: &[String]) -> Result<(), Box<dyn Error>> {
     match command {
         "progress" => print_progress(&loaded),
         "replay" => println!(
-            "Verified deterministic score/evidence and recorded policy-state replay for {} records ({})",
-            loaded.records.len(),
-            crate::learner::POLICY
+            "Verified deterministic score/evidence and policy-state replay for {} records (stored policy versions)",
+            loaded.records.len()
         ),
         "export" => {
             loaded.history.export(&args[0])?;
@@ -207,8 +206,32 @@ fn print_progress(loaded: &Loaded) {
                 "incomplete"
             }
         );
+        println!("  {}", r.pace_summary());
         if let Some(reason) = &r.compromised {
             println!("  Excluded: {reason}");
+        }
+    }
+    for context in [
+        Context::recognition(loaded.profile.recognition_c),
+        Context::copying(
+            loaded.profile.copying_c,
+            loaded.profile.copying_e,
+            crate::learner::Material::Groups,
+        ),
+    ] {
+        if let Some(delta) = trend(&loaded.records, context) {
+            println!(
+                "{:?} comparable accuracy change: {:+.1} percentage points",
+                context.mode,
+                delta * 100.0
+            );
+        }
+        if let Some(delta) = latency_trend(&loaded.records, context) {
+            println!(
+                "{:?} comparable response-latency change: {:+.0} ms (typing included)",
+                context.mode,
+                delta as f64 / 1e6
+            );
         }
     }
     let milestones = milestones(&loaded.records);
@@ -249,29 +272,59 @@ pub fn milestones(records: &[Record]) -> Vec<String> {
     }
     out
 }
-pub fn trend(records: &[Record], context: Context) -> Option<f64> {
-    let repertoire = &records
-        .iter()
-        .rev()
-        .find(|r| r.context == context && r.is_practice())?
-        .repertoire;
-    let values: Vec<_> = records
+fn comparable_records(records: &[Record], context: Context) -> Vec<&Record> {
+    let mut comparable: Vec<_> = records
         .iter()
         .rev()
         .filter(|r| {
             r.context == context
-                && &r.repertoire == repertoire
                 && r.completed
                 && r.compromised.is_none()
                 && r.rescues == 0
                 && r.policy == crate::learner::POLICY
                 && r.is_practice()
         })
+        .collect();
+    if let Some(latest) = comparable.first().copied() {
+        comparable.retain(|r| {
+            r.repertoire == latest.repertoire && r.corpus_version == latest.corpus_version
+        });
+    }
+    comparable
+}
+pub fn trend(records: &[Record], context: Context) -> Option<f64> {
+    let values: Vec<_> = comparable_records(records, context)
+        .into_iter()
         .filter_map(|r| r.metrics.attempt_accuracy)
         .take(6)
         .collect();
     (values.len() == 6)
         .then(|| values[..3].iter().sum::<f64>() / 3.0 - values[3..].iter().sum::<f64>() / 3.0)
+}
+/// Difference between means of three comparable block medians (latest minus previous).
+/// At least eight correct independent nonnegative responses are needed in each block.
+pub fn latency_trend(records: &[Record], context: Context) -> Option<i64> {
+    let values: Vec<_> = comparable_records(records, context)
+        .into_iter()
+        .filter_map(|r| {
+            let mut delays: Vec<_> = r
+                .observations
+                .iter()
+                .filter(|o| o.correct && !o.context.assisted)
+                .filter_map(|o| o.latency_ns.filter(|v| *v >= 0))
+                .collect();
+            if delays.len() < 8 {
+                return None;
+            }
+            delays.sort_unstable();
+            Some(delays[(delays.len() - 1) / 2] as i128)
+        })
+        .take(6)
+        .collect();
+    (values.len() == 6).then(|| {
+        ((values[..3].iter().sum::<i128>() - values[3..].iter().sum::<i128>()) / 3)
+            .clamp(i64::MIN as i128, i64::MAX as i128) as i64
+    })
 }
 pub fn check_context(
     profile: &Profile,
@@ -284,6 +337,7 @@ pub fn check_context(
     // Repeat an unpaired successful check at identical conditions before chasing a higher target.
     if let Some(old) = records.iter().rev().find(|r| {
         r.qualifying_check()
+            && r.policy == crate::learner::POLICY
             && (r.context.material != crate::learner::Material::Text
                 || r.corpus_version.as_deref() == Some(crate::planner::CORPUS_VERSION))
             && r.local_date != date

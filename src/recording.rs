@@ -161,8 +161,49 @@ impl Record {
             after_controller: controller.clone(),
         }));
     }
+    pub fn pace_summary(&self) -> String {
+        let audio_ns = self.scheduled_ns.saturating_add(self.rescue_ns);
+        let adjusted = if audio_ns > 0 {
+            self.context.effective_wpm as f64 * self.scheduled_ns as f64 / audio_ns as f64
+        } else {
+            0.0
+        };
+        let tail_ns = self
+            .inputs
+            .iter()
+            .filter(|e| e.accepted)
+            .map(|e| e.at_ns)
+            .max()
+            .unwrap_or(self.transport_end_ns)
+            .saturating_sub(self.transport_end_ns);
+        format!(
+            "Requested {}/{} WPM · gap-adjusted reference E {:.2}\nAudio {:.2} s · extra gaps {:.2} s · last response after audio {:.2} s",
+            self.context.character_wpm,
+            self.context.effective_wpm,
+            adjusted,
+            audio_ns as f64 / 1e9,
+            self.rescue_ns as f64 / 1e9,
+            tail_ns as f64 / 1e9
+        )
+    }
+    pub fn evidence_summary(&self) -> String {
+        format!(
+            "n={} · attempt {} · rescue {} · ambiguous {} · backlog {:.1}→{:.1}",
+            self.metrics.target_count,
+            self.metrics
+                .attempt_accuracy
+                .map_or_else(|| "unavailable".into(), |a| format!("{:.1}%", a * 100.0)),
+            self.rescues,
+            self.metrics.ambiguous,
+            self.metrics.early_backlog,
+            self.metrics.end_backlog
+        )
+    }
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.schema != 2 || self.policy != POLICY || !self.context.valid() {
+        if self.schema != 2
+            || ![POLICY, "cw-policy-v1"].contains(&self.policy.as_str())
+            || !self.context.valid()
+        {
             return Err("unsupported/invalid practice record");
         }
         if self

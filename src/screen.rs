@@ -31,7 +31,7 @@ impl View {
     pub fn message(title: impl Into<String>, body: impl Into<String>) -> Self {
         Self {
             title: title.into(),
-            subtitle: "CW DOJO · local adaptive practice".into(),
+            subtitle: "CW DOJO · local adaptive practice · timing unverified".into(),
             lines: body.into().lines().map(str::to_string).collect(),
             options: Vec::new(),
             selected: 0,
@@ -54,6 +54,11 @@ impl Sender {
         match self.queue.push(view) {
             Ok(()) => self.pending = None,
             Err(PushError::Full(view)) => self.pending = Some(view),
+        }
+    }
+    pub fn redraw(&mut self) {
+        if let Some(view) = self.last.take() {
+            self.send(view);
         }
     }
     pub fn flush(&mut self) {

@@ -37,6 +37,14 @@ impl Drop for Temp {
     }
 }
 #[test]
+fn training_requires_a_terminal_before_creating_history() {
+    let temp = Temp::new();
+    let result = temp.command(&["train"]);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("interactive terminal"));
+    assert_eq!(fs::read_dir(&temp.0).unwrap().count(), 0);
+}
+#[test]
 fn progress_replay_export_and_confirmed_reset_work_offline() {
     let temp = Temp::new();
     {

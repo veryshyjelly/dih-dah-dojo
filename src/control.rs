@@ -232,6 +232,23 @@ impl Controller {
                 *count = count.saturating_add(1).min(2);
             }
             if state.up >= 2 {
+                // v1.1 prevents group speed advancement from starving the text gate.
+                // v1 records retain their original transition and decision text on replay.
+                if record.policy != "cw-policy-v1"
+                    && context.material == Material::Groups
+                    && profile
+                        .check_qualifications
+                        .get(&(context.character_wpm, context.effective_wpm, Material::Text))
+                        .copied()
+                        .unwrap_or(0)
+                        < 2
+                    && !crate::planner::eligible_text(profile, false).is_empty()
+                {
+                    return format!(
+                        "Groups qualified at {}/{} WPM: consolidate eligible text before the next speed increase",
+                        profile.copying_c, profile.copying_e
+                    );
+                }
                 if profile.copying_e < profile.copying_c {
                     profile.copying_e += 1;
                 } else {

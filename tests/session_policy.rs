@@ -104,8 +104,18 @@ fn copying_traces_separate_corrections_rejoining_stable_lag_and_overload() {
         lagged.apply_policy(&mut controller, &mut p);
     }
     assert_eq!(
+        p.copying_e, 4,
+        "qualified groups leave room for text transfer"
+    );
+    for _ in 0..2 {
+        let mut text = copy(&p, "stable-lag");
+        text.context.material = Material::Text;
+        text.derive().unwrap();
+        text.apply_policy(&mut controller, &mut p);
+    }
+    assert_eq!(
         p.copying_e, 5,
-        "stable lag is compatible with sustainable copying"
+        "stable lag permits progression after text transfer"
     );
     let mut overloaded = copy(&p, "correct");
     overloaded.rescues = 2;
@@ -221,4 +231,138 @@ fn no_input_and_rescue_are_bounded_and_future_or_stale_samples_cannot_trigger() 
     assert!(rescue.should_request(8_000_000_000, 0, None));
     rescue.applied(8_000_000_000);
     assert!(!rescue.should_request(8_000_000_000, 0, Some(3)));
+}
+
+#[test]
+fn text_progression_fix_preserves_legacy_policy_replay() {
+    let mut old_profile = profile();
+    let mut old_controller = Controller::default();
+    let mut old_records = Vec::new();
+    for _ in 0..2 {
+        let mut record = copy(&old_profile, "correct");
+        record.policy = "cw-policy-v1".into();
+        record.apply_policy(&mut old_controller, &mut old_profile);
+        old_records.push(record);
+    }
+    assert_eq!(old_profile.copying_e, 6);
+    assert!(recording::replay(&old_records).is_ok());
+
+    let mut current_profile = profile();
+    let mut current_controller = Controller::default();
+    for _ in 0..2 {
+        let mut record = copy(&current_profile, "correct");
+        record.apply_policy(&mut current_controller, &mut current_profile);
+    }
+    assert_eq!(current_profile.copying_e, 5);
+    assert_eq!(current_profile.group_qualifications.get(&(20, 5)), Some(&2));
+    for _ in 0..2 {
+        let mut record = copy(&current_profile, "correct");
+        record.context.material = Material::Text;
+        record.derive().unwrap();
+        record.apply_policy(&mut current_controller, &mut current_profile);
+    }
+    assert_eq!(current_profile.copying_e, 6);
+}
+
+#[test]
+fn trends_require_matching_repertoire_and_enough_comparable_blocks() {
+    let p = profile();
+    let mut records = Vec::new();
+    for i in 0..6 {
+        let mut record = copy(&p, "correct");
+        record.metrics.attempt_accuracy = Some(if i < 3 { 0.8 } else { 0.9 });
+        for observation in &mut record.observations {
+            observation.latency_ns = Some(if i < 3 { 600_000_000 } else { 400_000_000 });
+        }
+        records.push(record);
+    }
+    let context = records[0].context;
+    assert!((commands::trend(&records, context).unwrap() - 0.1).abs() < 1e-12);
+    assert_eq!(
+        commands::latency_trend(&records, context),
+        Some(-200_000_000)
+    );
+    records[5].repertoire = "KM".into();
+    assert_eq!(commands::trend(&records, context), None);
+    assert_eq!(commands::latency_trend(&records, context), None);
+}
+
+#[test]
+fn analysis_resource_failure_retains_a_compromised_record_without_partial_credit() {
+    let mut record = copy(&profile(), "correct");
+    record.onsets = vec![
+        Symbol {
+            character: 'E',
+            at_ns: 0
+        };
+        2048
+    ];
+    record.ends_ns = vec![1; 2048];
+    record.inputs = (0..2048)
+        .map(|i| dih_dah_dojo::transcript::InputRecord {
+            edit: Edit::Type('E'),
+            at_ns: i + 1,
+            accepted: true,
+        })
+        .collect();
+    let mut analysis = dih_dah_dojo::analysis::Analysis::start().unwrap();
+    let received = analysis
+        .final_score(record)
+        .unwrap()
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap()
+        .unwrap();
+    assert!(
+        received
+            .compromised
+            .as_ref()
+            .unwrap()
+            .contains("resource limit")
+    );
+    assert!(received.observations.is_empty());
+    assert_eq!(received.metrics.attempt_accuracy, None);
+    assert_eq!(received.inputs.len(), 2048);
+    assert!(recording::replay(&[*received]).is_ok());
+}
+
+#[test]
+fn frozen_clock_crosses_midnight_and_equal_timestamp_records_keep_sequence_order() {
+    let mut record = Record::new("fixed-clock", Context::recognition(20), Kind::Recognition);
+    record.utc_ms = 86_399_500; // 1970-01-01 23:59:59.500 UTC
+    record.wall_anchor_ns = 10_000_000_000;
+    record.utc_offset_seconds = 0;
+    record.local_date = "1970-01-01".into();
+    record.trials.push(RecognitionTrial {
+        symbol: 'K',
+        onset_ns: 10_000_000_000,
+        end_ns: 11_000_000_000,
+        response: Some(Symbol {
+            character: 'K',
+            at_ns: 11_200_000_000,
+        }),
+        assisted: false,
+        compromised: false,
+        explicit_unknown: false,
+    });
+    record.derive().unwrap();
+    assert_eq!(record.observations[0].utc_ms, 86_400_500);
+    assert_eq!(record.observations[0].local_date, "1970-01-02");
+    let path =
+        std::env::temp_dir().join(format!("cw-equal-timestamps-{}.redb", std::process::id()));
+    let mut history = History::open(&path).unwrap();
+    let p = profile();
+    assert_eq!(history.append(&record, &p).unwrap(), 1);
+    assert_eq!(history.append(&record, &p).unwrap(), 2);
+    let records: Vec<(u64, Record)> = history.records().unwrap();
+    assert_eq!(
+        records
+            .iter()
+            .map(|(sequence, _)| *sequence)
+            .collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    assert_eq!(records[0].1.utc_ms, records[1].1.utc_ms);
+    drop(history);
+    std::fs::remove_file(&path).unwrap();
+    let _ = std::fs::remove_file(path.with_extension("lock"));
 }

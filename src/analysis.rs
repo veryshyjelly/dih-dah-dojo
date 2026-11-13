@@ -13,6 +13,7 @@ pub struct LiveResult {
     pub block: u64,
     pub revision: u64,
     pub at_ns: u64,
+    pub processing_ns: u64,
     pub result: Result<LiveAlignment, String>,
 }
 enum Job {
@@ -47,17 +48,31 @@ impl Analysis {
                             target,
                             response,
                         } => {
+                            let started = std::time::Instant::now();
                             let result = scoring::live_alignment(&target, &response)
                                 .map_err(|e| e.to_string());
                             let _ = publish.send(LiveResult {
                                 block,
                                 revision,
                                 at_ns,
+                                processing_ns: started.elapsed().as_nanos().min(u64::MAX as u128)
+                                    as u64,
                                 result,
                             });
                         }
                         Job::Final(mut record, reply) => {
-                            let result = record.derive().map(|_| record).map_err(|e| e.to_string());
+                            let result = match record.derive() {
+                                Ok(()) => Ok(record),
+                                Err(error)
+                                    if record.context.mode == crate::learner::Mode::Copying
+                                        && record.validate().is_ok() =>
+                                {
+                                    record.compromised =
+                                        Some(format!("final scoring unavailable: {error}"));
+                                    record.derive().map(|_| record).map_err(|e| e.to_string())
+                                }
+                                Err(error) => Err(error.to_string()),
+                            };
                             let _ = reply.send(result);
                         }
                     }

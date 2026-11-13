@@ -1,10 +1,10 @@
-# Mathematical design: CW policy v1
+# Mathematical design: CW policy v1 / v1.1
 
 ## Context
 
 See [proposal.md](proposal.md) for the learner and product scope. This design fixes
 scoring, statistical state, exercise selection, and adaptive control. The subsequently selected Rust/native low-latency architecture is recorded in
-[engineering-design.md](engineering-design.md). Storage remains undecided; the
+[engineering-design.md](engineering-design.md). Storage uses redb/Postcard (see docs/storage.md); the
 mathematical core remains independent of runtime dependencies.
 
 ## Goals / Non-Goals
@@ -19,8 +19,9 @@ curve before sufficient data exists. Remaining engineering decisions are listed 
 [open-questions.md](open-questions.md), not silently settled here.
 
 All thresholds below are initial engineering defaults, not validated CW learning
-constants. Record `cw-policy-v1` with each session. Later policy changes create a new
-version rather than changing the meaning of historical results.
+constants. The baseline is `cw-policy-v1`; current sessions record `cw-policy-v1.1`. The
+v1.1 extension below preserves v1 replay and prevents text-entry starvation. Later
+policy changes create a new version rather than changing historical results.
 
 ## Decisions
 
@@ -330,6 +331,15 @@ its streaks; overridden blocks do not train the automatic speed controller but d
 supply appropriately tagged observations. Mode overrides suspend automatic mode
 selection until released. Explain changes briefly between blocks with numeric reasons.
 
+#### v1.1: text-transfer precedence
+
+When two upward-qualified group windows at C,E would increase speed, first retain
+that C,E if bundled practice text is eligible and fewer than two qualified text
+windows exist there. This permits the already-specified text-entry gate to be
+reached before a speed change invalidates it. Alternate group/text material as
+usual; two qualified text windows can then advance speed. If no text is eligible,
+normal group progression applies. v1 records retain their original transitions.
+
 ### 7. Live backlog and catch-up rescue
 
 At each completed character align the current final transcript against all prefixes
@@ -383,7 +393,9 @@ upward-qualified group blocks at the current automatic C,E. Retain these check
 eligibility records across sessions even though controller streaks reset.
 Offer at most once per local date; persist the offered date, not only accepted dates.
 A completed practice session contains at least one completed practice block.
-Checks use current qualified C,E, frozen introduced repertoire, and a fixed material
+Checks use a demonstrated qualified C,E (repeat a prior unmatched current-policy
+check first, otherwise the highest qualified speed), frozen introduced repertoire,
+and a fixed material
 class. Start with random-group checks. Plain-text checks require qualified text
 practice at that context. Do not offer a check during a speed override.
 
@@ -441,3 +453,16 @@ Only engineering acceptance, implementation architecture, persistence details, a
 corpus content remain in [open-questions.md](open-questions.md). Tasks contain a
 readiness gate for these decisions. OpenSpec artifact completeness is not permission
 to bypass that gate or evidence that the application has been implemented.
+
+## Implemented reporting clarification
+
+Comparable trends also require identical repertoire and text-corpus version. A
+latency trend compares the means of the latest three versus preceding three
+comparable block medians, with at least eight correct independent nonnegative
+responses in each block. Display the signed millisecond change and typing/delivery
+limits; do not call it a causal change in cognitive recognition speed.
+
+A completed first placement sets entry completion even if its two-minute budget
+leaves unobserved symbols. Those symbols remain eligible for normal taught
+introductions rather than restarting placement on every session. Interrupted first
+placement can resume unobserved coverage later.

@@ -31,6 +31,7 @@ pub enum Key {
     Pause,
     Replay,
     Progress,
+    Resize,
     Escape,
     Quit,
 }
@@ -103,6 +104,7 @@ impl Input {
                                 _ => None,
                             },
                             Event::Paste(_) => Some(Key::PasteRejected),
+                            Event::Resize(_, _) => Some(Key::Resize),
                             _ => None,
                         };
                         if let Some(key) = key {

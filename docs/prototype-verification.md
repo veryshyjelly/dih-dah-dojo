@@ -1,5 +1,8 @@
 # Audio/input spike verification
 
+Historical milestone. See [integrated verification](session-verification.md) for
+the current trainer; the “still required” list below describes the earlier spike.
+
 Recorded 2026-11-14 on the current local Mac; these are short development checks,
 not hardware certification or an acoustic latency benchmark.
 

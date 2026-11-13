@@ -240,6 +240,21 @@ pub fn align(
     }
     let distance = costs[cells - 1];
     let edits = previous[m];
+    let outcomes = trace_outcomes(&x, &y, &costs);
+    Ok(AlignmentScore {
+        target_count: n,
+        response_count: m,
+        distance,
+        accuracy: (n > 0).then(|| (1.0 - distance as f64 / n as f64).max(0.0)),
+        edits,
+        outcomes,
+    })
+}
+/// Reuse a cost matrix for agreement without recomputing edit-range statistics.
+fn trace_outcomes(x: &[Indexed], y: &[Indexed], costs: &[u32]) -> Vec<TargetOutcome> {
+    let n = x.len();
+    let width = y.len() + 1;
+    let cells = (n + 1) * width;
     // Every predecessor has a smaller flattened index: a reverse scan visits the DAG
     // without path enumeration, recursion, or an exponentially large traceback list.
     let mut reachable = vec![false; cells];
@@ -273,23 +288,14 @@ pub fn align(
             }
         }
     }
-    let outcomes = x
-        .iter()
+    x.iter()
         .zip(assignments)
         .map(|(x, outcome)| TargetOutcome {
             target_index: x.index,
             target: x.symbol,
             outcome: outcome.expect("each target lies on an optimal path"),
         })
-        .collect();
-    Ok(AlignmentScore {
-        target_count: n,
-        response_count: m,
-        distance,
-        accuracy: (n > 0).then(|| (1.0 - distance as f64 / n as f64).max(0.0)),
-        edits,
-        outcomes,
-    })
+        .collect()
 }
 fn agree(current: &mut Option<Outcome>, candidate: Outcome) {
     match current {
@@ -477,22 +483,34 @@ pub fn live_alignment(target: &[Symbol], response: &[Symbol]) -> Result<LiveAlig
     {
         return Err(ScoreError::TooLarge);
     }
-    let mut previous: Vec<u32> = (0..=y.len() as u32).collect();
-    let mut current = vec![0; y.len() + 1];
-    let mut best = previous[y.len()];
+    let width = y.len() + 1;
+    let cells = (x.len() + 1) * width;
+    let mut costs = Vec::new();
+    costs
+        .try_reserve_exact(cells)
+        .map_err(|_| ScoreError::AllocationFailed)?;
+    costs.resize(cells, 0u32);
+    for (j, value) in costs[..width].iter_mut().enumerate() {
+        *value = j as u32;
+    }
+    let mut best = y.len() as u32;
     let mut first = 0usize;
     let mut last = 0usize;
     for i in 1..=x.len() {
-        current[0] = i as u32;
+        let row = i * width;
+        costs[row] = i as u32;
         for j in 1..=y.len() {
             let diagonal = if diagonal_allowed(x[i - 1], y[j - 1]) {
-                previous[j - 1] + u32::from(x[i - 1].symbol.character != y[j - 1].symbol.character)
+                costs[row - width + j - 1]
+                    + u32::from(x[i - 1].symbol.character != y[j - 1].symbol.character)
             } else {
                 u32::MAX
             };
-            current[j] = (previous[j] + 1).min(current[j - 1] + 1).min(diagonal);
+            costs[row + j] = (costs[row - width + j] + 1)
+                .min(costs[row + j - 1] + 1)
+                .min(diagonal);
         }
-        let cost = current[y.len()];
+        let cost = costs[row + y.len()];
         if cost < best {
             best = cost;
             first = i;
@@ -500,13 +518,10 @@ pub fn live_alignment(target: &[Symbol], response: &[Symbol]) -> Result<LiveAlig
         } else if cost == best {
             last = i;
         }
-        std::mem::swap(&mut previous, &mut current);
     }
     let latest_errors = if first == last {
-        let end = if last == 0 { 0 } else { x[last - 1].index + 1 };
-        let prefix = align(&target[..end], response, false)?;
-        let eligible: Vec<_> = prefix
-            .outcomes
+        let outcomes = trace_outcomes(&x[..last], &y, &costs[..(last + 1) * width]);
+        let eligible: Vec<_> = outcomes
             .iter()
             .rev()
             .filter(|v| v.outcome != Outcome::Ambiguous)

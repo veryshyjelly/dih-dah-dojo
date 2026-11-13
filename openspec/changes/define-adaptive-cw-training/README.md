@@ -1,8 +1,11 @@
 # Adaptive CW specification and mathematical design
 
-Status: product requirements, cw-policy-v1 mathematical design, and future
-implementation tasks are drafted. The Rust timing/audio/input spike is implemented; full adaptive training remains pending. Engineering
-readiness decisions remain explicitly gated.
+Status: the Rust trainer, mathematical core, binary history, adaptive sessions,
+checks, and analytics are implemented. Current policy is cw-policy-v1.1; legacy v1
+transitions replay unchanged. Software checks and measured native observations are
+recorded in [integrated verification](../../../docs/session-verification.md).
+Physical route/input/UI timing verification remains open (task 1.2 and the physical
+portion of 8.1), so the change remains unarchived.
 
 Read in order:
 
@@ -47,5 +50,7 @@ Run `openspec validate define-adaptive-cw-training --strict --no-interactive` an
 `openspec status --change define-adaptive-cw-training`.
 
 Artifact completeness checks file structure, not application implementation or
-learning effectiveness. The engineering spike is authorized before full readiness. Resolve remaining tasks section 1 before full trainer integration. Keep
-this change unarchived until the actual implementation and checks are complete.
+learning effectiveness. The architecture permits practice on explicitly unverified routes. Physical
+verification remains a release-certification obligation, and is not closed by
+software integration or format validation. Keep the change unarchived until those
+checks are complete.

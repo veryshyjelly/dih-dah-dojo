@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use statrs::distribution::{Beta, ContinuousCDF};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-pub const POLICY: &str = "cw-policy-v1";
+pub const POLICY: &str = "cw-policy-v1.1";
 pub const DAY_MS: i64 = 86_400_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Mode {

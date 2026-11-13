@@ -1,7 +1,7 @@
 # Practice selection and bounded control
 
 `planner.rs` and `control.rs` implement the pure selection/control portion of
-cw-policy-v1. They do not perform device I/O or persist data themselves.
+cw-policy-v1.1 (the v1 mathematical core plus text-transfer precedence). They do not perform device I/O or persist data themselves.
 
 Recognition uses 20 slots: eight weakness, five due review, four coverage, three
 introduction/recent-symbol slots. Empty categories transfer to coverage. Category
@@ -41,3 +41,17 @@ Tests cover quotas, empty categories, corpus validity/disjoint pools, determinis
 selection, complete-character duration, text exhaustion, speed/timeout bounds,
 alternating material classes, small-window accumulation, introduction priority,
 overrides, omission/rejoining, stable lag, stale evidence, and rescue cooldown.
+
+## Versioned progression clarification
+
+Policy v1.1 holds a qualified group speed while eligible text still needs two
+qualified windows at that same speed. Otherwise increasing E immediately would
+invalidate the text-entry gate forever. If no bundled text fits the introduced
+repertoire, group practice can progress normally. The existing one-new-symbol
+priority similarly prevents recognition speed changes from starving introductions.
+
+Record schema 2 stores the policy string. v1 records continue to replay their
+original controller transitions; v1.1 uses the text-transfer precedence. Statistics
+and score semantics are unchanged. Checks are paired only within one stored policy
+version. Optional checks use a demonstrated qualifying speed, rather than the
+unproven one-WPM increase scheduled for the next practice block.
