@@ -304,7 +304,11 @@ two consecutive eligible blocks below 70% reduce C by one while holding E=3.
 At C=12,E=3 keep limits and return to recognition; normal mode-consecutive cap still
 applies. Respect maximum C=35 without inventing further increments.
 
-Recognition maintains separate C, initially 20, and timeout initially four seconds:
+Recognition maintains separate C, initially 20, and timeout initially four seconds.
+When the two-block introduction threshold and character-speed increase coincide,
+introducing the session's one new symbol takes priority and retains current C.
+This prevents repeated speed increases from continually resetting introduction
+readiness before new material can be presented. Then apply these rules:
 
 - Two consecutive independent blocks with >=95% accuracy and >=8 eligible latency
   values in the current context with Q(.9)<=.8 seconds increase C by one.

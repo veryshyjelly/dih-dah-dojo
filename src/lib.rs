@@ -1,7 +1,9 @@
 pub mod audio;
+pub mod control;
 pub mod history;
 pub mod input;
 pub mod learner;
+pub mod planner;
 pub mod recording;
 pub mod scoring;
 pub mod synth;

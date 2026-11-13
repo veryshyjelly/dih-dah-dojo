@@ -10,7 +10,7 @@ independently without starting application integration. Reference: [design](desi
 - [x] 1.1 Record Rust language choice, module boundaries, execution ownership and event interfaces in engineering-design.md; verify callback/input isolation, bounded fault behavior, and mathematical-policy compatibility.
 - [ ] 1.2 Establish and measure audio timing, delivery timestamp, input capture, stop/pause, and responsiveness tolerances on the target Mac; verify a documented loopback/input measurement protocol and explicit limits on sound-at-ear claims.
 - [x] 1.3 Define history durability, export format, reset scope, recovery, and version migration; verify crash/partial-write and reset acceptance scenarios are specified before selecting storage implementation.
-- [ ] 1.4 Select or author a licensed, versioned offline text corpus with disjoint practice/check pools; verify repertoire validation, unique record identities, eligibility filtering, and exhaustion behavior.
+- [x] 1.4 Select or author a licensed, versioned offline text corpus with disjoint practice/check pools; verify repertoire validation, unique record identities, eligibility filtering, and exhaustion behavior.
 
 - [x] 1.5 Select and pin numerical/dependency releases in Cargo.lock; verify CPAL API/timestamp compatibility, Beta quantile tolerance, and build the Rust audio/input spike against the recorded architecture.
 
@@ -41,15 +41,15 @@ independently without starting application integration. Reference: [design](desi
 ## 5. Practice selection
 
 - [ ] 5.1 Implement entry assessment and K/M bootstrap; verify two-minute bounds, partial/unobserved coverage, familiarity labels, and bootstrap exemption from the new-symbol limit.
-- [ ] 5.2 Implement quota allocation, category interleaving, weights, empty-category redistribution, and nonadjacent recognition sampling; verify 8/5/4/3 allocation, tie order, sparse states, and one-symbol eligibility cases.
-- [ ] 5.3 Implement introduction separation heuristic and review scheduling; verify pattern-distance ties, per-session limit, and same-context qualification resets.
-- [ ] 5.4 Implement groups, text eligibility, and practice/check corpus separation; verify only introduced symbols appear and that exhausted text falls back with the correct material label.
-- [ ] 5.5 Document selection reasons and record selected outcomes; verify replay uses stored material without depending on an RNG implementation.
+- [x] 5.2 Implement quota allocation, category interleaving, weights, empty-category redistribution, and nonadjacent recognition sampling; verify 8/5/4/3 allocation, tie order, sparse states, and one-symbol eligibility cases.
+- [x] 5.3 Implement introduction separation heuristic and review scheduling; verify pattern-distance ties, per-session limit, and same-context qualification resets.
+- [x] 5.4 Implement groups, text eligibility, and practice/check corpus separation; verify only introduced symbols appear and that exhausted text falls back with the correct material label.
+- [x] 5.5 Document selection reasons and record selected outcomes; verify replay uses stored material without depending on an RNG implementation.
 
 ## 6. Adaptive controller and rescue
 
-- [ ] 6.1 Implement per-mode speed/timeout states, context streaks, sample windows, bounds, and precedence; verify upward/downward/hold cases, alternating material classes, low-count aggregation, and session resets.
-- [ ] 6.2 Implement live minimum-prefix backlog bounds from history prefixes only; verify missed-character recovery, stable lag, ambiguity, and that future inputs/audio cannot affect earlier decisions.
+- [x] 6.1 Implement per-mode speed/timeout states, context streaks, sample windows, bounds, and precedence; verify upward/downward/hold cases, alternating material classes, low-count aggregation, and session resets.
+- [x] 6.2 Implement live minimum-prefix backlog bounds from history prefixes only; verify missed-character recovery, stable lag, ambiguity, and that future inputs/audio cannot affect earlier decisions.
 - [ ] 6.3 Implement rescue conjunction, cancellation, boundary scheduling, duration/cooldown limits, second-rescue termination, and no-input resume; verify every rescue condition individually and in combination.
 - [ ] 6.4 Implement session mode selection and temporary overrides; verify cap precedence, compromised-block handling, override restoration, and 600-second new-block cutoff.
 - [ ] 6.5 Document controller reasons with actual evidence values; verify displayed speed and rescue reasons match decision logs in scripted traces.

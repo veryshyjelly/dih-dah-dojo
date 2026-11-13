@@ -55,6 +55,9 @@ pub struct Record {
     pub onsets: Vec<Symbol>,
     pub ends_ns: Vec<u64>,
     pub trials: Vec<RecognitionTrial>,
+    pub transport_start_ns: u64,
+    pub transport_end_ns: u64,
+    pub backlog: Vec<(u64, u32, u32)>,
     pub scheduled_ns: u64,
     pub rescue_ns: u64,
     pub rescues: u8,
@@ -84,6 +87,9 @@ impl Record {
             onsets: Vec::new(),
             ends_ns: Vec::new(),
             trials: Vec::new(),
+            transport_start_ns: 0,
+            transport_end_ns: 0,
+            backlog: Vec::new(),
             scheduled_ns: 0,
             rescue_ns: 0,
             rescues: 0,
@@ -216,7 +222,43 @@ impl Record {
                 });
             }
         }
+        let early: Vec<_> = self
+            .backlog
+            .iter()
+            .filter(|(at, _, _)| {
+                *at >= self.transport_start_ns
+                    && *at <= self.transport_start_ns.saturating_add(10_000_000_000)
+            })
+            .map(|(_, min, _)| *min)
+            .collect();
+        let late: Vec<_> = self
+            .backlog
+            .iter()
+            .filter(|(at, _, _)| {
+                *at >= self.transport_end_ns.saturating_sub(10_000_000_000)
+                    && *at <= self.transport_end_ns
+            })
+            .map(|(_, min, _)| *min)
+            .collect();
+        fn median(mut values: Vec<u32>) -> f64 {
+            if values.is_empty() {
+                return 0.0;
+            }
+            values.sort_unstable();
+            values[(values.len() - 1) / 2] as f64
+        }
+        self.metrics.early_backlog = median(early);
+        self.metrics.end_backlog = median(late);
         Ok(())
+    }
+    pub fn backlog_covered(&self) -> bool {
+        self.backlog.iter().any(|(at, _, _)| {
+            *at >= self.transport_start_ns
+                && *at <= self.transport_start_ns.saturating_add(10_000_000_000)
+        }) && self.backlog.iter().any(|(at, _, _)| {
+            *at >= self.transport_end_ns.saturating_sub(10_000_000_000)
+                && *at <= self.transport_end_ns
+        })
     }
     pub fn qualifying_check(&self) -> bool {
         self.kind == Kind::Check

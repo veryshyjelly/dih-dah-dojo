@@ -459,3 +459,109 @@ mod tests {
         ));
     }
 }
+
+/// Live prefix evidence, computed only from characters already completed and input
+/// already captured. The input is the editable final transcript, not future text.
+#[derive(Debug, Clone, Copy)]
+pub struct LiveAlignment {
+    pub backlog_min: u32,
+    pub backlog_max: u32,
+    pub latest_errors: Option<u8>,
+}
+pub fn live_alignment(target: &[Symbol], response: &[Symbol]) -> Result<LiveAlignment, ScoreError> {
+    let x = normalize(target, false)?;
+    let y = normalize(response, false)?;
+    if (x.len() + 1)
+        .checked_mul(y.len() + 1)
+        .is_none_or(|cells| cells > MAX_ALIGNMENT_CELLS)
+    {
+        return Err(ScoreError::TooLarge);
+    }
+    let mut previous: Vec<u32> = (0..=y.len() as u32).collect();
+    let mut current = vec![0; y.len() + 1];
+    let mut best = previous[y.len()];
+    let mut first = 0usize;
+    let mut last = 0usize;
+    for i in 1..=x.len() {
+        current[0] = i as u32;
+        for j in 1..=y.len() {
+            let diagonal = if diagonal_allowed(x[i - 1], y[j - 1]) {
+                previous[j - 1] + u32::from(x[i - 1].symbol.character != y[j - 1].symbol.character)
+            } else {
+                u32::MAX
+            };
+            current[j] = (previous[j] + 1).min(current[j - 1] + 1).min(diagonal);
+        }
+        let cost = current[y.len()];
+        if cost < best {
+            best = cost;
+            first = i;
+            last = i;
+        } else if cost == best {
+            last = i;
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    let latest_errors = if first == last {
+        let end = if last == 0 { 0 } else { x[last - 1].index + 1 };
+        let prefix = align(&target[..end], response, false)?;
+        let eligible: Vec<_> = prefix
+            .outcomes
+            .iter()
+            .rev()
+            .filter(|v| v.outcome != Outcome::Ambiguous)
+            .take(10)
+            .collect();
+        (eligible.len() == 10).then(|| {
+            eligible
+                .iter()
+                .filter(|v| !matches!(v.outcome, Outcome::Matched { .. }))
+                .count() as u8
+        })
+    } else {
+        None
+    };
+    Ok(LiveAlignment {
+        backlog_min: (x.len() - last) as u32,
+        backlog_max: (x.len() - first) as u32,
+        latest_errors,
+    })
+}
+
+#[cfg(test)]
+mod live_tests {
+    use super::*;
+    fn symbols(s: &str) -> Vec<Symbol> {
+        s.chars()
+            .map(|character| Symbol {
+                character,
+                at_ns: 0,
+            })
+            .collect()
+    }
+    #[test]
+    fn live_frontier_can_rejoin_after_an_omission() {
+        let lag = live_alignment(&symbols("ABCDE"), &symbols("AB")).unwrap();
+        assert_eq!((lag.backlog_min, lag.backlog_max), (3, 3));
+        let rejoined = live_alignment(&symbols("ABCDE"), &symbols("ABDE")).unwrap();
+        assert_eq!(rejoined.backlog_min, 0);
+        let no_input = live_alignment(&symbols("ABCDE"), &[]).unwrap();
+        assert_eq!(no_input.backlog_min, 5);
+        assert_eq!(no_input.latest_errors, None);
+    }
+    #[test]
+    fn live_errors_require_ten_attributable_outcomes() {
+        assert_eq!(
+            live_alignment(&symbols("ABCDEFGHIJ"), &symbols("ABCDEFGHIJ"))
+                .unwrap()
+                .latest_errors,
+            Some(0)
+        );
+        assert_eq!(
+            live_alignment(&symbols("ABC"), &symbols("ABC"))
+                .unwrap()
+                .latest_errors,
+            None
+        );
+    }
+}
