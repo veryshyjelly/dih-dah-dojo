@@ -14,7 +14,8 @@ cargo run --locked -- verify-export my-practice.cwbackup
 `progress` shows context-specific evidence and uncertainty, response-latency
 summaries, due review, directed confusions, recent copying conditions, and repeated-day
 milestones. Unknown speeds do not inherit proficiency. `replay` checks deterministic
-score/evidence reconstruction from recorded source observations; it does not claim
+score/evidence reconstruction, review updates, controller state and decision reasons
+from recorded source observations and policy boundary snapshots; it does not claim
 to recover unrecorded acoustic timing or validate a learning-effectiveness hypothesis.
 
 `export` creates a checksummed binary snapshot from one consistent database read

@@ -11,9 +11,9 @@ use std::sync::{
 
 #[derive(Default)]
 pub struct Controls {
-    pub stop: AtomicBool,
+    pub stop: Arc<AtomicBool>,
     pub pause: AtomicBool,
-    pub fault: AtomicBool,
+    pub fault: Arc<AtomicBool>,
     pub busy: AtomicBool,
     pub rescue: AtomicU64,
     pub cancel_rescue: AtomicU64,

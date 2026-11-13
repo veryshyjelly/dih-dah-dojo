@@ -55,6 +55,13 @@ pub fn load(directory: PathBuf) -> Result<Loaded, Box<dyn Error>> {
     }
     let profile = state.unwrap_or_default();
     profile.validate()?;
+    if let Some(audit) = records
+        .last()
+        .and_then(|record| record.policy_audit.as_ref())
+        && audit.after_profile != profile
+    {
+        return Err("committed profile differs from its event; preserve history".into());
+    }
     let learner = recording::replay(&records)?;
     Ok(Loaded {
         history,
@@ -96,7 +103,7 @@ pub fn run(command: &str, args: &[String]) -> Result<(), Box<dyn Error>> {
     match command {
         "progress" => print_progress(&loaded),
         "replay" => println!(
-            "Verified deterministic score/evidence replay for {} records ({})",
+            "Verified deterministic score/evidence and recorded policy-state replay for {} records ({})",
             loaded.records.len(),
             crate::learner::POLICY
         ),
@@ -200,6 +207,9 @@ fn print_progress(loaded: &Loaded) {
                 "incomplete"
             }
         );
+        if let Some(reason) = &r.compromised {
+            println!("  Excluded: {reason}");
+        }
     }
     let milestones = milestones(&loaded.records);
     if milestones.is_empty() {
@@ -240,11 +250,17 @@ pub fn milestones(records: &[Record]) -> Vec<String> {
     out
 }
 pub fn trend(records: &[Record], context: Context) -> Option<f64> {
+    let repertoire = &records
+        .iter()
+        .rev()
+        .find(|r| r.context == context && r.is_practice())?
+        .repertoire;
     let values: Vec<_> = records
         .iter()
         .rev()
         .filter(|r| {
             r.context == context
+                && &r.repertoire == repertoire
                 && r.completed
                 && r.compromised.is_none()
                 && r.rescues == 0
@@ -268,6 +284,8 @@ pub fn check_context(
     // Repeat an unpaired successful check at identical conditions before chasing a higher target.
     if let Some(old) = records.iter().rev().find(|r| {
         r.qualifying_check()
+            && (r.context.material != crate::learner::Material::Text
+                || r.corpus_version.as_deref() == Some(crate::planner::CORPUS_VERSION))
             && r.local_date != date
             && !records.iter().any(|other| {
                 other.qualifying_check() && other.local_date != r.local_date && other.comparable(r)

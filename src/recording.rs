@@ -1,4 +1,4 @@
-//! Durable record schema v1. Change schema/version before changing binary field layouts.
+//! Durable record schema v2. Change schema/version before changing binary field layouts.
 use crate::{
     learner::{Context, Material, Mode, Observation, POLICY},
     scoring::{Outcome, score_copy},
@@ -81,12 +81,21 @@ pub struct Record {
     pub selection_reason: String,
     pub manual_override: bool,
     pub decision: String,
+    pub policy_audit: Option<Box<PolicyAudit>>,
+}
+/// Boundary snapshots make review updates, automatic state, and decision text replayable.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PolicyAudit {
+    pub before_profile: crate::learner::Profile,
+    pub after_profile: crate::learner::Profile,
+    pub before_controller: crate::control::Controller,
+    pub after_controller: crate::control::Controller,
 }
 impl Record {
     pub fn new(session_id: &str, context: Context, kind: Kind) -> Self {
         let now = chrono::Local::now();
         Self {
-            schema: 1,
+            schema: 2,
             policy: POLICY.into(),
             session_id: session_id.into(),
             utc_ms: now.timestamp_millis(),
@@ -120,10 +129,40 @@ impl Record {
             selection_reason: String::new(),
             manual_override: false,
             decision: String::new(),
+            policy_audit: None,
         }
     }
+    pub fn apply_policy(
+        &mut self,
+        controller: &mut crate::control::Controller,
+        profile: &mut crate::learner::Profile,
+    ) {
+        let before_profile = profile.clone();
+        let before_controller = controller.clone();
+        for observation in &self.observations {
+            if observation.context.mode == Mode::Recognition
+                && let Some(review) = profile.reviews.get_mut(&observation.symbol)
+            {
+                review.update(
+                    observation.utc_ms,
+                    observation.correct,
+                    observation.latency_ns,
+                    !observation.context.assisted,
+                );
+            }
+        }
+        if self.is_practice() {
+            self.decision = controller.observe(self, profile, self.manual_override);
+        }
+        self.policy_audit = Some(Box::new(PolicyAudit {
+            before_profile,
+            before_controller,
+            after_profile: profile.clone(),
+            after_controller: controller.clone(),
+        }));
+    }
     pub fn validate(&self) -> Result<(), &'static str> {
-        if self.schema != 1 || self.policy != POLICY || !self.context.valid() {
+        if self.schema != 2 || self.policy != POLICY || !self.context.valid() {
             return Err("unsupported/invalid practice record");
         }
         if self
@@ -328,6 +367,19 @@ pub fn replay(records: &[Record]) -> Result<crate::learner::Learner, Box<dyn std
     let mut learner = crate::learner::Learner::default();
     for record in records {
         record.validate()?;
+        if let Some(audit) = &record.policy_audit {
+            let mut copy = record.clone();
+            copy.apply_policy(
+                &mut audit.before_controller.clone(),
+                &mut audit.before_profile.clone(),
+            );
+            if copy.policy_audit != record.policy_audit || copy.decision != record.decision {
+                return Err(
+                    "policy state/decision differ from deterministic replay; preserve history"
+                        .into(),
+                );
+            }
+        }
         if matches!(
             record.kind,
             Kind::Entry | Kind::Recognition | Kind::Copying | Kind::Check

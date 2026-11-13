@@ -17,7 +17,7 @@ use std::{
     time::Duration,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct View {
     pub title: String,
     pub subtitle: String,
@@ -43,9 +43,14 @@ impl View {
 pub struct Sender {
     queue: Producer<View>,
     pending: Option<View>,
+    last: Option<View>,
 }
 impl Sender {
     pub fn send(&mut self, view: View) {
+        if self.last.as_ref() == Some(&view) {
+            return;
+        }
+        self.last = Some(view.clone());
         match self.queue.push(view) {
             Ok(()) => self.pending = None,
             Err(PushError::Full(view)) => self.pending = Some(view),
@@ -161,6 +166,7 @@ where
             coordinator(Sender {
                 queue,
                 pending: None,
+                last: None,
             })
         })?;
     let mut current = View::message(

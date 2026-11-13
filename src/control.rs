@@ -3,9 +3,10 @@ use crate::{
     learner::{Context, Material, Mode, Profile},
     recording::Record,
 };
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, VecDeque};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 struct Window {
     n: u32,
     distance: u32,
@@ -13,13 +14,13 @@ struct Window {
     blocks: u8,
     up_eligible: bool,
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 struct CopyState {
     pending: Option<Window>,
     up: u8,
     low: u8,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Controller {
     pub next_mode: Mode,
     pub recognition_good: u8,

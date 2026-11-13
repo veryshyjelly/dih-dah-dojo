@@ -14,6 +14,7 @@ pub mod scoring;
 pub mod screen;
 pub mod synth;
 pub mod timing;
+pub mod trainer;
 pub mod transcript;
 pub mod transport;
 pub mod writer;

@@ -223,12 +223,12 @@ impl Review {
         true
     }
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Disclosure {
     pub utc_ms: i64,
     pub other_trials_remaining: u8,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub volume: u8,
     pub tone_hz: u16,

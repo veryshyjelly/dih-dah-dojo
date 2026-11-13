@@ -18,9 +18,12 @@ fn main() {
 }
 fn run() -> Result<(), Box<dyn Error>> {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
+    if args.is_empty() && io::stdin().is_terminal() && io::stdout().is_terminal() {
+        return dih_dah_dojo::trainer::run(&[]);
+    }
     if args.is_empty() || args[0] == "--help" {
         println!(
-            "CW timing/audio spike (not adaptive training yet)\n\n  dih_dah_dojo score TARGET COPY\n  dih_dah_dojo inspect [TEXT [CHAR_WPM EFFECTIVE_WPM]]\n  dih_dah_dojo probe [TEXT [CHAR_WPM EFFECTIVE_WPM]] [--no-input]\n\nDefaults: PARIS, 20/5 WPM. Probe plays a quiet 600 Hz tone.\nType while listening; Backspace edits your transcript. Esc/Ctrl-C stops.\nscore is an untimed offline comparison; COPY accepts \\b for Backspace.\ninspect does not open audio; --no-input supports noninteractive audio checks."
+            "CW DOJO — offline adaptive Morse training\n\n  dih_dah_dojo train [--data-dir PATH] [--mode recognition|copying]\n    [--session-seconds 600] [--known SYMBOLS|all] [--c 20] [--e 5]\n  dih_dah_dojo progress [--data-dir PATH]\n  dih_dah_dojo replay [--data-dir PATH]\n  dih_dah_dojo export PATH [--data-dir PATH]\n  dih_dah_dojo verify-export PATH\n  dih_dah_dojo reset --confirm DELETE [--data-dir PATH]\n  dih_dah_dojo diagnose --seconds 60 [--silent] [--stress] [--report PATH]\n  dih_dah_dojo score TARGET COPY\n  dih_dah_dojo inspect [TEXT [CHAR_WPM EFFECTIVE_WPM]]\n  dih_dah_dojo probe [TEXT [CHAR_WPM EFFECTIVE_WPM]] [--no-input]\n\nLaunch without arguments in a terminal to practice. Normal sessions choose speed\nand material automatically. F1: progress, F5: pause, F6: recognition replay.\nEsc ends practice; Ctrl-C quits. COPY accepts \\b for Backspace.\nHistory is local redb/Postcard binary; export never overwrites a destination."
         );
         return Ok(());
     }
@@ -32,6 +35,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     if args[0] == "diagnose" {
         return dih_dah_dojo::diagnostics::run(&args[1..]);
+    }
+    if args[0] == "train" {
+        return dih_dah_dojo::trainer::run(&args[1..]);
     }
     if args[0] == "score" {
         return run_score(&args[1..]);

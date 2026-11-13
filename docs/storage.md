@@ -26,10 +26,12 @@ measurements, and no performance ranking is inferred from them.
 
 ## Commit and ownership contract
 
-A dedicated history worker will own writes. No database calls, binary encoding,
+A dedicated history worker owns writes. No database calls, binary encoding,
 commit waits, or filesystem operations may execute in the audio callback/input
-capture path. The existing `history::History` API is the storage primitive for that
-worker; it does not yet integrate the trainer or learner schema.
+capture path. The `history::History` API is its storage primitive; trainer records and the
+profile are committed together. The storage container is version 1; typed practice
+records are version 2, with replayable policy boundary snapshots. Experimental
+version-1 practice payloads are rejected without modifying the file.
 
 Tables:
 
@@ -47,7 +49,7 @@ Each serialized value is limited to 8 MiB. Startup rejects unknown schema versio
 missing metadata, and unreadable data. It never deletes a corrupt database or
 silently starts a fresh profile. Future schema upgrades must run a declared atomic
 migration or refuse the file while preserving it. Keep independent backups before
-an upgrade. Do not change enum order/struct layouts under the same app schema.
+an upgrade. Do not change enum order/struct layouts under the same declared record/profile schema.
 
 An OS advisory lock sidecar enforces one trainer process per database. It is released
 by the OS after process exit, including crashes; a leftover filename is not a stale
