@@ -1,0 +1,15 @@
+schema: spec-driven
+context: |
+  This project specifies an offline adaptive CW trainer for one learner on macOS.
+  The learner knows many symbols and wants sustained typed fluency.
+  The approved mathematical baseline is cw-policy-v1, defined in the active change design.md.
+  Scoring uses an append-only attempt stream and a separately editable final transcript.
+  Statistical estimates, retention review, sampling, and control rules are now specified.
+  Rust 2024 is the selected language. engineering-design.md defines native CPAL/CoreAudio
+  output, bounded rtrb queues, separate input/render/analysis/history execution, and
+  no async runtime, allocation, locks, or I/O in the application audio callback.
+  Numerical dependencies, measured audio/input acceptance, persistence durability,
+  and bundled corpus content remain engineering readiness work.
+  Implementation tasks may be planned, but their engineering-readiness gate must be
+  completed before starting application implementation. Preserve uncertain evidence
+  and distinguish artifact validity from runtime or learning-effectiveness claims.
