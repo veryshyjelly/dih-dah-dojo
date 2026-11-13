@@ -1,6 +1,6 @@
 # Rust low-latency architecture
 
-Status: architecture selected; hardware acceptance and storage/corpus decisions remain.
+Status: architecture and redb/Postcard binary storage selected; hardware acceptance and corpus work remain.
 This document implements the user's Rust-only/native-low-latency direction. It does
 not claim an implemented or measured audio engine. Mathematical semantics remain
 [cw-policy-v1](design.md).
@@ -212,11 +212,20 @@ turn infrastructure delay into a learner weakness.
 ## Shutdown and remaining work
 
 Stop transport, wait for callback/stream shutdown, retire schedule ownership,
-join workers, finalize/flush history according to the still-pending durability
-contract, and restore terminal state with an RAII guard. Unexpected exits still
-need a storage recovery policy; the callback cannot provide persistence guarantees.
+join workers, finalize/flush history with immediate redb transaction acknowledgments, and restore terminal state with an RAII guard. Unexpected exits recover the last committed state through redb; pending writes are
+not acknowledged as saved. The callback cannot provide persistence guarantees.
 
 The architecture closes the Rust/runtime/audio/input ownership decision. Before
-integrated application coding, select numerical crates, persistence guarantees,
-and corpus assets and execute the hardware acceptance spike. Hardware results may
+integrated application coding, verify statrs numeric fixtures, connect typed records to redb,
+and finalize corpus assets and execute the hardware acceptance spike. Hardware results may
 require buffer tuning without altering the mathematical policy.
+
+## Transactional history selection
+
+History uses redb 4.6.0 and Postcard 1.1.3, not JSON. The database's immediate
+write transaction atomically commits raw event, derived state, and sequence.
+Application schema version is explicit; unknown/corrupt files are preserved and
+rejected. One OS advisory lock protects one trainer process. Binary export reads
+one consistent snapshot; reset is a confirmed transaction. See
+[storage guarantees and research](../../../docs/storage.md) for the comparison,
+codec, durability assumptions, tests, and failure behavior.

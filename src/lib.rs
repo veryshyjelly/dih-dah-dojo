@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod history;
 pub mod input;
 pub mod scoring;
 pub mod synth;

@@ -63,6 +63,10 @@ The [offline scorer](docs/scoring.md) now implements attempt/final scores, time-
 alignment, and conservative attribution. It is not yet connected to live playback
 and does not update a learner model. `score` runs in shell runners without a TTY.
 
+The [transactional history backend](docs/storage.md) now uses redb and versioned
+Postcard binary records, with no JSON persistence. It is crash-tested as a library;
+trainer integration and history commands are still being built.
+
 ## Design and next work
 
 The [OpenSpec package](openspec/changes/define-adaptive-cw-training/README.md)

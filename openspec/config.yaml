@@ -8,8 +8,9 @@ context: |
   Rust 2024 is the selected language. engineering-design.md defines native CPAL/CoreAudio
   output, bounded rtrb queues, separate input/render/analysis/history execution, and
   no async runtime, allocation, locks, or I/O in the application audio callback.
-  Numerical dependencies, measured audio/input acceptance, persistence durability,
-  and bundled corpus content remain engineering readiness work.
+  Storage is redb with Postcard binary records, immediate ACID commits, and explicit
+  schema versions. Do not use JSON for persistence. statrs supplies Beta statistics.
+  Measured audio/input acceptance and bundled corpus content remain readiness work.
   The Rust audio/input spike is authorized before gate closure; full adaptive-trainer
   integration still requires the engineering-readiness gate. Preserve uncertain evidence
   and distinguish artifact validity from runtime or learning-effectiveness claims.

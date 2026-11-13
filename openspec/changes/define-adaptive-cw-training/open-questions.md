@@ -32,8 +32,10 @@ resolving them. The presence of design/tasks artifacts does not waive the gate.
 - Execute the audio/input measurement protocol in engineering-design.md on the
   target Mac. Targets and failure handling are specified; actual route/device
   measurements and supported buffer configuration remain unverified.
-- Persistence format/engine, durability and interrupted-write guarantees, recovery,
-  export format, reset scope and user confirmation flow, and future policy migration.
+- Connect typed trainer records to the selected redb/Postcard layer and implement
+  its dedicated writer. Engine, immediate transaction durability, binary export,
+  reset confirmation, and schema refusal are decided in docs/storage.md. Physical
+  power-loss validation remains distinct from application process-exit recovery tests.
 - Licensed/author-owned bundled text corpus, sufficient unseen check material,
   versioning and record identity. The selection and exhaustion rules are already fixed.
 - Manual speed-setting engineering limits consistent with positive E<=C.

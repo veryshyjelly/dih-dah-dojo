@@ -41,7 +41,7 @@ None; the repository has no existing product specifications.
 
 ## Impact
 
-This change creates requirements artifacts only. The mathematical policy and implementation checklist are now specified in `design.md` and `tasks.md`. Rust 2024 and a native low-latency architecture are selected in `engineering-design.md`: CPAL/CoreAudio, preallocated rtrb queues, and separate input, rendering, analysis, and history execution. Storage and numerical dependencies remain readiness work. Application coding remains gated on the engineering decisions in `open-questions.md`.
+The requirements and mathematical artifacts guide ongoing implementation. The mathematical policy and implementation checklist are now specified in `design.md` and `tasks.md`. Rust 2024 and a native low-latency architecture are selected in `engineering-design.md`: CPAL/CoreAudio, preallocated rtrb queues, and separate input, rendering, analysis, and history execution. Storage now uses crash-tested redb/Postcard transactions; statrs is selected for numerical estimates. Application coding remains gated on the engineering decisions in `open-questions.md`.
 
 ## Scope and non-goals
 

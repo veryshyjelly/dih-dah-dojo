@@ -9,7 +9,7 @@ independently without starting application integration. Reference: [design](desi
 
 - [x] 1.1 Record Rust language choice, module boundaries, execution ownership and event interfaces in engineering-design.md; verify callback/input isolation, bounded fault behavior, and mathematical-policy compatibility.
 - [ ] 1.2 Establish and measure audio timing, delivery timestamp, input capture, stop/pause, and responsiveness tolerances on the target Mac; verify a documented loopback/input measurement protocol and explicit limits on sound-at-ear claims.
-- [ ] 1.3 Define history durability, export format, reset scope, recovery, and version migration; verify crash/partial-write and reset acceptance scenarios are specified before selecting storage implementation.
+- [x] 1.3 Define history durability, export format, reset scope, recovery, and version migration; verify crash/partial-write and reset acceptance scenarios are specified before selecting storage implementation.
 - [ ] 1.4 Select or author a licensed, versioned offline text corpus with disjoint practice/check pools; verify repertoire validation, unique record identities, eligibility filtering, and exhaustion behavior.
 
 - [ ] 1.5 Select and pin numerical/dependency releases in Cargo.lock; verify CPAL API/timestamp compatibility, Beta quantile tolerance, and build the Rust audio/input spike against the recorded architecture.
