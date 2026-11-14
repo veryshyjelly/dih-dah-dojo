@@ -37,3 +37,15 @@ are included; private runtime credentials, data and generated artifacts are excl
 - A tracked-file audit found no credentials, learner databases, or generated
   dependency/deployment/runtime artifacts.
 - The OpenSpec appearance change validates. Physical timing remains unverified.
+
+## Publication evidence — 2026-11-14
+
+The repository is PUBLIC with `main` published and its homepage set to the live
+studio. An anonymous browser clicked the deployed footer link and successfully
+opened the public GitHub README. The live site followed a dark device preference,
+retained a manual choice after reload, and reported no browser errors. All 18
+appearance checks passed again after the final focus/selection polish.
+
+Cloudflare static deployment version: `e1c16e8d-73d5-4ac1-b7cf-5ab424b07b3d`.
+The deployment remains assets-only, with no new server functions or paid bindings.
+The documented WASM build helper is executable in fresh clones.

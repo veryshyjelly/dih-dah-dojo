@@ -1,5 +1,5 @@
 - [x] 1. Add theme bootstrap, accessible toggle and complete dark palette.
 - [x] 2. Add footer repository link and public-project documentation.
 - [x] 3. Verify theme persistence, system preference, practice continuity and compact/wide rendering.
-- [ ] 4. Review files/history, publish the public GitHub repository and verify homepage/link.
-- [ ] 5. Deploy the static site and record live verification.
+- [x] 4. Review files/history, publish the public GitHub repository and verify homepage/link.
+- [x] 5. Deploy the static site and record live verification.
