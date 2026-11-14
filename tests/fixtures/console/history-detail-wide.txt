@@ -1,0 +1,30 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Progress
+┌ HISTORY DETAIL ────────────────────────────────────────────────────────────────────────────────────────────┐
+│2026-11-14 | Recognition | INTERRUPTED / TECHNICAL                                                          │
+│Assisted repetitions remain separate                                                                        │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+│                                                                                                            │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Audio settings
++ VOLUME ----------------------------------------------------------------------+
+|[=========           ] 45%                                                    |
+|                                                                              |
++------------------------------------------------------------------------------+
++ FREQUENCY -------------------------------------------------------------------+
+|[==========          ] 650 Hz                                                 |
+|                                                                              |
++------------------------------------------------------------------------------+
+PLAYING PREVIEW
+Preview is unscored. Adjustments automatically preview the latest settings.
+
+
+
+
+
+
+
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

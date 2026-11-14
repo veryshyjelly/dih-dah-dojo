@@ -1,0 +1,30 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Dashboard
+┌ STATION STATUS ───────────────────────────────────────────┐┌ SELECT / ENTER ───────────────────────────────┐
+│NEXT AUTOMATIC SPEED C 20 / E 5 WPM                        ││> Continue Training                            │
+│COVERAGE 12/42 introduced | SESSIONS 3                     ││  Choose Practice                              │
+│No verified milestone yet                                  ││  Progress                                     │
+│                                                           ││  Audio                                        │
+│                                                           ││  Data: Export binary backup                   │
+│                                                           ││  Data: Reset history                          │
+│                                                           ││  Quit                                         │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+└───────────────────────────────────────────────────────────┘└───────────────────────────────────────────────┘
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

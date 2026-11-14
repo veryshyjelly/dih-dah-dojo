@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Recognition
+                                * ANSWER CAPTURED
+
+
+
+
+                                     ######
+                                   ##      ##
+                                         ##
+
+                                         ##
+
+
+
+
+                                   Response: ?
+                    20 WPM | 3 s response window | rejected 0
+                               INDEPENDENT ATTEMPT
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

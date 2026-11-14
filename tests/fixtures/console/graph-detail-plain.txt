@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Progress
++Copying pace / WPM------------------------------------------------------------+
+|@                                                                             |
+|                                                                              |
+|                                                                              |
+|*                                                                             |
+|                                                                              |
+|n=1 | sparse / no trend                                                       |
+|C/E WPM | * verified                                                          |
++------------------------------------------------------------------------------+
++ SELECTED POINT / TESTED CONDITIONS ------------------------------------------+
+|Point 1/1 | Copying/Groups                                                    |
+|2026-11-14 | Check | COMPLETE | INDEPENDENT                                   |
+|Copying/Groups 20/5 WPM | repertoire KM | cw-policy-v1.2 | corpus none        |
+|Attempt 98.0% | final 99.0% | targets 100 | independent observations 100      |
+|Requested 20/5 WPM | delivered 25 characters/min                              |
+|VERIFIED: qualifying checks on different dates at these conditions            |
++------------------------------------------------------------------------------+
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

@@ -1,0 +1,30 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Progress
+┌Copying pace / WPM─────────────────┐┌Attempt accuracy / %──────────────┐┌Latency / ms (typing)──────────────┐
+│22│                                ││105│                              ││825│                               │
+│  │•                               ││   │•              •             •││   │•                              │
+│  │                                ││   │                              ││   │                               │
+│  │                                ││   │                              ││   │                               │
+│  │                                ││   │                              ││   │•                              │
+│  │                                ││   │                              ││   │                               │
+│  │█                               ││   │                              ││   │                               │
+│  │                                ││   │                              ││   │                               │
+│0 │                                ││0  │                              ││0  │                               │
+│n=1 | sparse / no trend            ││n=3 | sparse / no trend           ││n=1 | sparse / no trend            │
+│C/E WPM | * verified               ││attempt % | independent           ││median/p90 ms | typing             │
+└───────────────────────────────────┘└──────────────────────────────────┘└───────────────────────────────────┘
+┌ CHARACTER GRID ───────────────────────────────────────────┐┌ HISTORY / ASSISTANCE ─────────────────────────┐
+│A. B. C. D. E. F. G. H. I. J. K+ L. M+ N.                  ││Range: latest 30 eligible blocks               │
+│O. P. Q. R. S. T. U. V. W. X. Y. Z. 0. 1.                  ││2026-11-14 | Recognition | INTERRUPTED /       │
+│2. 3. 4. 5. 6. 7. 8. 9. .. ,. ?. /. =. +.                  ││TECHNICAL                                      │
+│+ introduced / . not introduced                            ││Enter: inspect all results                     │
+│Enter: character estimates and review                      ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+│                                                           ││                                               │
+└───────────────────────────────────────────────────────────┘└───────────────────────────────────────────────┘
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

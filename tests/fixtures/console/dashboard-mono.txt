@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Dashboard
+┌ STATION STATUS ──────────────────────────────────────────────────────────────┐
+│NEXT AUTOMATIC SPEED C 20 / E 5 WPM                                           │
+│COVERAGE 12/42 introduced | SESSIONS 3                                        │
+│No verified milestone yet                                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌ SELECT / ENTER ──────────────────────────────────────────────────────────────┐
+│> Continue Training                                                           │
+│  Choose Practice                                                             │
+│  Progress                                                                    │
+│  Audio                                                                       │
+│  Data: Export binary backup                                                  │
+│  Data: Reset history                                                         │
+│  Quit                                                                        │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

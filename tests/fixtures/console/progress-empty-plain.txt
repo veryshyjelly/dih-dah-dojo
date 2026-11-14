@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Progress
++Copying pace / WPM-------++Attempt accuracy / %----++Latency / ms (typing)----+
+|No eligible blocks yet.  ||No eligible blocks yet. ||No eligible blocks yet.  |
+|No trend inferred.       ||No trend inferred.      ||No trend inferred.       |
+|                         ||                        ||                         |
+|                         ||                        ||                         |
+|                         ||                        ||                         |
+|                         ||                        ||                         |
+|                         ||                        ||                         |
++-------------------------++------------------------++-------------------------+
++ CHARACTER GRID ----------------------------------++ HISTORY / ASSISTANCE ----+
+|A. B. C. D. E. F. G. H. I. J. K+ L. M+ N.         ||Range: latest 30 eligible |
+|O. P. Q. R. S. T. U. V. W. X. Y. Z. 0. 1.         ||blocks                    |
+|2. 3. 4. 5. 6. 7. 8. 9. .. ,. ?. /. =. +.         ||No practice history       |
+|+ introduced / . not introduced                   ||Enter: inspect all results|
+|Enter: character estimates and review             ||                          |
+|                                                  ||                          |
++--------------------------------------------------++--------------------------+
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+

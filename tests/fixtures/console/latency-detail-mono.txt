@@ -1,0 +1,24 @@
+ CW / DOJO   RECEIVE  /  LEARN  /  REPEAT
+ 1 Dashboard   2 Practice   3 Progress   4 Audio
+ Progress
+┌Latency / ms (typing)─────────────────────────────────────────────────────────┐
+│825│•                                                                         │
+│   │                                                                          │
+│   │█                                                                         │
+│   │                                                                          │
+│0  │                                                                          │
+│n=1 | sparse / no trend                                                       │
+│median/p90 ms | typing                                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌ SELECTED POINT / TESTED CONDITIONS ──────────────────────────────────────────┐
+│Point 1/1 | Recognition/Isolated 20/0 WPM | repertoire KM | cw-policy-v1.2    │
+│2026-11-14 | COMPLETE | INDEPENDENT                                           │
+│Typing-inclusive median 400 ms / p90 750 ms | n=8                             │
+│Sparse evidence: no trend inferred                                            │
+│                                                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+ LOCAL / OFFLINE | Timing estimated | ?: help (idle / paused)
+Tab: focus | Enter: activate | F5: pause | Esc: finish | Ctrl-C: quit
+
+
