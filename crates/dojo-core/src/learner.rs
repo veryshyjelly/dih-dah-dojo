@@ -86,6 +86,21 @@ pub struct Learner {
     states: BTreeMap<(char, Context), VecDeque<Observation>>,
 }
 impl Learner {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        let mut checked = Self::default();
+        for ((symbol, context), values) in &self.states {
+            if !context.valid() || values.len() > 100 {
+                return Err("invalid saved learner context");
+            }
+            for value in values {
+                if value.symbol != *symbol || value.context != *context {
+                    return Err("mismatched saved observation");
+                }
+                checked.observe(value.clone())?;
+            }
+        }
+        Ok(())
+    }
     pub fn observe(&mut self, value: Observation) -> Result<(), &'static str> {
         if pattern(value.symbol).is_none()
             || !value.symbol.is_ascii()

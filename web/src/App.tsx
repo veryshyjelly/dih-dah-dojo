@@ -1,3 +1,4 @@
+import { BackupControls } from './BackupControls';
 import { MiniGraph } from './MiniGraph';
 import { LanguageProgress, LanguageData } from './LanguageProgress';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -953,13 +954,33 @@ export default function App() {
                   }}
                   onError={notify}
                   onSignin={() => setSignin(true)}
+                  backupControls={
+                    <>
+                      <BackupControls
+                        key={`backup-${user?.id || 'guest'}`}
+                        engine={engine}
+                        owner={user?.id || 'guest'}
+                        onRestored={async () => {
+                          if (user) {
+                            await clearLanguage(user.id);
+                            for (const row of await pending(user.id)) await removePending(row.id);
+                          }
+                          if (userRef.current?.id !== user?.id) return;
+                          setPendingCount(0);
+                          await loadProfile();
+                          setProgress(null);
+                          notify('Your saved progress has been restored.');
+                        }}
+                      />
+                      <LanguageData
+                        key={user?.id || 'guest'}
+                        engine={engine}
+                        owner={user?.id || 'guest'}
+                      />
+                    </>
+                  }
                   pendingCount={pendingCount}
                   onSync={() => void syncOutbox()}
-                />
-                <LanguageData
-                  key={user?.id || 'guest'}
-                  engine={engine}
-                  owner={user?.id || 'guest'}
                 />
               </>
             )}
@@ -2567,6 +2588,7 @@ function Settings({
   onSignin,
   pendingCount,
   onSync,
+  backupControls,
 }: {
   user: User | null;
   snapshot: Snapshot;
@@ -2578,6 +2600,7 @@ function Settings({
   onDelete: () => Promise<void>;
   onError: (error: unknown) => void;
   onSignin: () => void;
+  backupControls: ReactNode;
   pendingCount: number;
   onSync: () => void;
 }) {
@@ -2608,23 +2631,6 @@ function Settings({
       onError(error);
     } finally {
       setSaving(false);
-    }
-  }
-  async function download() {
-    try {
-      const response = await fetch(api.API + '/api/account/export', {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Could not export history. Please try again.');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'dih-dah-dojo.cwweb';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-      onError(error);
     }
   }
   return (
@@ -2718,9 +2724,6 @@ function Settings({
                   </Button>
                 )}
               </div>
-              <button className="setting-link" onClick={() => void download()}>
-                <Download size={18} /> Export my history <ArrowUpRight size={15} />
-              </button>
               <button className="setting-link" onClick={onSignout}>
                 <LogOut size={18} /> Sign out <ArrowUpRight size={15} />
               </button>
@@ -2737,6 +2740,7 @@ function Settings({
           )}
         </article>
       </div>
+      {backupControls}
       {user && (
         <div className="data-danger">
           <div>

@@ -14,6 +14,8 @@ progress use sign-in, with separate keyboard and touch profiles. The browser and
 native app share Rust timing, synthesis, scoring and training policy through WASM.
 The header theme toggle follows your device initially and remembers your choice on this browser.
 See [web development](web/README.md) and [deployment evidence](docs/web-verification.md).
+Settings supports [exporting and restoring web progress](docs/web-backups.md),
+with a preview before importing and explicit confirmation for account replacement.
 
 ## Start practicing natively
 

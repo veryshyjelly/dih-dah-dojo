@@ -1,3 +1,4 @@
+import { parseBackup } from './backup-format';
 import { request, fromBase64, toBase64, ApiError } from './api';
 import type { EngineClient } from './engine-client';
 export type Activity = {
@@ -34,6 +35,8 @@ type Row = {
   synced: boolean;
   accepted?: number;
 };
+const generations = new Map<string, number>();
+const generation = (owner: string) => generations.get(owner) || 0;
 function db() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const r = indexedDB.open('dojo-language', 1);
@@ -54,9 +57,10 @@ async function rows(owner: string) {
     d.close();
   }
 }
-async function write(row: Row) {
+async function write(row: Row, valid: () => boolean = () => true) {
   const d = await db();
   try {
+    if (!valid()) throw new Error('Progress changed before storage commit.');
     await new Promise<void>((resolve, reject) => {
       const t = d.transaction('activity', 'readwrite');
       t.objectStore('activity').put(row);
@@ -68,6 +72,7 @@ async function write(row: Row) {
   }
 }
 export async function clearLanguage(owner: string) {
+  generations.set(owner, generation(owner) + 1);
   const list = await rows(owner);
   const d = await db();
   try {
@@ -84,6 +89,7 @@ export async function clearLanguage(owner: string) {
 }
 export class LanguageStore {
   epoch = '';
+  private cursor = 0;
   status = 'Saved on this browser';
   entries: Entry[] = [];
   constructor(
@@ -121,17 +127,23 @@ export class LanguageStore {
     );
   }
   async save(activity: Activity) {
+    const expected = generation(this.owner);
     const packet = await this.engine.call<Uint8Array>('language_encode', JSON.stringify(activity));
     const entry = await this.engine.json<Entry>('language_decode', packet);
+    if (expected !== generation(this.owner))
+      throw new Error('Progress changed before this activity was saved. Reopen the page.');
     this.entries.push(entry);
     try {
-      await write({
-        id: `${this.owner}:${activity.id}`,
-        owner: this.owner,
-        epoch: this.epoch,
-        packet,
-        synced: this.owner === 'guest',
-      });
+      await write(
+        {
+          id: `${this.owner}:${activity.id}`,
+          owner: this.owner,
+          epoch: this.epoch,
+          packet,
+          synced: this.owner === 'guest',
+        },
+        () => expected === generation(this.owner),
+      );
       this.status = this.owner === 'guest' ? 'Saved on this browser' : 'Saved here · sync pending';
     } catch {
       this.status = 'Unsaved · browser storage unavailable';
@@ -154,6 +166,12 @@ export class LanguageStore {
   async export() {
     const list = await rows(this.owner);
     const frames: Uint8Array[] = [new TextEncoder().encode('CWLANG01')];
+    await this.decode(list);
+    const order = new Map(this.entries.map((e, i) => [`${this.owner}:${e.activity.id}`, i]));
+    list.sort(
+      (a, b) =>
+        (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+    );
     for (const row of list) {
       const head = new Uint8Array(4);
       new DataView(head.buffer).setUint32(0, row.packet.length, true);
@@ -167,8 +185,91 @@ export class LanguageStore {
     }
     return output;
   }
+  async previewImport(bytes: Uint8Array) {
+    const parsed = await parseBackup(bytes);
+    if (parsed.kind !== 'language')
+      throw new Error('Choose a browser word/story .bin backup here.');
+    await this.open();
+    if (this.owner !== 'guest' && this.status !== 'Synced')
+      throw new Error('Go online and sync this account before importing.');
+    const existing = await rows(this.owner),
+      packets = new Map<string, Uint8Array>();
+    let duplicates = 0;
+    const equal = (a: Uint8Array, b: Uint8Array) =>
+      a.length === b.length && a.every((n, i) => n === b[i]);
+    for (const frame of parsed.frames) {
+      const entry = await this.engine.json<Entry>('language_decode', frame.bytes),
+        id = `${this.owner}:${entry.activity.id}`;
+      const known = packets.get(id) || existing.find((r) => r.id === id)?.packet;
+      if (known) {
+        if (!equal(known, frame.bytes))
+          throw new Error('A record ID conflicts with existing activity. Nothing was imported.');
+        duplicates++;
+      } else packets.set(id, frame.bytes);
+    }
+    return { packets, duplicates, existing, epoch: this.epoch, cursor: this.cursor, bytes };
+  }
+  async importPreview(preview: Awaited<ReturnType<LanguageStore['previewImport']>>) {
+    if (this.owner !== 'guest') {
+      const result = await request<{ imported: number }>(
+        `/api/language/import?epoch=${encodeURIComponent(preview.epoch)}&cursor=${preview.cursor}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          signal: AbortSignal.timeout(120000),
+          body: new Uint8Array(preview.bytes),
+        },
+      );
+      await this.open();
+      window.dispatchEvent(new Event('dojo-language-change'));
+      return result.imported;
+    }
+    const d = await db();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const t = d.transaction('activity', 'readwrite'),
+          object = t.objectStore('activity'),
+          request = object.getAll();
+        let failure = 'Could not import activity.';
+        request.onsuccess = () => {
+          const now = (request.result as Row[]).filter((r) => r.owner === this.owner),
+            same = (a: Row, b: Row) =>
+              a.id === b.id &&
+              a.epoch === b.epoch &&
+              a.packet.length === b.packet.length &&
+              a.packet.every((v, i) => v === b.packet[i]);
+          if (
+            now.length !== preview.existing.length ||
+            !now.every((a) => preview.existing.some((b) => same(a, b)))
+          ) {
+            failure = 'Activity changed. Preview the file again.';
+            t.abort();
+            return;
+          }
+          for (const [id, packet] of preview.packets)
+            object.put({
+              id,
+              packet,
+              owner: this.owner,
+              epoch: preview.epoch,
+              synced: this.owner === 'guest',
+            } satisfies Row);
+        };
+        t.oncomplete = () => resolve();
+        t.onerror = () => reject(new Error(failure));
+        t.onabort = () => reject(new Error(failure));
+      });
+    } finally {
+      d.close();
+    }
+    await this.open();
+    window.dispatchEvent(new Event('dojo-language-change'));
+    return preview.packets.size;
+  }
   private async synchronize() {
     if (this.owner === 'guest') return;
+    let expected = generation(this.owner);
+    const current = () => expected === generation(this.owner);
     try {
       let after = 0,
         more = true;
@@ -181,8 +282,14 @@ export class LanguageStore {
           cursor: number;
           more: boolean;
         }>(`/api/language?after=${after}`);
+        if (!current()) {
+          this.entries = [];
+          this.status = 'Activity changed · reopen this page';
+          return;
+        }
         if (this.epoch && page.epoch !== this.epoch) {
           await clearLanguage(this.owner);
+          expected = generation(this.owner);
           this.entries = [];
         }
         this.epoch = page.epoch;
@@ -201,8 +308,28 @@ export class LanguageStore {
         after = page.cursor;
         more = page.more;
       }
-      for (const row of remote) await write(row);
-      for (const row of await rows(this.owner)) {
+      this.cursor = after;
+      const local = await rows(this.owner);
+      for (const row of remote) {
+        if (!current()) return;
+        const pending = local.find((r) => r.id === row.id && !r.synced);
+        if (
+          pending &&
+          (pending.packet.length !== row.packet.length ||
+            pending.packet.some((n, i) => n !== row.packet[i]))
+        )
+          throw new Error('Sync conflict');
+        await write(row, current);
+      }
+      const ordered = await rows(this.owner);
+      const order = new Map(this.entries.map((e, i) => [`${this.owner}:${e.activity.id}`, i]));
+      ordered.sort(
+        (a, b) =>
+          (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+      for (const row of ordered) {
+        if (!current()) return;
         if (!row.synced) {
           if (row.epoch !== this.epoch) {
             this.status = 'Older unsynced activity cannot restore reset progress';
@@ -212,16 +339,21 @@ export class LanguageStore {
             method: 'POST',
             body: JSON.stringify({ epoch: this.epoch, packet: toBase64(row.packet) }),
           });
-          await write({ ...row, synced: true, accepted: saved.seq });
+          if (!current()) return;
+          this.cursor = Math.max(this.cursor, saved.seq);
+          await write({ ...row, synced: true, accepted: saved.seq }, current);
         }
       }
+      if (!current()) return;
       await this.decode(await rows(this.owner));
       this.status = 'Synced';
     } catch (error) {
       this.status =
         error instanceof ApiError && error.status === 410
           ? 'Activity was reset · reopen this tool'
-          : 'Saved here · sync pending';
+          : error instanceof Error && error.message === 'Sync conflict'
+            ? 'Sync conflict · export this browser’s activity before retrying'
+            : 'Saved here · sync pending';
     }
   }
 }

@@ -1,3 +1,5 @@
+import { parseBackup } from '../src/backup-format';
+import { baseline, validateAccount, commitAccount } from './backups';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
@@ -80,13 +82,15 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
     c.header('X-Content-Type-Options', 'nosniff');
     await next();
   });
-  app.use(
-    '/api/*',
+  app.use('/api/*', (c, next) =>
     bodyLimit({
-      maxSize: 12 * 1024 * 1024,
+      maxSize:
+        c.req.path.startsWith('/api/account/import') || c.req.path === '/api/language/import'
+          ? 32 * 1024 * 1024
+          : 12 * 1024 * 1024,
       onError: (c) =>
-        c.json({ error: 'Block exceeds the upload limit. Keep the local copy.' }, 413),
-    }),
+        c.json({ error: 'Upload exceeds the limit. Account backups must be under 32 MiB.' }, 413),
+    })(c, next),
   );
   const attempts = new Map<string, { count: number; at: number }>();
   app.use('/api/*', async (c, next) => {
@@ -129,6 +133,7 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
   app.use('/api/records/*', authenticated);
   app.use('/api/blocks', authenticated);
   app.use('/api/language', authenticated);
+  app.use('/api/language/*', authenticated);
   app.use('/api/account/*', authenticated);
 
   app.get('/api/language', (c) => {
@@ -147,6 +152,62 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
       cursor: rows.at(-1)?.seq ?? after,
       more: rows.length === 100,
     });
+  });
+  app.post('/api/language/import', async (c) => {
+    const owner = c.get('user').id,
+      epoch = c.req.query('epoch'),
+      cursor = Number(c.req.query('cursor'));
+    const latest = () =>
+      Number(
+        (
+          store.db
+            .prepare('SELECT COALESCE(MAX(rowid),0) AS n FROM dojo_language WHERE owner=?')
+            .get(owner) as { n: number }
+        ).n,
+      );
+    const unchanged = () =>
+      epoch === store.epoch(owner) && Number.isSafeInteger(cursor) && cursor === latest();
+    if (!unchanged())
+      return c.json({ error: 'Account activity changed. Preview the backup again.' }, 409);
+    try {
+      const parsed = await parseBackup(new Uint8Array(await c.req.arrayBuffer()));
+      if (parsed.kind !== 'language') throw new Error('Choose a browser word/story backup.');
+      const incoming = new Map<string, Buffer>();
+      let duplicates = 0;
+      for (const f of parsed.frames) {
+        const result = await pool.run({
+          state: new Uint8Array(),
+          packet: f.bytes,
+          action: 'language',
+        });
+        const id = String((result.summary!.activity as { id: string }).id);
+        const bytes = Buffer.from(f.bytes),
+          known =
+            incoming.get(id) ||
+            (
+              store.db
+                .prepare('SELECT packet FROM dojo_language WHERE owner=? AND id=?')
+                .get(owner, id) as { packet: Buffer } | undefined
+            )?.packet;
+        if (known) {
+          if (!known.equals(bytes))
+            throw new Error('Conflicting activity ID. Nothing was imported.');
+          duplicates++;
+        } else incoming.set(id, bytes);
+      }
+      if (!unchanged())
+        return c.json({ error: 'Account activity changed. Preview the backup again.' }, 409);
+      store.db.transaction(() => {
+        const insert = store.db.prepare(
+          'INSERT INTO dojo_language(owner,id,packet,created) VALUES(?,?,?,?)',
+        );
+        let created = Date.now();
+        for (const [id, packet] of incoming) insert.run(owner, id, packet, created++);
+      })();
+      return c.json({ imported: incoming.size, duplicates });
+    } catch (error) {
+      return c.json({ error: error instanceof Error ? error.message : 'Invalid backup' }, 400);
+    }
   });
   app.post('/api/language', async (c) => {
     const owner = c.get('user').id,
@@ -387,6 +448,47 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
         },
       }),
   );
+  app.post('/api/account/import/preview', async (c) => {
+    try {
+      const owner = c.get('user').id,
+        epoch = store.epoch(owner),
+        before = baseline(store, owner);
+      const data = await validateAccount(new Uint8Array(await c.req.arrayBuffer()), pool);
+      if (epoch !== store.epoch(owner) || before !== baseline(store, owner))
+        return c.json({ error: 'Progress changed during preview. Choose the file again.' }, 409);
+      return c.json({
+        epoch,
+        baseline: before,
+        digest: data.digest,
+        profiles: data.profiles.size,
+        blocks: data.blocks.length,
+        language: data.language.size,
+        legacy: data.legacy,
+      });
+    } catch (error) {
+      return c.json({ error: error instanceof Error ? error.message : 'Invalid backup' }, 400);
+    }
+  });
+  app.post('/api/account/import', async (c) => {
+    const owner = c.get('user').id,
+      query = c.req.query();
+    if (query.confirmation !== 'RESTORE')
+      return c.json({ error: 'Type RESTORE to replace progress.' }, 400);
+    const unchanged = () =>
+      query.epoch === store.epoch(owner) && query.baseline === baseline(store, owner);
+    if (!unchanged()) return c.json({ error: 'Progress changed. Preview the backup again.' }, 409);
+    try {
+      const data = await validateAccount(new Uint8Array(await c.req.arrayBuffer()), pool);
+      if (data.digest !== query.digest)
+        return c.json({ error: 'The selected backup changed. Preview it again.' }, 400);
+      if (!unchanged())
+        return c.json({ error: 'Progress changed. Preview the backup again.' }, 409);
+      commitAccount(store, owner, data);
+      return c.json({ restored: true, epoch: store.epoch(owner) });
+    } catch (error) {
+      return c.json({ error: error instanceof Error ? error.message : 'Invalid backup' }, 400);
+    }
+  });
   app.post('/api/account/reset', async (c) => {
     const body = await c.req.json();
     if (body.confirmation !== 'DELETE')

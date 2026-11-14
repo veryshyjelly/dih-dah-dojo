@@ -1,0 +1,7 @@
+- [x] 1. Integrate compact backup UI inside Settings before destructive actions; remove the second page wrapper/min-height.
+- [x] 2. Implement bounded binary account/browser parsers, CWDOJOW2 export and legacy preview warnings.
+- [x] 3. Add Rust checkpoint/record validation and authenticated preview/atomic account restoration with concurrency guards.
+- [x] 4. Add atomic language import with duplicate/conflict handling and existing account synchronization.
+- [x] 5. Build file preview, destination/counts, explicit restore confirmation, cancellation and post-restore refresh/cleanup.
+- [x] 6. Verify round trips, malformed files, ownership, races, unsupported packets, cancellation and responsive UI; run builds/tests/format/Clippy/OpenSpec checks.
+- [x] 7. Back up and deploy backend, deploy frontend, smoke-test without production imports, and commit/push evidence.

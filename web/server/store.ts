@@ -69,8 +69,17 @@ export class Store {
       .prepare('SELECT input,state FROM dojo_profiles WHERE owner=? ORDER BY input')
       .all(owner) as { input: string; state: Buffer }[];
     const blocks = this.db
-      .prepare('SELECT input,packet FROM dojo_blocks WHERE owner=? ORDER BY seq')
-      .all(owner) as { input: string; packet: Buffer }[];
+      .prepare(
+        'SELECT id,input,packet,record,applied,created FROM dojo_blocks WHERE owner=? ORDER BY seq',
+      )
+      .all(owner) as {
+      id: string;
+      input: string;
+      packet: Buffer;
+      record: Buffer;
+      applied: number;
+      created: number;
+    }[];
     const language = this.db
       .prepare('SELECT packet FROM dojo_language WHERE owner=? ORDER BY created,id')
       .all(owner) as { packet: Buffer }[];
@@ -81,21 +90,31 @@ export class Store {
       head.writeUInt32LE(row.packet.length, 2);
       frames.push(head, row.packet);
     }
-    for (const [type, items] of [
-      [0, profiles],
-      [1, blocks],
-    ] as const)
-      for (const row of items) {
-        const bytes = 'state' in row ? row.state : row.packet;
-        const head = Buffer.alloc(6);
-        head[0] = type;
-        head[1] = row.input === 'touch' ? 1 : 0;
-        head.writeUInt32LE(bytes.length, 2);
-        frames.push(head, bytes);
-      }
+    for (const row of profiles) {
+      const head = Buffer.alloc(6);
+      head[0] = 0;
+      head[1] = row.input === 'touch' ? 1 : 0;
+      head.writeUInt32LE(row.state.length, 2);
+      frames.push(head, row.state);
+    }
+    for (const row of blocks) {
+      const id = Buffer.from(row.id),
+        meta = Buffer.alloc(15 + id.length);
+      meta[0] = row.applied ? 1 : 0;
+      meta.writeDoubleLE(row.created, 1);
+      meta.writeUInt16LE(id.length, 9);
+      id.copy(meta, 11);
+      meta.writeUInt32LE(row.packet.length, 11 + id.length);
+      const bytes = Buffer.concat([meta, row.packet, row.record]);
+      const head = Buffer.alloc(6);
+      head[0] = 3;
+      head[1] = row.input === 'touch' ? 1 : 0;
+      head.writeUInt32LE(bytes.length, 2);
+      frames.push(head, bytes);
+    }
     const body = Buffer.concat(frames);
     return Buffer.concat([
-      Buffer.from('CWDOJOW1'),
+      Buffer.from('CWDOJOW2'),
       createHash('sha256').update(body).digest(),
       body,
     ]);

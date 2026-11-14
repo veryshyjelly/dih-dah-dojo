@@ -177,7 +177,7 @@ test('API isolates owners, rejects foreign origins, preserves binary exports and
     assert.equal((await (await call('/api/profile/keyboard')).json()).records.length, 1);
     engine.free();
     const exported = Buffer.from(await (await call('/api/account/export')).arrayBuffer());
-    assert.equal(exported.subarray(0, 8).toString(), 'CWDOJOW1');
+    assert.equal(exported.subarray(0, 8).toString(), 'CWDOJOW2');
     assert.deepEqual(
       exported.subarray(8, 40),
       createHash('sha256').update(exported.subarray(40)).digest(),

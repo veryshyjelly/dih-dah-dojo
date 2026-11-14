@@ -399,19 +399,34 @@ export class Training {
       this.liveBusy = false;
     }
   }
+  private pauseWork: Promise<void> | null = null;
   async pause() {
     if (this.view.phase === 'paused') {
+      await this.pauseWork;
+      if (!this.active || this.stopping || this.view.phase !== 'paused') return;
       await audio.resume();
-      this.emit({ phase: this.pausedPhase });
+      if (this.view.phase !== 'paused' || this.stopping) return;
       if (this.advancePending) {
         this.advancePending = false;
+        this.emit({ phase: 'listening', answer: '', feedback: null });
         await this.nextTrial();
-      } else if (this.pausedPhase === 'tail') this.after(10000, () => void this.finish(true));
+      } else {
+        this.emit({ phase: this.pausedPhase });
+        if (this.pausedPhase === 'tail') this.after(10000, () => void this.finish(true));
+      }
       return;
     }
     if (!this.active || this.stopping || this.view.phase === 'loading') return;
     this.pausedPhase = this.view.phase;
     this.emit({ phase: 'paused' });
+    this.pauseWork = this.suspendPractice();
+    try {
+      await this.pauseWork;
+    } finally {
+      this.pauseWork = null;
+    }
+  }
+  private async suspendPractice() {
     for (const timer of this.timers) clearTimeout(timer);
     this.timers.clear();
     this.deadline = null;
@@ -442,6 +457,7 @@ export class Training {
     this.epoch++;
     this.clear();
     try {
+      await this.pauseWork;
       await this.closePending?.catch(() => {});
       if (reason) await this.engine.call('interrupt', reason);
       await audio.stop();

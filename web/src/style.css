@@ -5300,3 +5300,134 @@ kbd {
   color: var(--theme-on-primary, #f8fbee);
   border: 1px solid transparent;
 }
+.backup-workspace {
+  padding: 28px;
+  margin: 26px 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+.backup-workspace .tool-heading {
+  margin-bottom: 26px;
+}
+.backup-workspace h2 {
+  font-size: 24px;
+}
+.backup-workspace h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.backup-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.backup-options article {
+  min-width: 0;
+}
+.backup-options p,
+.backup-workspace > p,
+.backup-preview p {
+  font-size: 11px;
+  line-height: 1.9;
+}
+.backup-options .setting-link {
+  padding: 12px 0;
+  font-size: 11px;
+}
+.backup-file {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.backup-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.backup-file:focus-within {
+  outline: 3px solid var(--theme-focus-ring, #9ab583);
+  outline-offset: 4px;
+}
+.backup-preview {
+  margin-top: 26px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: var(--sage);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.backup-preview label {
+  display: block;
+  font-size: 12px;
+}
+.backup-preview input {
+  display: block;
+  width: 100%;
+  max-width: 350px;
+  margin: 10px 0 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px;
+  border-radius: 8px;
+}
+.backup-warning {
+  color: var(--amber);
+}
+.settings-page .language-data-settings {
+  max-width: none;
+  margin: 0 0 26px;
+  padding: 0;
+  min-height: 0;
+}
+.language-data-settings p {
+  font-size: 11px;
+}
+.language-data-settings label {
+  display: block;
+  max-width: 360px;
+  font-size: 11px;
+}
+.language-data-settings button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 10px;
+}
+@media (max-width: 780px) {
+  .backup-options {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .backup-options article + article {
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+  }
+  .backup-workspace {
+    padding: 24px 20px;
+  }
+}
+.guest-backup-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.backup-options .setting-link {
+  display: inline-flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+@media (max-width: 780px) {
+  .guest-backup-options {
+    grid-template-columns: 1fr;
+  }
+}

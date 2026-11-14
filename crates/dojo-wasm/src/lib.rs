@@ -116,6 +116,29 @@ impl Engine {
         self.history.clear();
         Ok(())
     }
+    /// Validate an explicitly selected backup without applying learning events.
+    pub fn restore_checkpoint(&mut self, bytes: &[u8]) -> Result<()> {
+        self.load(bytes)?;
+        self.state.profile.validate().map_err(error)?;
+        self.state.learner.validate().map_err(error)?;
+        self.state.controller.validate().map_err(error)?;
+        Ok(())
+    }
+    pub fn restore_record(&mut self, bytes: &[u8], legacy: bool) -> Result<String> {
+        if bytes.len() > MAX_BINARY {
+            return Err(error("record too large"));
+        }
+        let mut record: Record = postcard::from_bytes(bytes).map_err(error)?;
+        record.validate().map_err(error)?;
+        record.derive().map_err(error)?;
+        if legacy {
+            record.manual_override = true;
+            record.decision = "Imported legacy history: acceptance status unavailable".into();
+        }
+        let result = json!({"content":record.content,"utc":record.utc_ms,"attempt":record.metrics.attempt_accuracy,"finalAccuracy":record.metrics.final_accuracy,"targets":record.metrics.target_count,"decision":record.decision,"pace":record.pace_summary(),"completed":record.completed,"interrupted":record.compromised,"kind":format!("{:?}",record.kind)});
+        self.last_record = Some(record);
+        Ok(view(result))
+    }
     pub fn checkpoint(&self) -> Result<Vec<u8>> {
         postcard::to_allocvec(&self.state).map_err(error)
     }
@@ -166,7 +189,9 @@ impl Engine {
                 Ok(json!({"id":s.id,"title":s.title,"sentences":s.sentences,"seconds":seconds}))
             })
             .collect::<Result<Vec<_>>>()?;
-        Ok(view(json!({"version":1,"stories":stories,"words":dojo_core::language::words()})))
+        Ok(view(
+            json!({"version":1,"stories":stories,"words":dojo_core::language::words()}),
+        ))
     }
     pub fn language_words(
         &self,
@@ -869,7 +894,7 @@ impl Engine {
             }
             .into();
         }
-        let summary = json!({"attempt":p.record.metrics.attempt_accuracy,"finalAccuracy":p.record.metrics.final_accuracy,
+        let summary = json!({"content":p.record.content,"utc":p.record.utc_ms,"attempt":p.record.metrics.attempt_accuracy,"finalAccuracy":p.record.metrics.final_accuracy,
             "targets":p.record.metrics.target_count,"decision":p.record.decision,"pace":p.record.pace_summary(),"reason":p.record.selection_reason,
             "gaps":p.record.rescues,"completed":p.record.completed,"interrupted":p.record.compromised,"kind":format!("{:?}",p.record.kind),"source":p.source,
             "details":progress::history_detail(&p.record),"qualifying":p.record.qualifying_check()&&p.source=="guided"});

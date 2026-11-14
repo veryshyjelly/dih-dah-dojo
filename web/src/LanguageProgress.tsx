@@ -443,35 +443,8 @@ export function LanguageData({ engine, owner }: { engine: EngineClient; owner: s
     [confirmation, setConfirmation] = useState(''),
     [message, setMessage] = useState('');
   return (
-    <section className="page language-data-settings settings-card">
-      <span className="tool-icon">
-        <Download />
-      </span>
-      <h2>Your word and story data</h2>
+    <section className="language-data-settings" aria-label="Browser activity storage">
       <p>{message || status}</p>
-      <p>
-        Browser export includes pending local activity. Account export also includes synchronized
-        activity.
-      </p>
-      <button
-        className="setting-link"
-        onClick={() => {
-          const store = new LanguageStore(owner, engine);
-          void store
-            .export()
-            .then((bytes) => {
-              const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)]));
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'dojo-language.bin';
-              a.click();
-              setTimeout(() => URL.revokeObjectURL(url), 1000);
-            })
-            .catch((e) => setMessage(String(e)));
-        }}
-      >
-        Export this browser's activity
-      </button>
       {owner === 'guest' && (
         <>
           <label>

@@ -44,6 +44,23 @@ impl Default for Controller {
     }
 }
 impl Controller {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        for (context, state) in &self.copying {
+            if !context.valid() || context.mode != Mode::Copying {
+                return Err("invalid saved controller context");
+            }
+            if state.pending.as_ref().is_some_and(|w| {
+                w.n >= 20
+                    || w.blocks == 0
+                    || w.blocks > 2
+                    || w.distance > 16 * 1024 * 1024
+                    || w.rescues > u32::from(w.blocks)
+            }) {
+                return Err("invalid saved controller window");
+            }
+        }
+        Ok(())
+    }
     pub fn can_introduce(&self) -> bool {
         self.recognition_good >= 2 && !self.introduced_this_session
     }
@@ -387,6 +404,36 @@ impl RescueTracker {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn saved_controller_rejects_unsafe_accumulation_windows() {
+        let mut controller = Controller::default();
+        assert!(controller.validate().is_ok());
+        controller.copying.insert(
+            Context::copying(20, 5, Material::Groups),
+            CopyState {
+                pending: Some(Window {
+                    n: 19,
+                    blocks: 2,
+                    distance: 5,
+                    rescues: 1,
+                    up_eligible: true,
+                }),
+                ..CopyState::default()
+            },
+        );
+        assert!(controller.validate().is_ok());
+        controller
+            .copying
+            .values_mut()
+            .next()
+            .unwrap()
+            .pending
+            .as_mut()
+            .unwrap()
+            .blocks = 255;
+        assert!(controller.validate().is_err());
+    }
+
     use super::*;
     use crate::recording::{Kind, Metrics};
     fn copy(accuracy: f64, n: u32) -> Record {

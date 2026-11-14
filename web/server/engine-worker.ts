@@ -13,6 +13,22 @@ parentPort!.on('message', ({ id, job }: { id: number; job: Job }) => {
       parentPort!.postMessage({ id, result: { state: new Uint8Array(), summary } });
       return;
     }
+    if (job.action === 'restore-state') {
+      engine.restore_checkpoint(job.state);
+      parentPort!.postMessage({
+        id,
+        result: { state: engine.checkpoint(), summary: JSON.parse(engine.snapshot(Date.now())) },
+      });
+      return;
+    }
+    if (job.action === 'restore-record') {
+      const summary = JSON.parse(engine.restore_record(job.packet!, !!job.values?.legacy));
+      parentPort!.postMessage({
+        id,
+        result: { state: new Uint8Array(), summary, record: engine.record() },
+      });
+      return;
+    }
     engine.load(job.state);
     let summary, record;
     if (job.packet) {
