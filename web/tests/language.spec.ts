@@ -154,3 +154,35 @@ test('language storage keeps colliding activity IDs isolated between accounts', 
   });
   expect(result).toEqual({ first: 'AN', second: 'NO', count: 1 });
 });
+
+test('Tools starts at the first option and the story library keeps character details optional', async ({
+  page,
+}) => {
+  await page.goto('/tools');
+  await expect(page.getByRole('button', { name: 'Word training', exact: true })).toHaveClass(
+    'selected',
+  );
+  await expect(page.getByRole('button', { name: 'Start word round' })).toBeVisible();
+  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await expect(page.locator('.story-entry')).toHaveCount(6);
+  await expect(page.locator('.story-characters[open]')).toHaveCount(0);
+  await page.locator('.story-characters summary').first().click();
+  await expect(page.locator('.story-character-chips').first()).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'A little story. A little signal.' }),
+  ).toBeVisible();
+  await page.locator('.story-characters summary').first().click();
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((t) => window.dojoTheme.setTheme(t as 'light' | 'dark'), theme);
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.locator('.language-practice').scrollIntoViewIfNeeded();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await page.locator('.language-practice').screenshot({
+        path: `test-results/story-library-${test.info().project.name}-${theme}-${width}.png`,
+      });
+    }
+  }
+});

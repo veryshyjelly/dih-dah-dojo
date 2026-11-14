@@ -5,6 +5,29 @@ import type { Snapshot } from './types';
 import { clearLanguage, LanguageStore, type Activity, type Entry } from './language-store';
 type Word = { id: string; text: string; meaning: string; set: string };
 type Story = { id: string; title: string; sentences: string[]; seconds: number };
+const storyNotes: Record<string, { theme: string; description: string }> = {
+  'story-1': { theme: 'By the water', description: 'An unhurried morning on the riverbank.' },
+  'story-2': {
+    theme: 'Everyday connections',
+    description: 'A small delivery brings a distant friend closer.',
+  },
+  'story-3': {
+    theme: 'Made by hand',
+    description: 'Spend an afternoon where small things take shape.',
+  },
+  'story-4': {
+    theme: 'Out and about',
+    description: 'A familiar walk, with a few things to bring home.',
+  },
+  'story-5': {
+    theme: 'A quiet moment',
+    description: 'Settle indoors while the world carries on outside.',
+  },
+  'story-6': {
+    theme: 'On the move',
+    description: 'Watch the scenery change on a journey away from home.',
+  },
+};
 export function LanguagePractice({
   kind,
   engine,
@@ -121,6 +144,7 @@ export function LanguagePractice({
       created: Date.now(),
       ...values,
     };
+    setStatus('Saving…');
     round.current.push(activity.id);
     saving.current = saving.current
       .then(() => store.current.save(activity))
@@ -346,17 +370,37 @@ export function LanguagePractice({
       ).size
     : 0;
   return (
-    <section className="language-practice">
-      <p className="eyebrow">{kind === 'word' ? 'ONE WHOLE WORD' : 'A STORY IN SIGNALS'}</p>
-      <h2>
-        {kind === 'word'
-          ? 'Let the words come together.'
-          : story?.title || 'Find a story to listen to.'}
-      </h2>
-      <p>Self-paced practice · {status}</p>
+    <section
+      className={`language-practice ${kind === 'story' ? 'story-mode' : ''} ${kind === 'story' && !story ? 'story-library-page' : ''}`}
+    >
+      <div className="language-heading">
+        <div>
+          <p className="eyebrow">{kind === 'word' ? 'ONE WHOLE WORD' : 'THE STORY ROOM'}</p>
+          <h2>
+            {kind === 'word'
+              ? 'Let the words come together.'
+              : story?.title || 'A little story. A little signal.'}
+          </h2>
+          {kind === 'story' && !story && (
+            <p className="story-intro">
+              Six short escapes. Listen one sentence at a time, at your own pace.
+            </p>
+          )}
+        </div>
+        <span className="language-save-status">
+          <i aria-hidden="true" />
+          {status}
+        </span>
+      </div>
       {(phase === 'setup' || (kind === 'story' && !story)) && (
         <>
-          <div className="language-settings">
+          <div className={`language-settings ${kind === 'story' ? 'story-pace' : ''}`}>
+            {kind === 'story' && (
+              <div className="story-pace-caption">
+                <strong>Your listening pace</strong>
+                <span>Set the sound speed and the space to think.</span>
+              </div>
+            )}
             <label>
               Character WPM
               <input
@@ -422,33 +466,115 @@ export function LanguagePractice({
                   </select>
                 </label>
               </div>
-              <button className="btn" disabled={busy} onClick={() => void startWords()}>
+              <button
+                className="btn"
+                disabled={busy || status === 'Loading saved activity…'}
+                onClick={() => void startWords()}
+              >
                 Start word round
               </button>
             </>
           ) : (
-            <div className="story-library">
-              {catalog.map((s) => (
-                <button key={s.id} className="story-card" onClick={() => startStory(s)}>
-                  <strong>{s.title}</strong>
-                  <span>
-                    {s.sentences.join(' ').split(/\s+/).length} words · about{' '}
-                    {Math.ceil(s.seconds / 60)} min of signal
-                  </span>
-                  <small>
-                    Required characters:{' '}
-                    {[...new Set(s.sentences.join('').replace(/ /g, ''))].sort().join('')}
-                  </small>
-                  {owner !== 'guest' && (
-                    <small>
-                      Unintroduced:{' '}
-                      {[...new Set(s.sentences.join('').replace(/ /g, ''))]
-                        .filter((ch) => !snapshot.introduced.includes(ch))
-                        .join('') || 'none'}
-                    </small>
-                  )}
-                </button>
-              ))}
+            <div className="story-library" aria-label="Story library">
+              {catalog.map((s, number) => {
+                const required = [...new Set(s.sentences.join('').replace(/ /g, ''))].sort();
+                const unfamiliar = required.filter((ch) => !snapshot.introduced.includes(ch));
+                const activity = entries.filter(
+                  (v) => v.activity.kind === 'story' && v.activity.item === s.id,
+                );
+                const heard = new Set(
+                  activity
+                    .filter((v) => v.activity.finished && !v.activity.interrupted)
+                    .map((v) => v.activity.sentence),
+                ).size;
+                const note = storyNotes[s.id];
+                return (
+                  <article className={`story-entry story-tone-${number % 3}`} key={s.id}>
+                    <button
+                      className="story-card"
+                      disabled={status === 'Loading saved activity…'}
+                      onClick={() => startStory(s)}
+                    >
+                      <span className="story-card-top">
+                        <span className="story-edition">
+                          {String(number + 1).padStart(2, '0')} <span aria-hidden="true">/</span>{' '}
+                          {note?.theme || 'Short story'}
+                        </span>
+                        <svg
+                          className="story-bookmark-icon"
+                          width="18"
+                          height="22"
+                          viewBox="0 0 18 22"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 2h12v18l-6-4-6 4V2Z"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                          />
+                        </svg>
+                      </span>
+                      <strong>{s.title}</strong>
+                      <span className="story-description">
+                        {note?.description || 'A short story to find your listening rhythm.'}
+                      </span>
+                      <span className="story-card-bottom">
+                        <span className="story-metrics">
+                          {s.sentences.join(' ').split(/\s+/).length} words{' '}
+                          <span aria-hidden="true">·</span> {Math.ceil(s.seconds / 60)} min
+                        </span>
+                        <span className="story-start">
+                          {activity.length
+                            ? heard === s.sentences.length
+                              ? 'Listen again'
+                              : 'Continue'
+                            : 'Listen'}{' '}
+                          <span aria-hidden="true">↗</span>
+                        </span>
+                      </span>
+                      {activity.length > 0 && (
+                        <span className="story-progress">
+                          {heard} / {s.sentences.length} sentences heard
+                        </span>
+                      )}
+                    </button>
+                    <details className="story-characters">
+                      <summary>
+                        Character guide{' '}
+                        <span>
+                          {owner === 'guest'
+                            ? `${required.length} characters`
+                            : unfamiliar.length
+                              ? `${unfamiliar.length} new to you`
+                              : 'All introduced'}
+                        </span>
+                      </summary>
+                      <p>Required characters</p>
+                      <div className="story-character-chips">
+                        {required.map((ch) => (
+                          <span
+                            key={ch}
+                            className={
+                              owner !== 'guest' && unfamiliar.includes(ch) ? 'unfamiliar' : ''
+                            }
+                          >
+                            {ch}
+                          </span>
+                        ))}
+                      </div>
+                      {owner !== 'guest' && (
+                        <p>
+                          {unfamiliar.length
+                            ? `Not yet introduced in training: ${unfamiliar.join(' ')}`
+                            : 'All characters have been introduced in your training.'}{' '}
+                          You can listen at any stage.
+                        </p>
+                      )}
+                    </details>
+                  </article>
+                );
+              })}
             </div>
           )}
         </>
@@ -666,7 +792,7 @@ export function LanguagePractice({
           </button>
         </div>
       )}
-      <details>
+      <details className="language-data">
         <summary>Your word and story data</summary>
         <p>
           Guest activity stays on this browser. Signed-in activity is included in account export and

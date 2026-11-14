@@ -1,0 +1,4 @@
+- [x] 1. Default Tools to Word training and update custom-text tests to choose their tool explicitly.
+- [x] 2. Redesign library cards, compact pace controls, optional character guides, and saved progress presentation.
+- [x] 3. Verify default selection, disclosure independence, both themes, compact/wide layouts, and existing practice behavior.
+- [x] 4. Validate, deploy, verify the live site, and publish source.

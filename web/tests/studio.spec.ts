@@ -39,6 +39,7 @@ test('tool configuration validates input and preserves every character selector'
   page,
 }) => {
   await page.goto('/tools');
+  await page.getByRole('button', { name: 'Your own words', exact: true }).click();
   await page.getByLabel('WHAT WOULD YOU LIKE TO HEAR?').fill('HELLO @');
   await expect(page.getByText('Unsupported characters: @')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Listen to this' })).toBeDisabled();
@@ -144,6 +145,7 @@ test('fast copying retains the complete tail and follows long transcripts withou
   page,
 }) => {
   await page.goto('/tools');
+  await page.getByRole('button', { name: 'Your own words', exact: true }).click();
   await page.getByLabel('WHAT WOULD YOU LIKE TO HEAR?').fill('K');
   await page.getByRole('button', { name: 'Try copying', exact: true }).click();
   const input = page.getByLabel('Your received copy');
@@ -168,6 +170,7 @@ test('oversized listening clips give a usable error and remain outside practice'
   page,
 }) => {
   await page.goto('/tools');
+  await page.getByRole('button', { name: 'Your own words', exact: true }).click();
   await page.getByLabel('WHAT WOULD YOU LIKE TO HEAR?').fill('M'.repeat(4096));
   await page.getByRole('button', { name: 'Listen to this' }).click();
   await expect(page.getByRole('status')).toContainText('Keep this clip under three minutes');

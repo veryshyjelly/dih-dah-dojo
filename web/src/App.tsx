@@ -1737,7 +1737,7 @@ function Tools({
   onError: (error: unknown) => void;
   onSignin: () => void;
 }) {
-  const [tool, setTool] = useState('text');
+  const [tool, setTool] = useState('words');
   const [text, setText] = useState('HELLO WORLD');
   const [characters, setCharacters] = useState(SYMBOLS);
   const [count, setCount] = useState(5);
