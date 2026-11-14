@@ -849,6 +849,7 @@ export default function App() {
                     input={profile}
                     requestedStory={new URLSearchParams(query).get('story')}
                     onProgress={() => void navigate('progress', `?mode=${route}`)}
+                    onSignin={() => setSignin(true)}
                   />
                 </div>
               </section>
@@ -893,6 +894,7 @@ export default function App() {
                 </div>
                 {['words', 'stories'].includes(new URLSearchParams(query).get('mode') || '') ? (
                   <LanguageProgress
+                    onSignin={() => setSignin(true)}
                     key={`${query}-${user?.id || 'guest'}`}
                     engine={engine}
                     owner={user?.id || 'guest'}

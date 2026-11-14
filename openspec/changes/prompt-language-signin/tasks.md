@@ -1,0 +1,3 @@
+- [x] 1. Add shared guest prompts and wire existing sign-in modal to setup and language progress.
+- [x] 2. Verify guest CTA/dialog, dismissal, signed-in absence, active-practice absence and compact/wide themes.
+- [x] 3. Validate, deploy and smoke-test the frontend; commit/push the verified change.

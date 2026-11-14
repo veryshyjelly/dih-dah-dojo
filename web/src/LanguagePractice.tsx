@@ -1,3 +1,4 @@
+import { ProgressSignin } from './ProgressSignin';
 import { ProgressSummary } from './LanguageProgress';
 import { useEffect, useRef, useState } from 'react';
 import { audio } from './audio';
@@ -56,6 +57,7 @@ export function LanguagePractice({
   input,
   requestedStory,
   onProgress,
+  onSignin,
 }: {
   kind: 'word' | 'story';
   engine: EngineClient;
@@ -64,6 +66,7 @@ export function LanguagePractice({
   input: string;
   requestedStory: string | null;
   onProgress: () => void;
+  onSignin: () => void;
 }) {
   const [c, setC] = useState(owner === 'guest' ? 20 : snapshot.copyingC),
     [e, setE] = useState(owner === 'guest' ? 10 : snapshot.copyingE);
@@ -463,6 +466,9 @@ export function LanguagePractice({
           {status}
         </span>
       </div>
+      {owner === 'guest' && (phase === 'setup' || (kind === 'story' && !story)) && (
+        <ProgressSignin onSignin={onSignin} />
+      )}
       {(phase === 'setup' || (kind === 'story' && !story)) &&
         (kind === 'word' ? (
           <div className="word-workspace">

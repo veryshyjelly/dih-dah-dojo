@@ -5243,3 +5243,60 @@ kbd {
     display: none;
   }
 }
+.progress-signin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  margin: 0 0 30px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+.progress-signin > div {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.progress-signin h2 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.progress-signin p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0 0 5px;
+}
+.progress-signin small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.language-practice .progress-signin .btn,
+.progress-signin .btn {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  border-radius: 99px;
+  padding: 13px 18px;
+  min-height: 46px;
+  font-size: 11px;
+}
+@media (max-width: 520px) {
+  .progress-signin {
+    padding: 22px;
+  }
+  .progress-signin > div {
+    flex-basis: 100%;
+  }
+  .progress-signin .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+.progress-signin .btn {
+  background: var(--green);
+  color: var(--theme-on-primary, #f8fbee);
+  border: 1px solid transparent;
+}

@@ -1,3 +1,4 @@
+import { ProgressSignin } from './ProgressSignin';
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Headphones, ArrowUpRight, Download, Activity } from 'lucide-react';
 import type { EngineClient } from './engine-client';
@@ -192,11 +193,13 @@ export function LanguageProgress({
   owner,
   kind,
   onContinue,
+  onSignin,
 }: {
   engine: EngineClient;
   owner: string;
   kind: 'word' | 'story';
   onContinue: (id: string) => void;
+  onSignin: () => void;
 }) {
   const { entries, status, catalog } = useActivity(engine, owner),
     [selected, setSelected] = useState(''),
@@ -247,6 +250,7 @@ export function LanguageProgress({
           have their own progress.
         </p>
       </div>
+      {owner === 'guest' && <ProgressSignin onSignin={onSignin} />}
       {kind === 'word' ? (
         <>
           <div className="language-filters">
