@@ -1,3 +1,5 @@
+import { MiniGraph } from './MiniGraph';
+import { LanguageProgress, LanguageData } from './LanguageProgress';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight,
@@ -158,6 +160,7 @@ function Modal({
 }
 export default function App() {
   const [route, setRoute] = useState<Route>(routeFromPath);
+  const [query, setQuery] = useState(location.search);
   const [user, setUser] = useState<User | null>(null);
   const userRef = useRef<User | null>(null);
   const [profile, setProfile] = useState<InputProfile>(() =>
@@ -220,6 +223,7 @@ export default function App() {
       void training.leave().then(async () => {
         await audio.stop();
         setRoute(routeFromPath());
+        setQuery(location.search);
       });
     };
     window.addEventListener('popstate', pop);
@@ -442,14 +446,15 @@ export default function App() {
     return () => window.removeEventListener('resize', revealActive);
   }, [route]);
 
-  async function navigate(next: Route) {
+  async function navigate(next: Route, search = '') {
     window.dispatchEvent(new Event('dojo-navigation'));
     cancelPreview();
     if (training.sessionActive || training.active) await training.leave();
     if (previewTimer.current) clearTimeout(previewTimer.current);
     await audio.stop();
     setRoute(next);
-    history.pushState({}, '', next === 'home' ? '/' : `/${next}`);
+    setQuery(search);
+    history.pushState({}, '', (next === 'home' ? '/' : `/${next}`) + search);
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (next === 'progress' && userRef.current) {
       await loadProfile();
@@ -842,6 +847,8 @@ export default function App() {
                     owner={user?.id || 'guest'}
                     snapshot={snapshot}
                     input={profile}
+                    requestedStory={new URLSearchParams(query).get('story')}
+                    onProgress={() => void navigate('progress', `?mode=${route}`)}
                   />
                 </div>
               </section>
@@ -861,55 +868,98 @@ export default function App() {
               />
             )}
             {route === 'progress' && (
-              <ProgressPage
-                user={user}
-                data={progress}
-                snapshot={snapshot}
-                profile={profile}
-                onProfile={chooseProfile}
-                range={range}
-                onRange={async (value) => {
-                  setRange(value);
-                  setProgress(await engine.json<Progress>('progress', Date.now(), value));
-                }}
-                onSignin={() => setSignin(true)}
-                onStart={() => void navigate('practice')}
-                onDetail={setDetails}
-              />
+              <>
+                <div
+                  className="progress-tabs segmented"
+                  role="group"
+                  aria-label="Progress category"
+                >
+                  {['practice', 'words', 'stories'].map((mode) => (
+                    <button
+                      key={mode}
+                      aria-pressed={
+                        (new URLSearchParams(query).get('mode') === 'words' ||
+                        new URLSearchParams(query).get('mode') === 'stories'
+                          ? new URLSearchParams(query).get('mode')
+                          : 'practice') === mode
+                      }
+                      onClick={() =>
+                        void navigate('progress', mode === 'practice' ? '' : `?mode=${mode}`)
+                      }
+                    >
+                      {mode === 'practice' ? 'Practice' : mode === 'words' ? 'Words' : 'Stories'}
+                    </button>
+                  ))}
+                </div>
+                {['words', 'stories'].includes(new URLSearchParams(query).get('mode') || '') ? (
+                  <LanguageProgress
+                    key={`${query}-${user?.id || 'guest'}`}
+                    engine={engine}
+                    owner={user?.id || 'guest'}
+                    kind={new URLSearchParams(query).get('mode') === 'words' ? 'word' : 'story'}
+                    onContinue={(id) =>
+                      void navigate('stories', `?story=${encodeURIComponent(id)}`)
+                    }
+                  />
+                ) : (
+                  <ProgressPage
+                    user={user}
+                    data={progress}
+                    snapshot={snapshot}
+                    profile={profile}
+                    onProfile={chooseProfile}
+                    range={range}
+                    onRange={async (value) => {
+                      setRange(value);
+                      setProgress(await engine.json<Progress>('progress', Date.now(), value));
+                    }}
+                    onSignin={() => setSignin(true)}
+                    onStart={() => void navigate('practice')}
+                    onDetail={setDetails}
+                  />
+                )}
+              </>
             )}
             {route === 'settings' && (
-              <Settings
-                user={user}
-                snapshot={snapshot}
-                preview={preview}
-                onPreview={previewSound}
-                onSave={async (volume, frequency) => {
-                  try {
-                    await audio.stop();
-                    await profileAction('preferences', { volume, frequency });
-                    notify('Your sound is saved.');
-                  } catch (error) {
-                    notify(error);
-                  }
-                }}
-                onSignout={() => void signout()}
-                onReset={async () => {
-                  await loadProfile();
-                  setProgress(null);
-                  notify('Your progress has been reset.');
-                }}
-                onDelete={async () => {
-                  userRef.current = null;
-                  setUser(null);
-                  await engine.call('load', new Uint8Array());
-                  await refresh();
-                  await navigate('home');
-                }}
-                onError={notify}
-                onSignin={() => setSignin(true)}
-                pendingCount={pendingCount}
-                onSync={() => void syncOutbox()}
-              />
+              <>
+                <Settings
+                  user={user}
+                  snapshot={snapshot}
+                  preview={preview}
+                  onPreview={previewSound}
+                  onSave={async (volume, frequency) => {
+                    try {
+                      await audio.stop();
+                      await profileAction('preferences', { volume, frequency });
+                      notify('Your sound is saved.');
+                    } catch (error) {
+                      notify(error);
+                    }
+                  }}
+                  onSignout={() => void signout()}
+                  onReset={async () => {
+                    await loadProfile();
+                    setProgress(null);
+                    notify('Your progress has been reset.');
+                  }}
+                  onDelete={async () => {
+                    userRef.current = null;
+                    setUser(null);
+                    await engine.call('load', new Uint8Array());
+                    await refresh();
+                    await navigate('home');
+                  }}
+                  onError={notify}
+                  onSignin={() => setSignin(true)}
+                  pendingCount={pendingCount}
+                  onSync={() => void syncOutbox()}
+                />
+                <LanguageData
+                  key={user?.id || 'guest'}
+                  engine={engine}
+                  owner={user?.id || 'guest'}
+                />
+              </>
             )}
             {route === 'privacy' && <Privacy />}
           </>
@@ -924,6 +974,7 @@ export default function App() {
           <button onClick={() => void openHelp()} disabled={session.phase === 'loading'}>
             How the dojo works <ArrowUpRight size={13} />
           </button>
+          <button onClick={() => void navigate('settings')}>Settings</button>
           <button onClick={() => void navigate('privacy')}>Privacy</button>
           <a
             href="https://github.com/veryshyjelly/dih-dah-dojo"
@@ -2499,89 +2550,6 @@ function ProgressPage({
         </Modal>
       )}
     </section>
-  );
-}
-function MiniGraph({
-  graph,
-  selected,
-  onPoint,
-}: {
-  graph: Graph;
-  selected?: number;
-  onPoint?: (point: number) => void;
-}) {
-  if (!graph.points.length)
-    return (
-      <div className="empty-graph">
-        <svg viewBox="0 0 280 110" aria-hidden="true">
-          <path d="M10 25H270M10 60H270M10 95H270" stroke="currentColor" strokeDasharray="3 5" />
-        </svg>
-        <span>A little practice goes here.</span>
-      </div>
-    );
-  const values = graph.points.flatMap((p) => [p.primary, p.secondary ?? 0]);
-  const max = Math.max(1, ...values) * 1.12;
-  const x = (i: number) => 20 + (i * 240) / Math.max(1, graph.points.length - 1);
-  const y = (v: number) => 100 - (v / max) * 84;
-  return (
-    <div className="chart-wrap">
-      <svg
-        viewBox="0 0 280 116"
-        role="img"
-        aria-label={`${graph.title}, ${graph.points.length} actual points`}
-      >
-        <path
-          d="M20 16H266M20 58H266M20 100H266"
-          stroke="var(--chart-grid, #dfe5da)"
-          strokeDasharray="3 5"
-        />
-        <text x="2" y="18">
-          {Math.round(max)}
-        </text>
-        <text x="7" y="103">
-          0
-        </text>
-        {graph.points.map((p, i) => (
-          <g key={i}>
-            {p.secondary !== null && (
-              <circle cx={x(i)} cy={y(p.secondary)} r="3" fill="var(--chart-secondary, #c19641)" />
-            )}
-            <circle
-              cx={x(i)}
-              cy={y(p.primary)}
-              r={selected === i ? 5 : 3.5}
-              fill={
-                selected === i ? 'var(--chart-selected, #173d38)' : 'var(--chart-primary, #729078)'
-              }
-              onClick={() => onPoint?.(i)}
-              style={{ cursor: onPoint ? 'pointer' : 'default' }}
-            >
-              <title>
-                {p.detail[0]} · {p.primary.toFixed(1)}
-              </title>
-            </circle>
-            {p.milestone && (
-              <path
-                d={`M${x(i)} ${y(p.secondary ?? p.primary) - 8}l-4 -6h8Z`}
-                fill="var(--chart-selected, #173d38)"
-              />
-            )}
-          </g>
-        ))}
-      </svg>
-      <div className="chart-legend">
-        <span>
-          <i />
-          {graph.primary_label}
-        </span>
-        {graph.secondary_label && (
-          <span>
-            <i className="amber" />
-            {graph.secondary_label}
-          </span>
-        )}
-      </div>
-    </div>
   );
 }
 function Settings({

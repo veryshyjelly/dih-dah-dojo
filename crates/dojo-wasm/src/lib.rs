@@ -166,7 +166,7 @@ impl Engine {
                 Ok(json!({"id":s.id,"title":s.title,"sentences":s.sentences,"seconds":seconds}))
             })
             .collect::<Result<Vec<_>>>()?;
-        Ok(view(json!({"version":1,"stories":stories})))
+        Ok(view(json!({"version":1,"stories":stories,"words":dojo_core::language::words()})))
     }
     pub fn language_words(
         &self,

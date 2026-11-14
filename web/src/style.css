@@ -4542,3 +4542,106 @@ kbd {
     gap: 24px;
   }
 }
+.progress-tabs {
+  margin: 30px auto 0;
+  width: fit-content;
+}
+.progress-tabs button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--page-background);
+}
+.language-progress-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  margin-top: 26px;
+}
+.language-progress-summary p {
+  font-size: 12px;
+}
+.language-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 24px 0;
+}
+.language-filters label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.language-progress select,
+.language-progress input,
+.language-data-settings input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.language-progress option {
+  background: var(--page-background);
+}
+.story-progress-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.story-progress-list progress {
+  width: 100%;
+  accent-color: var(--ink);
+}
+.word-progress-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+.word-progress-list button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.language-records details {
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+  overflow-wrap: anywhere;
+}
+.language-records summary {
+  cursor: pointer;
+}
+.language-records p,
+.language-point-detail p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.language-data-settings {
+  max-width: 1120px;
+  margin: 40px auto 0;
+}
+.language-progress .graph-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .story-progress-list,
+  .word-progress-list {
+    grid-template-columns: 1fr;
+  }
+  .progress-tabs {
+    max-width: 100%;
+  }
+  .language-progress .progress-stat-row {
+    flex-wrap: wrap;
+  }
+}

@@ -81,7 +81,7 @@ test('language tools fit both themes and compact viewports, and guest reset can 
     }
   }
   await page.getByRole('button', { name: 'Words', exact: true }).click();
-  await page.getByText('Your word and story data', { exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByLabel('Confirm clearing guest activity').fill('DEL');
   await expect(
     page.getByRole('button', { name: 'Clear guest activity', exact: true }),

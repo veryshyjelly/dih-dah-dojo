@@ -79,6 +79,7 @@ export async function clearLanguage(owner: string) {
     });
   } finally {
     d.close();
+    window.dispatchEvent(new Event('dojo-language-change'));
   }
 }
 export class LanguageStore {
@@ -137,6 +138,7 @@ export class LanguageStore {
       return;
     }
     await this.sync();
+    window.dispatchEvent(new Event('dojo-language-change'));
   }
   private syncing: Promise<void> | null = null;
   async sync() {

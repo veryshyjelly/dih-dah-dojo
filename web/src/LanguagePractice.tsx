@@ -1,3 +1,4 @@
+import { ProgressSummary } from './LanguageProgress';
 import { useEffect, useRef, useState } from 'react';
 import { audio } from './audio';
 import {
@@ -11,7 +12,6 @@ import {
   RotateCcw,
   ArrowUpRight,
   Clock,
-  Download,
   Waves,
   Mail,
   Wrench,
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { EngineClient } from './engine-client';
 import type { Snapshot } from './types';
-import { clearLanguage, LanguageStore, type Activity, type Entry } from './language-store';
+import { LanguageStore, type Activity, type Entry } from './language-store';
 type Word = { id: string; text: string; meaning: string; set: string };
 type Story = { id: string; title: string; sentences: string[]; seconds: number };
 const storyIcons = [Waves, Mail, Wrench, ShoppingBasket, CloudRain, TrainFront];
@@ -54,14 +54,17 @@ export function LanguagePractice({
   owner,
   snapshot,
   input,
+  requestedStory,
+  onProgress,
 }: {
   kind: 'word' | 'story';
   engine: EngineClient;
   owner: string;
   snapshot: Snapshot;
   input: string;
+  requestedStory: string | null;
+  onProgress: () => void;
 }) {
-  const [confirmation, setConfirmation] = useState('');
   const [c, setC] = useState(owner === 'guest' ? 20 : snapshot.copyingC),
     [e, setE] = useState(owner === 'guest' ? 10 : snapshot.copyingE);
   const [repertoire, setRepertoire] = useState(
@@ -351,6 +354,21 @@ export function LanguagePractice({
       setBusy(false);
     }
   }
+  const openedRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      kind !== 'story' ||
+      !requestedStory ||
+      !catalog.length ||
+      status === 'Loading saved activity…' ||
+      openedRequest.current === requestedStory
+    )
+      return;
+    openedRequest.current = requestedStory;
+    const selected = catalog.find((s) => s.id === requestedStory);
+    if (selected) startStory(selected);
+    else setMessage('This story is unavailable. Choose another story below.');
+  }, [requestedStory, catalog, status, kind]);
   function startStory(s: Story) {
     continuousStarted.current = false;
     const saved = [...entries]
@@ -884,94 +902,15 @@ export function LanguagePractice({
           </button>
         </div>
       )}
-      <details className="language-data">
-        <summary>
-          <Download size={12} aria-hidden="true" />
-          Your word and story data
-        </summary>
-        <p>
-          Guest activity stays on this browser. Signed-in activity is included in account export and
-          reset in Settings.
-        </p>
-        <button
-          onClick={() =>
-            void store.current
-              .export()
-              .then((bytes) => {
-                const url = URL.createObjectURL(
-                  new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' }),
-                );
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'dojo-language.bin';
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-              })
-              .catch((error) => setMessage(String(error)))
-          }
-        >
-          Export this browser's activity
-        </button>
-        {owner === 'guest' && (
-          <>
-            <label>
-              Type DELETE to clear guest activity
-              <input
-                aria-label="Confirm clearing guest activity"
-                value={confirmation}
-                onChange={(ev) => setConfirmation(ev.target.value)}
-              />
-            </label>
-            <button
-              disabled={confirmation !== 'DELETE'}
-              onClick={() => {
-                void stop();
-                void clearLanguage('guest').then(() => {
-                  store.current.entries = [];
-                  setEntries([]);
-                  setStory(null);
-                  setPhase('setup');
-                  setConfirmation('');
-                  setMessage('Guest activity cleared.');
-                });
-              }}
-            >
-              Clear guest activity
-            </button>
-          </>
+      {status !== 'Loading saved activity…' &&
+        ((kind === 'word' && phase === 'setup') || (kind === 'story' && !story)) && (
+          <ProgressSummary
+            entries={entries}
+            kind={kind}
+            stories={catalog}
+            onProgress={onProgress}
+          />
         )}
-      </details>
-      <details className="language-history">
-        <summary>
-          <Clock size={12} aria-hidden="true" />
-          Recent {kind === 'word' ? 'word' : 'story'} activity (
-          {entries.filter((v) => v.activity.kind === kind).length})
-        </summary>
-        {entries
-          .filter((v) => v.activity.kind === kind)
-          .slice(-20)
-          .reverse()
-          .map((v) => (
-            <p key={v.activity.id}>
-              {new Date(v.activity.created).toLocaleDateString()} · {v.activity.item}
-              {kind === 'story' ? ` · sentence ${v.activity.sentence + 1}` : ''} ·{' '}
-              {v.activity.interrupted
-                ? 'Interrupted'
-                : v.activity.self_report !== null
-                  ? 'Self-report'
-                  : v.activity.answer === null
-                    ? 'Listening'
-                    : v.outcome.correct
-                      ? 'Correct'
-                      : 'Answer recorded'}
-              {v.activity.replay || v.activity.revealed ? ' · assisted' : ''}
-              {v.activity.review ? ' · repeated material' : ''}
-              {kind === 'story' && v.activity.answer !== null
-                ? ` · attempt ${Math.round((v.outcome.attempt_accuracy || 0) * 100)}% / final ${Math.round((v.outcome.final_accuracy || 0) * 100)}%`
-                : ''}
-            </p>
-          ))}
-      </details>
       {message && <p role="status">{message}</p>}
       <p className="muted">
         These activities do not change your automatic training pace or verified milestones.

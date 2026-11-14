@@ -71,7 +71,7 @@ test('leaving language playback stops audio without saving a stale completion', 
   await page.getByRole('navigation').getByRole('button', { name: 'Stories', exact: true }).click();
   await page.locator('.story-card').first().click();
   await expect(page.getByText(/Sentence 1 \/ /)).toBeVisible();
-  await page.getByText('Recent story activity (0)', { exact: true }).waitFor();
+  await expect(page.locator('.language-readout')).toHaveText('Ready when you are.');
 });
 
 test('leaving while audio initializes cannot start a delayed transmission', async ({ page }) => {
