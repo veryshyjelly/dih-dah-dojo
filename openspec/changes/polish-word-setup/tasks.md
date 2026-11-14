@@ -1,0 +1,4 @@
+- [x] 1. Build compact pace controls, accessible letter chips and grouped round settings.
+- [x] 2. Separate the primary Start area and secondary data/history controls.
+- [x] 3. Verify letter selection, bulk actions, configured practice and compact/wide rendering in both themes.
+- [x] 4. Validate, deploy, verify the live page and publish source.

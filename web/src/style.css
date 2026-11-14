@@ -4210,3 +4210,284 @@ kbd {
     transition: none;
   }
 }
+
+.word-mode .language-heading h2 {
+  font-size: clamp(25px, 3vw, 34px);
+  max-width: 480px;
+}
+.word-intro {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+  max-width: 430px;
+}
+.word-letter-section {
+  margin: 26px 0 28px;
+}
+.word-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.word-section-heading h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+.word-section-heading h3 span {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.word-section-heading p {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 7px 0 0;
+}
+.word-letter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.word-mode .word-letter-actions button {
+  padding: 5px 9px;
+  font-size: 9px;
+  border-radius: 5px;
+  background: transparent;
+}
+.word-letter-picker {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 7px;
+}
+.word-mode .word-letter-picker button {
+  padding: 0;
+  min-height: 38px;
+  font-size: 13px;
+  border-radius: 7px;
+  color: var(--muted);
+  background: transparent;
+  border-color: var(--line);
+}
+.word-mode .word-letter-picker button[aria-pressed='true'] {
+  background: var(--lime);
+  color: var(--ink);
+  border-color: var(--green);
+}
+.word-mode .word-letter-picker button:hover {
+  border-color: var(--green);
+}
+.word-selection-hint {
+  font-size: 10px;
+  color: var(--muted);
+  margin: 10px 0;
+}
+.word-round-settings {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 20px 0 0;
+}
+.word-round-settings legend {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px 0 0;
+}
+.word-round-settings .language-settings {
+  margin: 0;
+  gap: 14px;
+  align-items: flex-start;
+}
+.word-round-settings label {
+  font-size: 10px;
+  color: var(--muted);
+}
+.word-round-settings select {
+  font-size: 11px;
+  color: var(--ink);
+  padding: 11px 9px;
+  margin: 8px 0 0;
+}
+.word-start-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 0 26px;
+  margin-top: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.word-start-bar > div {
+  display: grid;
+  gap: 7px;
+}
+.word-start-bar strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.word-start-bar > div > span {
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.word-mode .word-start-bar .btn {
+  padding: 12px 18px;
+  font-size: 12px;
+  border-color: transparent;
+}
+.word-start-bar .btn span {
+  margin-left: 12px;
+}
+.word-mode .language-data,
+.word-mode .language-history {
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.word-mode > .muted {
+  margin-top: 16px;
+  font-size: 9px;
+  line-height: 1.9;
+  max-width: 55em;
+}
+@media (max-width: 1050px) {
+  .word-letter-picker {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .word-letter-picker {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .word-mode .word-letter-picker button {
+    min-height: 36px;
+    font-size: 12px;
+  }
+  .word-round-settings .language-settings {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .word-start-bar {
+    align-items: stretch;
+  }
+  .word-start-bar .btn {
+    width: 100%;
+  }
+  .word-section-heading {
+    gap: 12px;
+  }
+  .word-mode .language-heading h2 {
+    font-size: 27px;
+  }
+  .word-mode .word-letter-actions button {
+    padding: 7px 10px;
+  }
+}
+
+.language-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+.language-title > .tool-icon {
+  margin-top: 2px;
+}
+.language-title-copy {
+  min-width: 0;
+}
+.language-title .eyebrow {
+  margin-top: 2px;
+}
+.language-title h2 {
+  margin-top: 9px;
+}
+.story-pace-caption strong,
+.word-section-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.story-pace-caption strong > svg,
+.word-section-heading h3 > svg,
+.word-round-settings legend > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+  stroke-width: 1.5;
+}
+.word-round-settings legend > svg {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.word-start-bar .btn,
+.language-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.story-category-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--theme-lime-background, #eaf0df);
+  color: var(--theme-accent-text, #668458);
+  flex-shrink: 0;
+}
+.story-card-top {
+  margin-bottom: 20px;
+}
+.story-metrics,
+.story-start {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.story-start > svg {
+  margin-left: 3px;
+}
+.language-data > summary > svg,
+.language-history > summary > svg {
+  vertical-align: middle;
+  margin-right: 7px;
+  stroke-width: 1.5;
+}
+@media (max-width: 700px) {
+  .language-title {
+    gap: 12px;
+  }
+  .language-title > .tool-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .language-title > .tool-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .language-title h2 {
+    font-size: 24px;
+  }
+  .language-title .eyebrow {
+    font-size: 8px;
+  }
+  .word-intro,
+  .story-intro {
+    font-size: 11px;
+  }
+  .story-metrics {
+    gap: 3px;
+  }
+}

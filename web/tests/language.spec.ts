@@ -2,7 +2,15 @@ import { test, expect } from '@playwright/test';
 test('word rounds use real audio, hide answers, and keep feedback stable', async ({ page }) => {
   await page.goto('/tools');
   await page.getByRole('button', { name: 'Word training', exact: true }).click();
-  await page.getByLabel('Word characters').fill('KM');
+  await page.getByRole('button', { name: 'Clear letters', exact: true }).click();
+  await page
+    .getByRole('group', { name: 'Word characters' })
+    .getByRole('button', { name: 'K', exact: true })
+    .click();
+  await page
+    .getByRole('group', { name: 'Word characters' })
+    .getByRole('button', { name: 'M', exact: true })
+    .click();
   await page.getByRole('button', { name: 'Start word round' }).click();
   await expect(page.getByRole('status')).toContainText('No words');
 
@@ -185,4 +193,44 @@ test('Tools starts at the first option and the story library keeps character det
       });
     }
   }
+});
+
+test('word setup groups controls, supports letter chips by keyboard, and shares tool icons', async ({
+  page,
+}) => {
+  await page.goto('/tools');
+  const letters = page.getByRole('group', { name: 'Word characters' });
+  const start = page.getByRole('button', { name: 'Start word round', exact: true });
+  await expect(letters.getByRole('button')).toHaveCount(26);
+  await expect(letters.locator('[aria-pressed=true]')).toHaveCount(26);
+  await page.getByRole('button', { name: 'Clear letters', exact: true }).click();
+  await expect(start).toBeDisabled();
+  const a = letters.getByRole('button', { name: 'A', exact: true });
+  await a.focus();
+  await page.keyboard.press('Space');
+  await expect(a).toHaveAttribute('aria-pressed', 'true');
+  await letters.getByRole('button', { name: 'N', exact: true }).click();
+  await expect(letters.locator('[aria-pressed=true]')).toHaveCount(2);
+  await expect(start).toBeEnabled();
+  await page.getByRole('button', { name: 'Use all letters', exact: true }).click();
+  await expect(letters.locator('[aria-pressed=true]')).toHaveCount(26);
+  await expect(page.locator('.language-title .tool-icon svg')).toHaveCount(1);
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((t) => window.dojoTheme.setTheme(t as 'light' | 'dark'), theme);
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await page.locator('.language-practice').screenshot({
+        path: `test-results/word-setup-${test.info().project.name}-${theme}-${width}.png`,
+      });
+    }
+  }
+  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await expect(page.locator('.language-title .tool-icon svg')).toHaveCount(1);
+  await expect(page.locator('.story-category-icon svg')).toHaveCount(6);
+  await page
+    .locator('.language-practice')
+    .screenshot({ path: `test-results/story-icons-${test.info().project.name}.png` });
 });
