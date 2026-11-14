@@ -39,7 +39,7 @@ pub struct Metrics {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delivery {
-    pub kind: crate::transport::EventKind,
+    pub kind: crate::events::EventKind,
     pub engine: u64,
     pub character: u32,
     pub output_frame: u64,
@@ -92,16 +92,36 @@ pub struct PolicyAudit {
     pub after_controller: crate::control::Controller,
 }
 impl Record {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(session_id: &str, context: Context, kind: Kind) -> Self {
         let now = chrono::Local::now();
+        Self::new_at(
+            session_id,
+            context,
+            kind,
+            now.timestamp_millis(),
+            now.offset().local_minus_utc(),
+        )
+    }
+    /// Explicit wall-clock injection keeps the same binary record portable to browsers.
+    pub fn new_at(
+        session_id: &str,
+        context: Context,
+        kind: Kind,
+        utc_ms: i64,
+        utc_offset_seconds: i32,
+    ) -> Self {
+        let local = chrono::DateTime::from_timestamp_millis(
+            utc_ms.saturating_add(utc_offset_seconds as i64 * 1000),
+        );
         Self {
             schema: 4,
             policy: POLICY.into(),
             session_id: session_id.into(),
-            utc_ms: now.timestamp_millis(),
+            utc_ms,
             wall_anchor_ns: 0,
-            local_date: now.date_naive().to_string(),
-            utc_offset_seconds: now.offset().local_minus_utc(),
+            local_date: local.map_or_else(|| "1970-01-01".into(), |v| v.date_naive().to_string()),
+            utc_offset_seconds,
             kind,
             context,
             content: String::new(),

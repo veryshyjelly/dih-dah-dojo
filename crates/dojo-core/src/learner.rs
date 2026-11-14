@@ -81,7 +81,7 @@ pub struct Estimate {
     /// (response, conditional posterior mean, unweighted directed pair count)
     pub confusions: Vec<(char, f64, usize)>,
 }
-#[derive(Default)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Learner {
     states: BTreeMap<(char, Context), VecDeque<Observation>>,
 }
@@ -347,7 +347,7 @@ impl Profile {
                     || record
                         .delivery
                         .iter()
-                        .any(|event| event.kind == crate::transport::EventKind::Started))
+                        .any(|event| event.kind == crate::events::EventKind::Started))
             {
                 self.presented(&record.content, record.corpus_id.as_deref());
             }

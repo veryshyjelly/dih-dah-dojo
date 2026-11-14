@@ -32,20 +32,7 @@ impl Controls {
             .store((value.min(100) as f32 / 100.0).to_bits(), Ordering::Release);
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum EventKind {
-    Started,
-    CharacterStart,
-    CharacterEnd,
-    RescueStart,
-    RescueEnd,
-    Paused,
-    Resumed,
-    Finished,
-    Stopped,
-    Clock,
-    RenderStats,
-}
+pub use crate::events::EventKind;
 #[derive(Debug, Clone, Copy)]
 pub struct Event {
     pub kind: EventKind,

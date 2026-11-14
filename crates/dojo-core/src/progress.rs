@@ -4,7 +4,7 @@ use crate::{
     recording::{Kind, Record},
 };
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Range {
     #[default]
     Thirty,
@@ -34,14 +34,14 @@ impl Range {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct Point {
     pub primary: f64,
     pub secondary: Option<f64>,
     pub milestone: bool,
     pub detail: Vec<String>,
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct Graph {
     pub title: String,
     pub primary_label: String,
@@ -50,13 +50,13 @@ pub struct Graph {
     pub points: Vec<Point>,
     pub trend: Option<String>,
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct Character {
     pub symbol: char,
     pub introduced: bool,
     pub detail: Vec<String>,
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct ProgressData {
     pub range: Range,
     pub graphs: Vec<Graph>,

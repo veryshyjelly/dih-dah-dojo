@@ -238,7 +238,7 @@ pub struct Passage {
     pub text: &'static str,
 }
 pub fn corpus() -> Vec<Passage> {
-    include_str!("../assets/corpus.tsv")
+    include_str!("../../../assets/corpus.tsv")
         .lines()
         .map(|line| {
             let mut fields = line.splitn(3, '\t');
