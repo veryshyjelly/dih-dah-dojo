@@ -20,6 +20,7 @@ export class Store {
   }
   migrate() {
     this.db.exec(`
+ CREATE TABLE IF NOT EXISTS dojo_language(owner TEXT NOT NULL,id TEXT NOT NULL,packet BLOB NOT NULL,created INTEGER NOT NULL,PRIMARY KEY(owner,id),FOREIGN KEY(owner) REFERENCES user(id) ON DELETE CASCADE);
  CREATE TABLE IF NOT EXISTS dojo_epochs(owner TEXT PRIMARY KEY,generation TEXT NOT NULL DEFAULT (lower(hex(randomblob(16)))),FOREIGN KEY(owner) REFERENCES user(id) ON DELETE CASCADE);
  CREATE TABLE IF NOT EXISTS dojo_profiles(owner TEXT NOT NULL,input TEXT NOT NULL CHECK(input IN ('keyboard','touch')),revision INTEGER NOT NULL DEFAULT 0,state BLOB NOT NULL,PRIMARY KEY(owner,input),FOREIGN KEY(owner) REFERENCES user(id) ON DELETE CASCADE);
  CREATE TABLE IF NOT EXISTS dojo_blocks(seq INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL,owner TEXT NOT NULL,input TEXT NOT NULL,source TEXT NOT NULL,applied INTEGER NOT NULL,record BLOB NOT NULL,packet BLOB NOT NULL,created INTEGER NOT NULL,kind TEXT NOT NULL,attempt REAL,final_accuracy REAL,targets INTEGER NOT NULL,decision TEXT NOT NULL,pace TEXT NOT NULL,interrupted TEXT,completed INTEGER NOT NULL,UNIQUE(owner,id),FOREIGN KEY(owner) REFERENCES user(id) ON DELETE CASCADE);
@@ -58,6 +59,7 @@ export class Store {
       this.db
         .prepare('UPDATE dojo_epochs SET generation=lower(hex(randomblob(16))) WHERE owner=?')
         .run(owner);
+      this.db.prepare('DELETE FROM dojo_language WHERE owner=?').run(owner);
       this.db.prepare('DELETE FROM dojo_blocks WHERE owner=?').run(owner);
       this.db.prepare('DELETE FROM dojo_profiles WHERE owner=?').run(owner);
     })();
@@ -69,7 +71,16 @@ export class Store {
     const blocks = this.db
       .prepare('SELECT input,packet FROM dojo_blocks WHERE owner=? ORDER BY seq')
       .all(owner) as { input: string; packet: Buffer }[];
+    const language = this.db
+      .prepare('SELECT packet FROM dojo_language WHERE owner=? ORDER BY created,id')
+      .all(owner) as { packet: Buffer }[];
     const frames: Buffer[] = [];
+    for (const row of language) {
+      const head = Buffer.alloc(6);
+      head[0] = 2;
+      head.writeUInt32LE(row.packet.length, 2);
+      frames.push(head, row.packet);
+    }
     for (const [type, items] of [
       [0, profiles],
       [1, blocks],

@@ -8,6 +8,11 @@ await init({
 parentPort!.on('message', ({ id, job }: { id: number; job: Job }) => {
   const engine = new Engine();
   try {
+    if (job.action === 'language') {
+      const summary = JSON.parse(engine.language_decode(job.packet!));
+      parentPort!.postMessage({ id, result: { state: new Uint8Array(), summary } });
+      return;
+    }
     engine.load(job.state);
     let summary, record;
     if (job.packet) {

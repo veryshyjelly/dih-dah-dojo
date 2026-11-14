@@ -128,7 +128,55 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
   app.use('/api/profile/*', authenticated);
   app.use('/api/records/*', authenticated);
   app.use('/api/blocks', authenticated);
+  app.use('/api/language', authenticated);
   app.use('/api/account/*', authenticated);
+
+  app.get('/api/language', (c) => {
+    const owner = c.get('user').id;
+    const after = Number(c.req.query('after') || 0);
+    if (!Number.isSafeInteger(after) || after < 0) return c.json({ error: 'Invalid cursor' }, 400);
+    const rows = store.db
+      .prepare(
+        'SELECT rowid AS seq,packet FROM dojo_language WHERE owner=? AND rowid>? ORDER BY rowid LIMIT 100',
+      )
+      .all(owner, after) as { seq: number; packet: Buffer }[];
+    return c.json({
+      epoch: store.epoch(owner),
+      records: rows.map((r) => r.packet.toString('base64')),
+      sequences: rows.map((r) => r.seq),
+      cursor: rows.at(-1)?.seq ?? after,
+      more: rows.length === 100,
+    });
+  });
+  app.post('/api/language', async (c) => {
+    const owner = c.get('user').id,
+      body = await c.req.json();
+    if (body.epoch !== store.epoch(owner))
+      return c.json({ error: 'Activity was reset. Refresh before continuing.' }, 410);
+    if (typeof body.packet !== 'string' || body.packet.length > 90000)
+      return c.json({ error: 'Invalid activity' }, 400);
+    const packet = Buffer.from(body.packet, 'base64');
+    let result;
+    try {
+      result = await pool.run({ state: new Uint8Array(), action: 'language', packet });
+    } catch {
+      return c.json({ error: 'Invalid activity or content version' }, 400);
+    }
+    if (body.epoch !== store.epoch(owner)) return c.json({ error: 'Activity was reset.' }, 410);
+    const a = (result.summary as { activity: { id: string } }).activity;
+    const existing = store.db
+      .prepare('SELECT packet FROM dojo_language WHERE owner=? AND id=?')
+      .get(owner, a.id) as { packet: Buffer } | undefined;
+    if (existing && !existing.packet.equals(packet))
+      return c.json({ error: 'Activity ID already exists' }, 409);
+    store.db
+      .prepare('INSERT OR IGNORE INTO dojo_language(owner,id,packet,created) VALUES(?,?,?,?)')
+      .run(owner, a.id, packet, Date.now());
+    const row = store.db
+      .prepare('SELECT rowid AS seq FROM dojo_language WHERE owner=? AND id=?')
+      .get(owner, a.id) as { seq: number };
+    return c.json({ saved: true, seq: row.seq });
+  });
 
   async function getProfile(owner: string, input: string) {
     let row = store.profile(owner, input);

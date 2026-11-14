@@ -38,6 +38,8 @@ import { audio } from './audio';
 import { Privacy } from './Privacy';
 import { ThemeToggle } from './ThemeToggle';
 import { HelpGuide } from './HelpGuide';
+import { LanguagePractice } from './LanguagePractice';
+import { clearLanguage } from './language-store';
 import * as api from './api';
 import { pending, putPending, removePending } from './outbox';
 import {
@@ -803,6 +805,7 @@ export default function App() {
             {route === 'tools' && (
               <Tools
                 engine={engine}
+                inputProfile={profile}
                 reference={reference}
                 snapshot={snapshot}
                 progress={progress}
@@ -1711,6 +1714,7 @@ function TrainingScreen({
 }
 function Tools({
   engine,
+  inputProfile,
   reference,
   snapshot,
   progress,
@@ -1722,6 +1726,7 @@ function Tools({
   onSignin,
 }: {
   engine: EngineClient;
+  inputProfile: InputProfile;
   reference: { symbol: string; pattern: string }[];
   snapshot: Snapshot;
   progress: Progress | null;
@@ -1743,6 +1748,18 @@ function Tools({
   const [frequency, setFrequency] = useState(snapshot.frequency);
   const [volume, setVolume] = useState(snapshot.volume);
   const tools = [
+    {
+      id: 'words',
+      name: 'Word training',
+      icon: BookOpen,
+      description: 'Hear a whole word. Give it time.',
+    },
+    {
+      id: 'stories',
+      name: 'Story listening',
+      icon: Headphones,
+      description: 'Follow a story, one sentence at a time.',
+    },
     {
       id: 'text',
       name: 'Your own words',
@@ -1879,198 +1896,218 @@ function Tools({
           ))}
         </aside>
         <div className="tool-panel">
-          <div className="tool-heading">
-            <span className="tool-icon">
-              <current.icon size={25} />
-            </span>
-            <div>
-              <h2>{current.name}</h2>
-              <p>{current.description}</p>
-            </div>
-            <Pill>UNSCORED LISTENING</Pill>
-          </div>
-          {tool === 'reference' ? (
-            <>
-              <p>
-                Tap a character and listen to its whole pattern. These patterns are visible here
-                because this is a reference, not an assessment.
-              </p>
-              <div className="reference-grid">
-                {reference.map((item) => (
-                  <button
-                    key={item.symbol}
-                    onClick={() => {
-                      void audio.play({ text: item.symbol, c, e: c, rescue: false }).catch(onError);
-                    }}
-                  >
-                    <strong>{item.symbol}</strong>
-                    <span>{item.pattern}</span>
-                    <Volume2 size={13} />
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : tool === 'weak' && !user ? (
-            <div className="welcome-card compact">
-              <Activity size={30} />
-              <h3>A little attention goes a long way.</h3>
-              <p>Sign in and practice a few blocks to discover your own recurring trouble spots.</p>
-              <Button onClick={onSignin}>
-                Find your starting point <ArrowRight size={16} />
-              </Button>
-            </div>
+          {tool === 'words' || tool === 'stories' ? (
+            <LanguagePractice
+              key={`${tool}-${user?.id || 'guest'}`}
+              kind={tool === 'words' ? 'word' : 'story'}
+              engine={engine}
+              owner={user?.id || 'guest'}
+              snapshot={snapshot}
+              input={inputProfile}
+            />
           ) : (
             <>
-              {tool === 'text' ? (
+              <div className="tool-heading">
+                <span className="tool-icon">
+                  <current.icon size={25} />
+                </span>
+                <div>
+                  <h2>{current.name}</h2>
+                  <p>{current.description}</p>
+                </div>
+                <Pill>UNSCORED LISTENING</Pill>
+              </div>
+              {tool === 'reference' ? (
                 <>
-                  <label className="field-label" htmlFor="custom-text">
-                    WHAT WOULD YOU LIKE TO HEAR?
-                  </label>
-                  <textarea
-                    id="custom-text"
-                    className="custom-text"
-                    maxLength={4096}
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                    spellCheck={false}
-                  />
-                  <div className="field-note">
-                    <span>
-                      {unsupported
-                        ? `Unsupported characters: ${unsupported}`
-                        : 'A–Z, 0–9 and . , ? / = +. Whitespace becomes a gap.'}
-                    </span>
-                    <span>{text.length} / 4096</span>
+                  <p>
+                    Tap a character and listen to its whole pattern. These patterns are visible here
+                    because this is a reference, not an assessment.
+                  </p>
+                  <div className="reference-grid">
+                    {reference.map((item) => (
+                      <button
+                        key={item.symbol}
+                        onClick={() => {
+                          void audio
+                            .play({ text: item.symbol, c, e: c, rescue: false })
+                            .catch(onError);
+                        }}
+                      >
+                        <strong>{item.symbol}</strong>
+                        <span>{item.pattern}</span>
+                        <Volume2 size={13} />
+                      </button>
+                    ))}
                   </div>
                 </>
+              ) : tool === 'weak' && !user ? (
+                <div className="welcome-card compact">
+                  <Activity size={30} />
+                  <h3>A little attention goes a long way.</h3>
+                  <p>
+                    Sign in and practice a few blocks to discover your own recurring trouble spots.
+                  </p>
+                  <Button onClick={onSignin}>
+                    Find your starting point <ArrowRight size={16} />
+                  </Button>
+                </div>
               ) : (
                 <>
-                  {tool === 'callsigns' ? (
-                    <p className="tool-description">
-                      Freshly generated callsigns for listening practice. These are synthetic
-                      examples, not a lookup of assigned stations.
-                    </p>
-                  ) : tool === 'weak' ? (
-                    <p className="tool-description">
-                      Your six lowest recognition estimates among introduced characters. This is
-                      extra practice; automatic targets and milestone evidence stay separate.
-                    </p>
+                  {tool === 'text' ? (
+                    <>
+                      <label className="field-label" htmlFor="custom-text">
+                        WHAT WOULD YOU LIKE TO HEAR?
+                      </label>
+                      <textarea
+                        id="custom-text"
+                        className="custom-text"
+                        maxLength={4096}
+                        value={text}
+                        onChange={(event) => setText(event.target.value)}
+                        spellCheck={false}
+                      />
+                      <div className="field-note">
+                        <span>
+                          {unsupported
+                            ? `Unsupported characters: ${unsupported}`
+                            : 'A–Z, 0–9 and . , ? / = +. Whitespace becomes a gap.'}
+                        </span>
+                        <span>{text.length} / 4096</span>
+                      </div>
+                    </>
                   ) : (
                     <>
-                      <div className="picker-heading">
-                        <label className="field-label">GIVE THESE CHARACTERS A LITTLE SPACE</label>
-                        <button
-                          className="text-button"
-                          onClick={() => setCharacters(characters === SYMBOLS ? '' : SYMBOLS)}
-                        >
-                          {characters === SYMBOLS ? 'Clear' : 'Select all'}
-                        </button>
-                      </div>
-                      <CharacterPicker selected={characters} onChange={setCharacters} />
+                      {tool === 'callsigns' ? (
+                        <p className="tool-description">
+                          Freshly generated callsigns for listening practice. These are synthetic
+                          examples, not a lookup of assigned stations.
+                        </p>
+                      ) : tool === 'weak' ? (
+                        <p className="tool-description">
+                          Your six lowest recognition estimates among introduced characters. This is
+                          extra practice; automatic targets and milestone evidence stay separate.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="picker-heading">
+                            <label className="field-label">
+                              GIVE THESE CHARACTERS A LITTLE SPACE
+                            </label>
+                            <button
+                              className="text-button"
+                              onClick={() => setCharacters(characters === SYMBOLS ? '' : SYMBOLS)}
+                            >
+                              {characters === SYMBOLS ? 'Clear' : 'Select all'}
+                            </button>
+                          </div>
+                          <CharacterPicker selected={characters} onChange={setCharacters} />
+                        </>
+                      )}
+                      <label className="slider-field">
+                        {tool === 'callsigns' ? 'Callsigns' : 'Five-character groups'}{' '}
+                        <strong>{count}</strong>
+                        <input
+                          aria-label="Number of groups"
+                          type="range"
+                          min="1"
+                          max="30"
+                          value={count}
+                          onChange={(event) => setCount(Number(event.target.value))}
+                        />
+                      </label>
                     </>
                   )}
-                  <label className="slider-field">
-                    {tool === 'callsigns' ? 'Callsigns' : 'Five-character groups'}{' '}
-                    <strong>{count}</strong>
-                    <input
-                      aria-label="Number of groups"
-                      type="range"
-                      min="1"
-                      max="30"
-                      value={count}
-                      onChange={(event) => setCount(Number(event.target.value))}
+                  <div className="speed-controls">
+                    <RangeField
+                      label="Character speed"
+                      unit="WPM"
+                      value={c}
+                      min={12}
+                      max={35}
+                      onChange={(value) => {
+                        setC(value);
+                        if (e > value) setE(value);
+                      }}
                     />
-                  </label>
+                    <RangeField
+                      label="Overall speed"
+                      unit="WPM"
+                      value={e}
+                      min={3}
+                      max={c}
+                      onChange={setE}
+                    />
+                  </div>
+                  <p className="fine-print">
+                    Overall speed adds space between characters. The shape of each sound stays
+                    intact.
+                  </p>
+                  <div className="tool-actions">
+                    <Button
+                      disabled={
+                        !!unsupported ||
+                        (tool === 'text' && !text.trim()) ||
+                        (tool !== 'text' && tool !== 'callsigns' && !characters)
+                      }
+                      onClick={() => void listen()}
+                    >
+                      {playing ? <Square size={15} /> : <Play size={16} fill="currentColor" />}
+                      {playing ? 'Stop listening' : 'Listen to this'}
+                    </Button>
+                    <Button
+                      secondary
+                      disabled={!!unsupported || !text.trim()}
+                      onClick={() => void drill('copying')}
+                    >
+                      <Keyboard size={16} /> Try copying
+                    </Button>
+                    {['characters', 'groups', 'weak'].includes(tool) && (
+                      <button className="text-button" onClick={() => void drill('recognition')}>
+                        Try recognition <ArrowUpRight size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {material && (
+                    <div className="material-preview">
+                      <span className="eyebrow">YOUR CURRENT MATERIAL</span>
+                      <p>{material}</p>
+                    </div>
+                  )}
                 </>
               )}
-              <div className="speed-controls">
-                <RangeField
-                  label="Character speed"
-                  unit="WPM"
-                  value={c}
-                  min={12}
-                  max={35}
-                  onChange={(value) => {
-                    setC(value);
-                    if (e > value) setE(value);
-                  }}
-                />
-                <RangeField
-                  label="Overall speed"
-                  unit="WPM"
-                  value={e}
-                  min={3}
-                  max={c}
-                  onChange={setE}
-                />
-              </div>
-              <p className="fine-print">
-                Overall speed adds space between characters. The shape of each sound stays intact.
-              </p>
-              <div className="tool-actions">
-                <Button
-                  disabled={
-                    !!unsupported ||
-                    (tool === 'text' && !text.trim()) ||
-                    (tool !== 'text' && tool !== 'callsigns' && !characters)
-                  }
-                  onClick={() => void listen()}
-                >
-                  {playing ? <Square size={15} /> : <Play size={16} fill="currentColor" />}
-                  {playing ? 'Stop listening' : 'Listen to this'}
-                </Button>
-                <Button
-                  secondary
-                  disabled={!!unsupported || !text.trim()}
-                  onClick={() => void drill('copying')}
-                >
-                  <Keyboard size={16} /> Try copying
-                </Button>
-                {['characters', 'groups', 'weak'].includes(tool) && (
-                  <button className="text-button" onClick={() => void drill('recognition')}>
-                    Try recognition <ArrowUpRight size={14} />
-                  </button>
-                )}
-              </div>
-              {material && (
-                <div className="material-preview">
-                  <span className="eyebrow">YOUR CURRENT MATERIAL</span>
-                  <p>{material}</p>
+              <details className="sound-preferences">
+                <summary>
+                  <SlidersHorizontal size={15} /> Tune your sound
+                </summary>
+                <div className="speed-controls">
+                  <RangeField
+                    label="Volume"
+                    unit="%"
+                    value={volume}
+                    min={0}
+                    max={100}
+                    onChange={(v) => {
+                      setVolume(v);
+                      void onPreview(v, frequency);
+                    }}
+                  />
+                  <RangeField
+                    label="Tone"
+                    unit="Hz"
+                    value={frequency}
+                    min={300}
+                    max={1000}
+                    step={50}
+                    onChange={(v) => {
+                      setFrequency(v);
+                      void onPreview(volume, v);
+                    }}
+                  />
                 </div>
-              )}
+                <small>{preview}</small>
+              </details>
             </>
           )}
-          <details className="sound-preferences">
-            <summary>
-              <SlidersHorizontal size={15} /> Tune your sound
-            </summary>
-            <div className="speed-controls">
-              <RangeField
-                label="Volume"
-                unit="%"
-                value={volume}
-                min={0}
-                max={100}
-                onChange={(v) => {
-                  setVolume(v);
-                  void onPreview(v, frequency);
-                }}
-              />
-              <RangeField
-                label="Tone"
-                unit="Hz"
-                value={frequency}
-                min={300}
-                max={1000}
-                step={50}
-                onChange={(v) => {
-                  setFrequency(v);
-                  void onPreview(volume, v);
-                }}
-              />
-            </div>
-            <small>{preview}</small>
-          </details>
         </div>
       </div>
       <div className="tool-bottom-note">
@@ -2588,6 +2625,7 @@ function Settings({
         method: 'POST',
         body: JSON.stringify({ confirmation }),
       });
+      if (user) await clearLanguage(user.id).catch(() => {});
       setAction(null);
       setConfirmation('');
       if (user) for (const row of await pending(user.id)) await removePending(row.id);

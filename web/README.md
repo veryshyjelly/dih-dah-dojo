@@ -59,3 +59,10 @@ and [verification](../docs/web-verification.md).
 
 The header theme toggle follows the device initially and remembers a browser-local
 choice. See [appearance and source publication](../docs/web-appearance.md).
+
+Word training and Story listening are available in Tools. Guest activity stays in
+browser storage; signed-in activity uses the separate `/api/language` API and never
+updates guided training targets. Content lives in `assets/words.tsv` and
+`assets/stories.tsv` with CC0 provenance. See
+[`docs/word-story-verification.md`](../docs/word-story-verification.md) for persistence,
+export framing, verification evidence, and remaining hardware limitations.

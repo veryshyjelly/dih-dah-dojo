@@ -148,6 +148,55 @@ impl Engine {
                 .collect::<Vec<_>>()
         ))
     }
+    pub fn language_catalog(&self, c: f64, e: f64) -> Result<String> {
+        let stories = dojo_core::language::stories()
+            .into_iter()
+            .map(|s| {
+                let seconds = s
+                    .sentences
+                    .iter()
+                    .map(|t| {
+                        Schedule::compile(t, Timing::new(c, e).map_err(error)?, 48000)
+                            .map(|s| s.frames as f64 / 48000.0)
+                            .map_err(error)
+                    })
+                    .collect::<Result<Vec<_>>>()?
+                    .iter()
+                    .sum::<f64>();
+                Ok(json!({"id":s.id,"title":s.title,"sentences":s.sentences,"seconds":seconds}))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(view(json!({"version":1,"stories":stories})))
+    }
+    pub fn language_words(
+        &self,
+        repertoire: &str,
+        set: &str,
+        min: u32,
+        max: u32,
+        seed: f64,
+    ) -> String {
+        view(json!(dojo_core::language::select(
+            repertoire,
+            set,
+            min as usize,
+            max as usize,
+            seed as u64
+        )))
+    }
+    pub fn language_encode(&self, json: &str) -> Result<Vec<u8>> {
+        let a: dojo_core::language::Activity = serde_json::from_str(json).map_err(error)?;
+        dojo_core::language::evaluate(&a).map_err(error)?;
+        postcard::to_allocvec(&a).map_err(error)
+    }
+    pub fn language_decode(&self, bytes: &[u8]) -> Result<String> {
+        if bytes.len() > 65536 {
+            return Err(error("Activity too large"));
+        }
+        let a: dojo_core::language::Activity = postcard::from_bytes(bytes).map_err(error)?;
+        let outcome = dojo_core::language::evaluate(&a).map_err(error)?;
+        Ok(view(json!({"activity":a,"outcome":outcome})))
+    }
     pub fn tool_material(
         &self,
         kind: &str,

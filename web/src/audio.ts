@@ -86,6 +86,7 @@ export class AudioService {
         };
         context.onstatechange = () => {
           if (context.state !== 'running' && this.active) {
+            window.dispatchEvent(new Event('dojo-audio-suspended'));
             this.onError?.('Audio was suspended by the browser. Resume when you are ready.');
           }
         };

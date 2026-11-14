@@ -1,0 +1,2 @@
+# Word rows have an intentionally empty final TSV meaning field.
+assets/words.tsv whitespace=-blank-at-eol

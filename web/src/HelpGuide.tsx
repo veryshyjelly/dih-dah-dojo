@@ -56,6 +56,11 @@ export function HelpGuide({
               At a saved summary: <kbd>Space</kbd> holds or resumes the countdown. <kbd>Enter</kbd>{' '}
               continues.
             </p>
+            <p>
+              In Tools, Words offers self-paced word drills. Stories plays one sentence at a time,
+              with optional continuous listening or transcription. F5 pauses, F6 replays, and Esc
+              returns to the library. Replay and reveal are assisted practice.
+            </p>
           </section>
           <section className="help-section help-practice" aria-label="Ways to practice">
             <article>

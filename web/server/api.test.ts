@@ -239,3 +239,78 @@ test('API isolates owners, rejects foreign origins, preserves binary exports and
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('language activities validate on server, isolate owners, deduplicate and obey reset epochs', async () => {
+  const store = new Store(':memory:');
+  const pool = new EnginePool(
+    fileURLToPath(new URL('../server-dist/engine-worker.mjs', import.meta.url)),
+  );
+  try {
+    const { app } = await createApp(store, pool, {
+      appOrigin: origin,
+      apiOrigin: 'http://127.0.0.1:8787',
+      secret: 'test-language-secret-with-enough-characters',
+      resolveSession: async (headers) =>
+        headers.get('x-test-user')
+          ? { id: headers.get('x-test-user')!, name: 'Test', email: 'test@example.test' }
+          : null,
+    });
+    for (const id of ['one', 'two'])
+      store.db
+        .prepare(
+          'INSERT INTO user(id,name,email,emailVerified,createdAt,updatedAt) VALUES(?,?,?,?,?,?)',
+        )
+        .run(id, id, `${id}@example.test`, 1, Date.now(), Date.now());
+    const call = (owner: string, body?: unknown) =>
+      app.request('/api/language', {
+        method: body ? 'POST' : 'GET',
+        headers: { Origin: origin, 'x-test-user': owner, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    const first = await (await call('one')).json();
+    const engine = new Engine();
+    try {
+      const activity = {
+        version: 1,
+        id: 'word-test',
+        item: 'words-AN',
+        sentence: 0,
+        kind: 'word',
+        input: 'keyboard',
+        c: 20,
+        e: 10,
+        answer: ' an ',
+        attempts: ['A', 'AN'],
+        replay: false,
+        revealed: false,
+        review: false,
+        interrupted: false,
+        finished: true,
+        self_report: null,
+        created: Date.now(),
+      };
+      const packet = Buffer.from(engine.language_encode(JSON.stringify(activity))).toString(
+        'base64',
+      );
+      assert.equal((await call('one', { epoch: first.epoch, packet })).status, 200);
+      assert.equal((await call('one', { epoch: first.epoch, packet })).status, 200);
+      assert.equal((await (await call('one')).json()).records.length, 1);
+      assert.equal((await (await call('two')).json()).records.length, 0);
+      assert.equal((await call('one', { epoch: first.epoch, packet: 'bad' })).status, 400);
+      assert.equal(
+        store.db.prepare('SELECT count(*) AS n FROM dojo_profiles').get() &&
+          (store.db.prepare('SELECT count(*) AS n FROM dojo_profiles').get() as { n: number }).n,
+        0,
+      );
+      assert.equal(store.export('one').subarray(40)[0], 2);
+      store.reset('one');
+      assert.equal((await call('one', { epoch: first.epoch, packet })).status, 410);
+      assert.equal((await (await call('one')).json()).records.length, 0);
+    } finally {
+      engine.free();
+    }
+  } finally {
+    await pool.close();
+    store.close();
+  }
+});

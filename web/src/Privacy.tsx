@@ -17,6 +17,12 @@ export function Privacy() {
           your microphone or request microphone access. Custom text becomes account history only
           when you save a signed-in manual drill.
         </p>
+        <p>
+          Word and story activities, responses, reveals, replay use and story bookmarks are saved on
+          this browser. Signed-in activity syncs to your account; guest activity stays on this
+          device and is never automatically added to an account. These activities do not update
+          adaptive training milestones.
+        </p>
         <h2>What an account keeps</h2>
         <p>
           Sign-in uses your Google or GitHub account. The account service stores your provider
