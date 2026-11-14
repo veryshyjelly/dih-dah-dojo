@@ -89,8 +89,10 @@ phone concurrency/capacity test or evidence of learning effectiveness.
   original services and shared Node/PRoot runtime were not upgraded.
 - The owner supplied GitHub credentials privately and confirmed successful live
   sign-in. The exact callback was registered without wildcard matching.
-- The owner is configuring Google; readiness and a live round trip must be verified
-  before Google is marked complete.
+- The owner configured Google credentials privately. The API reports both providers
+  ready; the live Google button reaches Google with the exact callback, code flow,
+  and only `email profile openid` scopes, without browser errors. A completed Google
+  round trip and production audience status still require owner confirmation.
 - The initial PRoot restart timeout was reproduced and fixed with a scoped runit
   control handler. Two subsequent service restarts succeeded without re-entering
   secrets. A full Android reboot remains untested.

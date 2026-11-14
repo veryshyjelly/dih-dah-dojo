@@ -15,4 +15,4 @@
 - [x] 5.2 Document production evidence and remaining limitations.
 - [ ] 5.3 Physical timing gate remains open.
 
-Deployment note: frontend and API are live at the intended hostnames. GitHub login was confirmed by the owner. Google credentials and a live Google round trip are pending owner setup; task 4.2 stays open until verified. Physical verification remains open under 5.3.
+Deployment note: frontend and API are live at the intended hostnames. GitHub login was confirmed by the owner. Google credentials are configured and its live authorization redirect is verified. A completed Google round trip and production audience status still await owner confirmation; task 4.2 stays open until verified. Physical verification remains open under 5.3.
