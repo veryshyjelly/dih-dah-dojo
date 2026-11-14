@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 test('word rounds use real audio, hide answers, and keep feedback stable', async ({ page }) => {
-  await page.goto('/tools');
-  await page.getByRole('button', { name: 'Word training', exact: true }).click();
+  await page.goto('/words');
   await page.getByRole('button', { name: 'Clear letters', exact: true }).click();
   await page
     .getByRole('group', { name: 'Word characters' })
@@ -15,7 +14,6 @@ test('word rounds use real audio, hide answers, and keep feedback stable', async
   await expect(page.getByRole('status')).toContainText('No words');
 
   await page.reload();
-  await page.getByRole('button', { name: 'Word training', exact: true }).click();
   await page.getByLabel('Character WPM').fill('60');
   await page.getByLabel('Effective WPM').fill('60');
   await page.getByRole('button', { name: 'Start word round' }).click();
@@ -34,8 +32,8 @@ test('word rounds use real audio, hide answers, and keep feedback stable', async
 test('stories reveal only the current sentence and restore a stopped bookmark', async ({
   page,
 }) => {
-  await page.goto('/tools');
-  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await page.goto('/words');
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await page.getByLabel('Character WPM').fill('60');
   await page.getByLabel('Effective WPM').fill('60');
   await expect(page.locator('.story-card')).toHaveCount(6);
@@ -58,7 +56,7 @@ test('stories reveal only the current sentence and restore a stopped bookmark', 
   await page.getByRole('button', { name: 'Reveal', exact: true }).click();
   await expect(page.getByText(/Saved on this browser/)).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await page.locator('.story-card').first().click();
   await expect(page.getByText(/Sentence 2 \/ /)).toBeVisible();
   await expect(page.locator('.language-readout')).toHaveText('Ready when you are.');
@@ -68,12 +66,12 @@ test('stories reveal only the current sentence and restore a stopped bookmark', 
 test('language tools fit both themes and compact viewports, and guest reset can be cancelled', async ({
   page,
 }) => {
-  await page.goto('/tools');
+  await page.goto('/words');
   for (const width of [320, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const theme of ['light', 'dark']) {
       await page.evaluate((t) => window.dojoTheme.setTheme(t as 'light' | 'dark'), theme);
-      for (const name of ['Word training', 'Story listening']) {
+      for (const name of ['Words', 'Stories']) {
         await page.getByRole('button', { name, exact: true }).click();
         await expect(page.locator('.language-practice')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -82,7 +80,7 @@ test('language tools fit both themes and compact viewports, and guest reset can 
       }
     }
   }
-  await page.getByRole('button', { name: 'Word training', exact: true }).click();
+  await page.getByRole('button', { name: 'Words', exact: true }).click();
   await page.getByText('Your word and story data', { exact: true }).click();
   await page.getByLabel('Confirm clearing guest activity').fill('DEL');
   await expect(
@@ -92,8 +90,8 @@ test('language tools fit both themes and compact viewports, and guest reset can 
 test('continuous stories advance without revealing answers, and help pauses playback', async ({
   page,
 }) => {
-  await page.goto('/tools');
-  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await page.goto('/words');
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await page.getByLabel('Character WPM').fill('60');
   await page.getByLabel('Effective WPM').fill('60');
   await page.locator('.story-card').first().click();
@@ -116,7 +114,7 @@ test('language storage keeps colliding activity IDs isolated between accounts', 
   await page.route('**/api/language*', (r) =>
     r.fulfill({ status: 503, json: { error: 'Offline' } }),
   );
-  await page.goto('/tools');
+  await page.goto('/words');
   const result = await page.evaluate(async () => {
     const enginePath = '/src/engine-client.ts',
       storePath = '/src/language-store.ts';
@@ -163,15 +161,15 @@ test('language storage keeps colliding activity IDs isolated between accounts', 
   expect(result).toEqual({ first: 'AN', second: 'NO', count: 1 });
 });
 
-test('Tools starts at the first option and the story library keeps character details optional', async ({
+test('Tools starts with custom text and the standalone story library keeps character details optional', async ({
   page,
 }) => {
   await page.goto('/tools');
-  await expect(page.getByRole('button', { name: 'Word training', exact: true })).toHaveClass(
+  await expect(page.getByRole('button', { name: 'Your own words', exact: true })).toHaveClass(
     'selected',
   );
-  await expect(page.getByRole('button', { name: 'Start word round' })).toBeVisible();
-  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Word training', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await expect(page.locator('.story-entry')).toHaveCount(6);
   await expect(page.locator('.story-characters[open]')).toHaveCount(0);
   await page.locator('.story-characters summary').first().click();
@@ -198,7 +196,7 @@ test('Tools starts at the first option and the story library keeps character det
 test('word setup groups controls, supports letter chips by keyboard, and shares tool icons', async ({
   page,
 }) => {
-  await page.goto('/tools');
+  await page.goto('/words');
   const letters = page.getByRole('group', { name: 'Word characters' });
   const start = page.getByRole('button', { name: 'Start word round', exact: true });
   await expect(letters.getByRole('button')).toHaveCount(26);
@@ -227,7 +225,7 @@ test('word setup groups controls, supports letter chips by keyboard, and shares 
       });
     }
   }
-  await page.getByRole('button', { name: 'Story listening', exact: true }).click();
+  await page.getByRole('button', { name: 'Stories', exact: true }).click();
   await expect(page.locator('.language-title .tool-icon svg')).toHaveCount(1);
   await expect(page.locator('.story-category-icon svg')).toHaveCount(6);
   await page

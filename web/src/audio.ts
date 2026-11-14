@@ -103,9 +103,14 @@ export class AudioService {
       throw error;
     }
   }
-  async play(spec: AudioSpec): Promise<{ id: number; finished: Promise<boolean> }> {
+  async play(
+    spec: AudioSpec,
+    isCurrent: () => boolean = () => true,
+  ): Promise<{ id: number; finished: Promise<boolean> }> {
     await this.enable();
+    if (!isCurrent()) return { id: 0, finished: Promise.resolve(true) };
     await this.stop();
+    if (!isCurrent()) return { id: 0, finished: Promise.resolve(true) };
     const id = ++this.sequence;
     this.current = id;
     this.waiting = new Promise<boolean>((resolve) => {

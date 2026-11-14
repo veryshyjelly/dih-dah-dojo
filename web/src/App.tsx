@@ -68,10 +68,11 @@ const empty: Snapshot = {
   milestones: [],
   checkOffer: null,
 };
-type Route = 'home' | 'practice' | 'tools' | 'progress' | 'settings' | 'privacy';
+type Route =
+  'home' | 'practice' | 'words' | 'stories' | 'tools' | 'progress' | 'settings' | 'privacy';
 const routeFromPath = (): Route => {
   const path = location.pathname.split('/')[1];
-  return ['practice', 'tools', 'progress', 'settings', 'privacy'].includes(path)
+  return ['practice', 'words', 'stories', 'tools', 'progress', 'settings', 'privacy'].includes(path)
     ? (path as Route)
     : 'home';
 };
@@ -214,7 +215,12 @@ export default function App() {
       })
       .catch(() => {});
     const pop = () => {
-      void training.leave().then(() => setRoute(routeFromPath()));
+      window.dispatchEvent(new Event('dojo-navigation'));
+      cancelPreview();
+      void training.leave().then(async () => {
+        await audio.stop();
+        setRoute(routeFromPath());
+      });
     };
     window.addEventListener('popstate', pop);
     const visibility = () => {
@@ -420,7 +426,24 @@ export default function App() {
     previewGeneration.current++;
     if (previewTimer.current) clearTimeout(previewTimer.current);
   }
+  useEffect(() => {
+    const revealActive = () => {
+      const nav = document.querySelector<HTMLElement>('.site-header nav');
+      const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+      if (nav && active) {
+        const left = active.getBoundingClientRect().left - nav.getBoundingClientRect().left;
+        if (left < 0) nav.scrollLeft += left;
+        else if (left + active.offsetWidth > nav.clientWidth)
+          nav.scrollLeft += left + active.offsetWidth - nav.clientWidth;
+      }
+    };
+    revealActive();
+    window.addEventListener('resize', revealActive);
+    return () => window.removeEventListener('resize', revealActive);
+  }, [route]);
+
   async function navigate(next: Route) {
+    window.dispatchEvent(new Event('dojo-navigation'));
     cancelPreview();
     if (training.sessionActive || training.active) await training.leave();
     if (previewTimer.current) clearTimeout(previewTimer.current);
@@ -571,15 +594,18 @@ export default function App() {
           </span>
         </button>
         <nav aria-label="Main navigation">
-          {(['home', 'practice', 'tools', 'progress'] as Route[]).map((item, i) => (
-            <button
-              key={item}
-              className={route === item ? 'active' : ''}
-              onClick={() => void navigate(item)}
-            >
-              {['The studio', 'Practice', 'Tools', 'Your progress'][i]}
-            </button>
-          ))}
+          {(['home', 'practice', 'words', 'stories', 'tools', 'progress'] as Route[]).map(
+            (item, i) => (
+              <button
+                key={item}
+                className={route === item ? 'active' : ''}
+                aria-current={route === item ? 'page' : undefined}
+                onClick={() => void navigate(item)}
+              >
+                {['The studio', 'Practice', 'Words', 'Stories', 'Tools', 'Your progress'][i]}
+              </button>
+            ),
+          )}
         </nav>
         <div className="header-actions">
           <ThemeToggle />
@@ -631,8 +657,9 @@ export default function App() {
                 }
                 onTools={() => void navigate('tools')}
                 onPractice={() => void navigate('practice')}
+                onWords={() => void navigate('words')}
+                onStories={() => void navigate('stories')}
                 user={user}
-                snapshot={snapshot}
               />
             )}
             {route === 'practice' && (
@@ -802,10 +829,26 @@ export default function App() {
                 </div>
               </section>
             )}
+            {(route === 'words' || route === 'stories') && (
+              <section
+                className="page language-page"
+                aria-label={route === 'words' ? 'Word training' : 'Story listening'}
+              >
+                <div className="tool-panel">
+                  <LanguagePractice
+                    key={`${route}-${user?.id || 'guest'}`}
+                    kind={route === 'words' ? 'word' : 'story'}
+                    engine={engine}
+                    owner={user?.id || 'guest'}
+                    snapshot={snapshot}
+                    input={profile}
+                  />
+                </div>
+              </section>
+            )}
             {route === 'tools' && (
               <Tools
                 engine={engine}
-                inputProfile={profile}
                 reference={reference}
                 snapshot={snapshot}
                 progress={progress}
@@ -1004,14 +1047,16 @@ function Home({
   onStart,
   onTools,
   onPractice,
+  onWords,
+  onStories,
   user,
-  snapshot,
 }: {
   onStart: () => void;
   onTools: () => void;
   onPractice: () => void;
+  onWords: () => void;
+  onStories: () => void;
   user: User | null;
-  snapshot: Snapshot;
 }) {
   return (
     <>
@@ -1166,37 +1211,29 @@ function Home({
               Enter the studio <ArrowUpRight size={18} />
             </span>
           </button>
-          <button className="feature-card cream" onClick={onTools}>
-            <span className="card-number">02 / EXPLORE</span>
-            <SlidersHorizontal className="feature-icon" />
+          <button className="feature-card cream" onClick={onWords}>
+            <span className="card-number">02 / WORD TRAINING</span>
+            <BookOpen className="feature-icon" />
             <h3>
-              A playground
+              Find your
               <br />
-              for your ears.
+              word rhythm.
             </h3>
-            <p>
-              Custom text, callsigns, random groups. A few useful tools. Plenty of possibilities.
-            </p>
+            <p>Hear a whole word, give it time, and discover how the sounds come together.</p>
             <span className="feature-link">
-              Play with sound <ArrowUpRight size={18} />
+              Train with words <ArrowUpRight size={18} />
             </span>
           </button>
-          <button className="feature-card sage" onClick={onPractice}>
-            <span className="card-number">03 / GROW</span>
-            <Activity className="feature-icon" />
+          <button className="feature-card sage" onClick={onStories}>
+            <span className="card-number">03 / STORY LISTENING</span>
+            <Headphones className="feature-icon" />
             <h3>
-              Small steps.
-              <br />
-              Something lasting.
+              A little story.
+              <br />A little signal.
             </h3>
-            <p>
-              See what’s getting easier, discover what needs a little attention, and keep going.
-            </p>
+            <p>Follow a story one sentence at a time, with room to pause and listen again.</p>
             <span className="feature-link">
-              {user
-                ? `${snapshot.introduced.length} characters introduced`
-                : 'Meet your next good habit'}{' '}
-              <ArrowUpRight size={18} />
+              Find a story <ArrowUpRight size={18} />
             </span>
           </button>
         </div>
@@ -1714,7 +1751,6 @@ function TrainingScreen({
 }
 function Tools({
   engine,
-  inputProfile,
   reference,
   snapshot,
   progress,
@@ -1726,7 +1762,6 @@ function Tools({
   onSignin,
 }: {
   engine: EngineClient;
-  inputProfile: InputProfile;
   reference: { symbol: string; pattern: string }[];
   snapshot: Snapshot;
   progress: Progress | null;
@@ -1737,7 +1772,7 @@ function Tools({
   onError: (error: unknown) => void;
   onSignin: () => void;
 }) {
-  const [tool, setTool] = useState('words');
+  const [tool, setTool] = useState('text');
   const [text, setText] = useState('HELLO WORLD');
   const [characters, setCharacters] = useState(SYMBOLS);
   const [count, setCount] = useState(5);
@@ -1748,18 +1783,6 @@ function Tools({
   const [frequency, setFrequency] = useState(snapshot.frequency);
   const [volume, setVolume] = useState(snapshot.volume);
   const tools = [
-    {
-      id: 'words',
-      name: 'Word training',
-      icon: BookOpen,
-      description: 'Hear a whole word. Give it time.',
-    },
-    {
-      id: 'stories',
-      name: 'Story listening',
-      icon: Headphones,
-      description: 'Follow a story, one sentence at a time.',
-    },
     {
       id: 'text',
       name: 'Your own words',
@@ -1896,218 +1919,198 @@ function Tools({
           ))}
         </aside>
         <div className="tool-panel">
-          {tool === 'words' || tool === 'stories' ? (
-            <LanguagePractice
-              key={`${tool}-${user?.id || 'guest'}`}
-              kind={tool === 'words' ? 'word' : 'story'}
-              engine={engine}
-              owner={user?.id || 'guest'}
-              snapshot={snapshot}
-              input={inputProfile}
-            />
+          <div className="tool-heading">
+            <span className="tool-icon">
+              <current.icon size={25} />
+            </span>
+            <div>
+              <h2>{current.name}</h2>
+              <p>{current.description}</p>
+            </div>
+            <Pill>UNSCORED LISTENING</Pill>
+          </div>
+          {tool === 'reference' ? (
+            <>
+              <p>
+                Tap a character and listen to its whole pattern. These patterns are visible here
+                because this is a reference, not an assessment.
+              </p>
+              <div className="reference-grid">
+                {reference.map((item) => (
+                  <button
+                    key={item.symbol}
+                    onClick={() => {
+                      void audio.play({ text: item.symbol, c, e: c, rescue: false }).catch(onError);
+                    }}
+                  >
+                    <strong>{item.symbol}</strong>
+                    <span>{item.pattern}</span>
+                    <Volume2 size={13} />
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : tool === 'weak' && !user ? (
+            <div className="welcome-card compact">
+              <Activity size={30} />
+              <h3>A little attention goes a long way.</h3>
+              <p>Sign in and practice a few blocks to discover your own recurring trouble spots.</p>
+              <Button onClick={onSignin}>
+                Find your starting point <ArrowRight size={16} />
+              </Button>
+            </div>
           ) : (
             <>
-              <div className="tool-heading">
-                <span className="tool-icon">
-                  <current.icon size={25} />
-                </span>
-                <div>
-                  <h2>{current.name}</h2>
-                  <p>{current.description}</p>
-                </div>
-                <Pill>UNSCORED LISTENING</Pill>
-              </div>
-              {tool === 'reference' ? (
+              {tool === 'text' ? (
                 <>
-                  <p>
-                    Tap a character and listen to its whole pattern. These patterns are visible here
-                    because this is a reference, not an assessment.
-                  </p>
-                  <div className="reference-grid">
-                    {reference.map((item) => (
-                      <button
-                        key={item.symbol}
-                        onClick={() => {
-                          void audio
-                            .play({ text: item.symbol, c, e: c, rescue: false })
-                            .catch(onError);
-                        }}
-                      >
-                        <strong>{item.symbol}</strong>
-                        <span>{item.pattern}</span>
-                        <Volume2 size={13} />
-                      </button>
-                    ))}
+                  <label className="field-label" htmlFor="custom-text">
+                    WHAT WOULD YOU LIKE TO HEAR?
+                  </label>
+                  <textarea
+                    id="custom-text"
+                    className="custom-text"
+                    maxLength={4096}
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    spellCheck={false}
+                  />
+                  <div className="field-note">
+                    <span>
+                      {unsupported
+                        ? `Unsupported characters: ${unsupported}`
+                        : 'A–Z, 0–9 and . , ? / = +. Whitespace becomes a gap.'}
+                    </span>
+                    <span>{text.length} / 4096</span>
                   </div>
                 </>
-              ) : tool === 'weak' && !user ? (
-                <div className="welcome-card compact">
-                  <Activity size={30} />
-                  <h3>A little attention goes a long way.</h3>
-                  <p>
-                    Sign in and practice a few blocks to discover your own recurring trouble spots.
-                  </p>
-                  <Button onClick={onSignin}>
-                    Find your starting point <ArrowRight size={16} />
-                  </Button>
-                </div>
               ) : (
                 <>
-                  {tool === 'text' ? (
-                    <>
-                      <label className="field-label" htmlFor="custom-text">
-                        WHAT WOULD YOU LIKE TO HEAR?
-                      </label>
-                      <textarea
-                        id="custom-text"
-                        className="custom-text"
-                        maxLength={4096}
-                        value={text}
-                        onChange={(event) => setText(event.target.value)}
-                        spellCheck={false}
-                      />
-                      <div className="field-note">
-                        <span>
-                          {unsupported
-                            ? `Unsupported characters: ${unsupported}`
-                            : 'A–Z, 0–9 and . , ? / = +. Whitespace becomes a gap.'}
-                        </span>
-                        <span>{text.length} / 4096</span>
-                      </div>
-                    </>
+                  {tool === 'callsigns' ? (
+                    <p className="tool-description">
+                      Freshly generated callsigns for listening practice. These are synthetic
+                      examples, not a lookup of assigned stations.
+                    </p>
+                  ) : tool === 'weak' ? (
+                    <p className="tool-description">
+                      Your six lowest recognition estimates among introduced characters. This is
+                      extra practice; automatic targets and milestone evidence stay separate.
+                    </p>
                   ) : (
                     <>
-                      {tool === 'callsigns' ? (
-                        <p className="tool-description">
-                          Freshly generated callsigns for listening practice. These are synthetic
-                          examples, not a lookup of assigned stations.
-                        </p>
-                      ) : tool === 'weak' ? (
-                        <p className="tool-description">
-                          Your six lowest recognition estimates among introduced characters. This is
-                          extra practice; automatic targets and milestone evidence stay separate.
-                        </p>
-                      ) : (
-                        <>
-                          <div className="picker-heading">
-                            <label className="field-label">
-                              GIVE THESE CHARACTERS A LITTLE SPACE
-                            </label>
-                            <button
-                              className="text-button"
-                              onClick={() => setCharacters(characters === SYMBOLS ? '' : SYMBOLS)}
-                            >
-                              {characters === SYMBOLS ? 'Clear' : 'Select all'}
-                            </button>
-                          </div>
-                          <CharacterPicker selected={characters} onChange={setCharacters} />
-                        </>
-                      )}
-                      <label className="slider-field">
-                        {tool === 'callsigns' ? 'Callsigns' : 'Five-character groups'}{' '}
-                        <strong>{count}</strong>
-                        <input
-                          aria-label="Number of groups"
-                          type="range"
-                          min="1"
-                          max="30"
-                          value={count}
-                          onChange={(event) => setCount(Number(event.target.value))}
-                        />
-                      </label>
+                      <div className="picker-heading">
+                        <label className="field-label">GIVE THESE CHARACTERS A LITTLE SPACE</label>
+                        <button
+                          className="text-button"
+                          onClick={() => setCharacters(characters === SYMBOLS ? '' : SYMBOLS)}
+                        >
+                          {characters === SYMBOLS ? 'Clear' : 'Select all'}
+                        </button>
+                      </div>
+                      <CharacterPicker selected={characters} onChange={setCharacters} />
                     </>
                   )}
-                  <div className="speed-controls">
-                    <RangeField
-                      label="Character speed"
-                      unit="WPM"
-                      value={c}
-                      min={12}
-                      max={35}
-                      onChange={(value) => {
-                        setC(value);
-                        if (e > value) setE(value);
-                      }}
+                  <label className="slider-field">
+                    {tool === 'callsigns' ? 'Callsigns' : 'Five-character groups'}{' '}
+                    <strong>{count}</strong>
+                    <input
+                      aria-label="Number of groups"
+                      type="range"
+                      min="1"
+                      max="30"
+                      value={count}
+                      onChange={(event) => setCount(Number(event.target.value))}
                     />
-                    <RangeField
-                      label="Overall speed"
-                      unit="WPM"
-                      value={e}
-                      min={3}
-                      max={c}
-                      onChange={setE}
-                    />
-                  </div>
-                  <p className="fine-print">
-                    Overall speed adds space between characters. The shape of each sound stays
-                    intact.
-                  </p>
-                  <div className="tool-actions">
-                    <Button
-                      disabled={
-                        !!unsupported ||
-                        (tool === 'text' && !text.trim()) ||
-                        (tool !== 'text' && tool !== 'callsigns' && !characters)
-                      }
-                      onClick={() => void listen()}
-                    >
-                      {playing ? <Square size={15} /> : <Play size={16} fill="currentColor" />}
-                      {playing ? 'Stop listening' : 'Listen to this'}
-                    </Button>
-                    <Button
-                      secondary
-                      disabled={!!unsupported || !text.trim()}
-                      onClick={() => void drill('copying')}
-                    >
-                      <Keyboard size={16} /> Try copying
-                    </Button>
-                    {['characters', 'groups', 'weak'].includes(tool) && (
-                      <button className="text-button" onClick={() => void drill('recognition')}>
-                        Try recognition <ArrowUpRight size={14} />
-                      </button>
-                    )}
-                  </div>
-                  {material && (
-                    <div className="material-preview">
-                      <span className="eyebrow">YOUR CURRENT MATERIAL</span>
-                      <p>{material}</p>
-                    </div>
-                  )}
+                  </label>
                 </>
               )}
-              <details className="sound-preferences">
-                <summary>
-                  <SlidersHorizontal size={15} /> Tune your sound
-                </summary>
-                <div className="speed-controls">
-                  <RangeField
-                    label="Volume"
-                    unit="%"
-                    value={volume}
-                    min={0}
-                    max={100}
-                    onChange={(v) => {
-                      setVolume(v);
-                      void onPreview(v, frequency);
-                    }}
-                  />
-                  <RangeField
-                    label="Tone"
-                    unit="Hz"
-                    value={frequency}
-                    min={300}
-                    max={1000}
-                    step={50}
-                    onChange={(v) => {
-                      setFrequency(v);
-                      void onPreview(volume, v);
-                    }}
-                  />
+              <div className="speed-controls">
+                <RangeField
+                  label="Character speed"
+                  unit="WPM"
+                  value={c}
+                  min={12}
+                  max={35}
+                  onChange={(value) => {
+                    setC(value);
+                    if (e > value) setE(value);
+                  }}
+                />
+                <RangeField
+                  label="Overall speed"
+                  unit="WPM"
+                  value={e}
+                  min={3}
+                  max={c}
+                  onChange={setE}
+                />
+              </div>
+              <p className="fine-print">
+                Overall speed adds space between characters. The shape of each sound stays intact.
+              </p>
+              <div className="tool-actions">
+                <Button
+                  disabled={
+                    !!unsupported ||
+                    (tool === 'text' && !text.trim()) ||
+                    (tool !== 'text' && tool !== 'callsigns' && !characters)
+                  }
+                  onClick={() => void listen()}
+                >
+                  {playing ? <Square size={15} /> : <Play size={16} fill="currentColor" />}
+                  {playing ? 'Stop listening' : 'Listen to this'}
+                </Button>
+                <Button
+                  secondary
+                  disabled={!!unsupported || !text.trim()}
+                  onClick={() => void drill('copying')}
+                >
+                  <Keyboard size={16} /> Try copying
+                </Button>
+                {['characters', 'groups', 'weak'].includes(tool) && (
+                  <button className="text-button" onClick={() => void drill('recognition')}>
+                    Try recognition <ArrowUpRight size={14} />
+                  </button>
+                )}
+              </div>
+              {material && (
+                <div className="material-preview">
+                  <span className="eyebrow">YOUR CURRENT MATERIAL</span>
+                  <p>{material}</p>
                 </div>
-                <small>{preview}</small>
-              </details>
+              )}
             </>
           )}
+          <details className="sound-preferences">
+            <summary>
+              <SlidersHorizontal size={15} /> Tune your sound
+            </summary>
+            <div className="speed-controls">
+              <RangeField
+                label="Volume"
+                unit="%"
+                value={volume}
+                min={0}
+                max={100}
+                onChange={(v) => {
+                  setVolume(v);
+                  void onPreview(v, frequency);
+                }}
+              />
+              <RangeField
+                label="Tone"
+                unit="Hz"
+                value={frequency}
+                min={300}
+                max={1000}
+                step={50}
+                onChange={(v) => {
+                  setFrequency(v);
+                  void onPreview(volume, v);
+                }}
+              />
+            </div>
+            <small>{preview}</small>
+          </details>
         </div>
       </div>
       <div className="tool-bottom-note">

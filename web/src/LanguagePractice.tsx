@@ -117,12 +117,18 @@ export function LanguagePractice({
           setStatus(store.current.status);
         }
       });
+    const leave = () => {
+      generation.current++;
+      continuousStarted.current = false;
+    };
+    window.addEventListener('dojo-navigation', leave);
     window.addEventListener('online', online);
     return () => {
       live = false;
       generation.current++;
       void audio.stop();
       window.removeEventListener('online', online);
+      window.removeEventListener('dojo-navigation', leave);
     };
   }, []);
   useEffect(() => {
@@ -189,7 +195,10 @@ export function LanguagePractice({
     setPlaying(true);
     setMessage('');
     try {
-      const sound = await audio.play({ text, c, e: Math.min(c, e), rescue: false });
+      const sound = await audio.play(
+        { text, c, e: Math.min(c, e), rescue: false },
+        () => token === generation.current,
+      );
       const interrupted = await sound.finished;
       if (token !== generation.current) return;
       setPlaying(false);
@@ -400,11 +409,11 @@ export function LanguagePractice({
           </span>
           <div className="language-title-copy">
             <p className="eyebrow">{kind === 'word' ? 'ONE WHOLE WORD' : 'THE STORY ROOM'}</p>
-            <h2>
+            <h1>
               {kind === 'word'
                 ? 'Find your word rhythm.'
                 : story?.title || 'A little story. A little signal.'}
-            </h2>
+            </h1>
             {kind === 'word' && phase === 'setup' && (
               <p className="word-intro">
                 Listen, answer, and take the next word when you’re ready.

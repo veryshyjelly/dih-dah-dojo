@@ -96,7 +96,16 @@ test('all public pages and dialogs render both themes at compact and wide sizes 
     await page.setViewportSize({ width, height: 900 });
     for (const theme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: theme });
-      for (const route of ['/', '/practice', '/tools', '/progress', '/settings', '/privacy']) {
+      for (const route of [
+        '/',
+        '/practice',
+        '/words',
+        '/stories',
+        '/tools',
+        '/progress',
+        '/settings',
+        '/privacy',
+      ]) {
         await page.goto(route);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
