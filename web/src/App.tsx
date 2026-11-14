@@ -37,6 +37,7 @@ import { Training, type TrainingView } from './training';
 import { audio } from './audio';
 import { Privacy } from './Privacy';
 import { ThemeToggle } from './ThemeToggle';
+import { HelpGuide } from './HelpGuide';
 import * as api from './api';
 import { pending, putPending, removePending } from './outbox';
 import {
@@ -115,11 +116,13 @@ function Modal({
   children,
   onClose,
   wide = false,
+  className = '',
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -130,7 +133,8 @@ function Modal({
   return (
     <dialog
       ref={ref}
-      className={`modal ${wide ? 'wide' : ''}`}
+      className={`modal ${wide ? 'wide' : ''} ${className}`}
+      aria-label={title}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -238,6 +242,10 @@ export default function App() {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (document.querySelector('dialog[open]')) {
+        if (training.active && (event.key === 'F5' || event.key === 'F6')) event.preventDefault();
+        return;
+      }
       if (session.phase === 'summary') {
         if (event.key === ' ') {
           event.preventDefault();
@@ -280,6 +288,15 @@ export default function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [session.phase, session.mode]);
+  async function openHelp() {
+    try {
+      if (training.view.phase === 'summary' && !training.view.held) training.hold();
+      else if (training.active && training.view.phase !== 'paused') await training.pause();
+      setHelp(true);
+    } catch (error) {
+      notify(error);
+    }
+  }
   function notify(message: unknown) {
     setToast(message instanceof Error ? message.message : String(message));
   }
@@ -567,7 +584,8 @@ export default function App() {
           <button
             className="icon-button help-button"
             aria-label="Help"
-            onClick={() => setHelp(true)}
+            onClick={() => void openHelp()}
+            disabled={session.phase === 'loading'}
           >
             <HelpCircle size={19} />
           </button>
@@ -857,7 +875,7 @@ export default function App() {
           <span>A little practice. A little more fluent.</span>
         </div>
         <div>
-          <button onClick={() => setHelp(true)}>
+          <button onClick={() => void openHelp()} disabled={session.phase === 'loading'}>
             How the dojo works <ArrowUpRight size={13} />
           </button>
           <button onClick={() => void navigate('privacy')}>Privacy</button>
@@ -959,41 +977,12 @@ export default function App() {
         </Modal>
       )}
       {help && (
-        <Modal title="Listen first. The rest follows." onClose={() => setHelp(false)}>
-          <div className="help-content">
-            <h3>One whole sound at a time.</h3>
-            <p>
-              Recognition asks for your first answer. Copying asks you to stay with a stream. Skip
-              what you miss and rejoin—there’s always another sound.
-            </p>
-            <h3>Your controls</h3>
-            <p>
-              During practice: F5 pauses, F6 requests a recognition replay, and Esc finishes. Tab
-              means “I don’t know” in recognition. Backspace edits only the end of your copy.
-            </p>
-            <h3>On a phone</h3>
-            <p>
-              Use the response keys for recognition and your phone’s keyboard for copying. Touch
-              evidence stays separate from physical-keyboard evidence.
-            </p>
-            <h3>Honest progress</h3>
-            <p>
-              Attempt accuracy keeps the original answers; final accuracy includes tail corrections.
-              Replay is assisted. Latency includes typing. Introduced characters are not
-              automatically mastered.
-            </p>
-            <h3>Timing is estimated</h3>
-            <p>
-              The Rust engine schedules samples, but browser, device, headphones and input timing
-              are not physically verified. These tools don’t certify proficiency or learning
-              effectiveness.
-            </p>
-            <h3>Your data</h3>
-            <p>
-              Account history syncs to the private Dojo backend. If sync fails, the block stays in
-              this browser until acknowledged. Settings includes export, reset and account deletion.
-            </p>
-          </div>
+        <Modal title="Quick guide" onClose={() => setHelp(false)} className="help-modal">
+          <HelpGuide
+            onClose={() => setHelp(false)}
+            paused={session.phase === 'paused'}
+            summaryHeld={session.phase === 'summary' && session.held}
+          />
         </Modal>
       )}
       {details && (

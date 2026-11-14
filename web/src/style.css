@@ -3652,3 +3652,199 @@ kbd {
     font-size: 7px;
   }
 }
+
+/* Help is a compact guide with a scrollable body, not a scrolling wall of prose. */
+.help-modal {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+  max-height: min(780px, calc(100dvh - 32px));
+  padding: 0;
+  overflow: hidden;
+}
+.help-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+.help-modal .modal-heading {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 28px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.help-modal .modal-heading h2 {
+  min-width: 0;
+  font-size: 25px;
+  line-height: 1.25;
+  letter-spacing: -0.055em;
+}
+.help-modal .modal-heading .icon-button {
+  flex: 0 0 36px;
+  border: 1px solid var(--line);
+}
+.help-content {
+  min-height: 0;
+  padding: 22px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.help-content p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.help-modal .help-intro {
+  margin-bottom: 22px;
+}
+.help-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 28px;
+}
+.help-modal .help-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: -0.025em;
+}
+.help-shortcuts {
+  margin: 0;
+}
+.help-shortcuts > div {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.help-shortcuts dt {
+  display: flex;
+}
+.help-shortcuts dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.help-shortcuts small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.help-content kbd {
+  display: inline-block;
+  min-width: 27px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--theme-well-background, #f1f4e9);
+  color: var(--ink);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.7;
+  text-align: center;
+  white-space: nowrap;
+}
+.help-modal .help-summary-keys {
+  margin-top: 14px;
+  font-size: 11px;
+}
+.help-practice {
+  display: grid;
+  gap: 12px;
+}
+.help-practice article {
+  padding: 15px 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--sage);
+}
+.help-modal .help-practice article h3 {
+  margin-bottom: 7px;
+}
+.help-modal .help-practice article p {
+  font-size: 11px;
+}
+.help-phone {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.help-phone svg {
+  margin-top: 3px;
+  color: var(--muted);
+}
+.help-modal .help-phone {
+  font-size: 11px;
+}
+.help-details {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.help-details details {
+  border-bottom: 1px solid var(--line);
+}
+.help-details summary {
+  padding: 12px 0;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  list-style-position: inside;
+}
+.help-details details[open] summary {
+  color: var(--green);
+}
+.help-modal .help-details p {
+  padding: 0 0 15px;
+  font-size: 11px;
+}
+.help-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--line);
+}
+.help-footer > span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.help-modal .help-footer .button {
+  flex-shrink: 0;
+  padding: 11px 22px;
+  font-size: 12px;
+}
+@media (max-width: 640px) {
+  .help-modal .modal-heading {
+    padding: 18px 20px;
+  }
+  .help-modal .modal-heading h2 {
+    font-size: 23px;
+  }
+  .help-content {
+    padding: 18px 20px;
+  }
+  .help-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .help-footer {
+    padding: 14px 20px;
+    gap: 12px;
+  }
+  .help-footer > span {
+    font-size: 9px;
+  }
+  .help-modal .help-footer .button {
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+}

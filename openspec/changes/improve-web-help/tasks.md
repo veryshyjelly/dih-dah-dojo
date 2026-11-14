@@ -1,0 +1,4 @@
+- [x] 1. Implement compact guide content and bounded responsive dialog layout.
+- [x] 2. Isolate dialog keys and protect practice/countdown while help is open.
+- [x] 3. Verify both themes, small/short viewports, scrolling and keyboard dismissal.
+- [ ] 4. Deploy, push source updates and verify the live guide.

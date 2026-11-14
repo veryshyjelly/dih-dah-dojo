@@ -49,3 +49,16 @@ appearance checks passed again after the final focus/selection polish.
 Cloudflare static deployment version: `e1c16e8d-73d5-4ac1-b7cf-5ab424b07b3d`.
 The deployment remains assets-only, with no new server functions or paid bindings.
 The documented WASM build helper is executable in fresh clones.
+
+## Compact help guide
+
+Help now uses a short, named dialog with shortcut rows, small practice cards, and
+expandable progress/timing/data explanations. Its header and footer remain visible
+while only the body scrolls, including at 320×568 and 1200×480. Both themes were
+visually reviewed. Opening help pauses active practice or holds a saved-summary
+countdown. Escape closes only the guide, and closing it leaves practice/countdown
+paused for an explicit resume. Dialog keys do not become practice responses.
+
+All 54 Chromium, WebKit desktop and mobile-emulation regressions passed, including
+short-window scrolling, fixed controls, recognition resumption, and unchanged saved
+evidence while reading help. TypeScript/build, formatting and OpenSpec checks pass.
