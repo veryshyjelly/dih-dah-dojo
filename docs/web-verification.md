@@ -92,8 +92,8 @@ phone concurrency/capacity test or evidence of learning effectiveness.
 - The owner configured Google credentials privately. The API reports both providers
   ready; the live Google button reaches Google with the exact callback, code flow,
   and only `email profile openid` scopes, without browser errors. The owner confirmed
-  the complete Google sign-in round trip. Google production audience status still
-  requires owner confirmation.
+  the complete Google sign-in round trip and the Google audience status of
+  **In production**. Production OAuth setup is complete.
 - The initial PRoot restart timeout was reproduced and fixed with a scoped runit
   control handler. Two subsequent service restarts succeeded without re-entering
   secrets. A full Android reboot remains untested.

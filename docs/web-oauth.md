@@ -58,3 +58,6 @@ production-ready. Do not request sensitive API scopes or enable unrelated APIs.
 Callbacks follow [Better Auth's provider contract](https://www.better-auth.com/docs/concepts/oauth).
 Google's [web-server OAuth documentation](https://developers.google.com/identity/protocols/oauth2/web-server)
 explains exact redirect matching and consent configuration.
+
+Deployment status: the owner confirmed successful Google sign-in and an
+**In production** audience. Both Google and GitHub are enabled on the live site.
