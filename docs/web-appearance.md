@@ -62,3 +62,8 @@ paused for an explicit resume. Dialog keys do not become practice responses.
 All 54 Chromium, WebKit desktop and mobile-emulation regressions passed, including
 short-window scrolling, fixed controls, recognition resumption, and unchanged saved
 evidence while reading help. TypeScript/build, formatting and OpenSpec checks pass.
+
+Help-guide deployment: `05ad48f3-fc78-4b78-9075-9def681db4e4`. A live anonymous
+browser verified the compact guide in dark mode at wide and 320×568 sizes,
+expanded and scrolled its details, kept the close/footer controls in view, and
+closed it through both Escape and Got it without browser errors.
