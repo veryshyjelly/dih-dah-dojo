@@ -47,8 +47,8 @@ Under **Clients**, create a **Web application** named **Dih Dah Dojo Web**:
 | Authorized redirect URI | `https://dojoapi.veryshyjelly.in/api/auth/callback/google` |
 
 Copy the secret privately when Google first displays it; it may not be shown again.
-The owner must complete credential creation and enter the client ID/secret with the
-phone helper. Press Enter through the GitHub prompts to retain its configuration.
+The owner completed credential creation, entered the client ID/secret with the
+phone helper, and confirmed a successful live Google sign-in. Press Enter through the GitHub prompts to retain its configuration.
 Start with the Testing audience and add your own Google account as a test user if
 the field is offered. Google currently makes an allowlist exception for basic
 identity-only scopes; Testing is still a development configuration. Complete Google's
