@@ -188,3 +188,9 @@ rapid pitch changes coalescing to the latest 750 Hz setting, manual Space/F6 rep
 and stopping playback when saving/returning. The low-volume test reported healthy
 native audio, one preferences checkpoint, and no practice observations. Preview
 uses the existing prepared transport; audio callback ownership is unchanged.
+
+## Radio console polish
+
+The new console screens, keyboard navigation, evidence graphs, rendering fixtures
+and native workload checks are documented in [console-verification.md](console-verification.md).
+Physical timing and learning-effectiveness limits above remain open.

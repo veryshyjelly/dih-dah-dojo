@@ -1,0 +1,12 @@
+PASS dashboard primary action
+PASS section navigation / Shift-Tab / empty graphs / ranges / character drilldown
+PASS help and reset cancellation
+PASS muted automatic/coalesced/Space/F6 preview and save-on-leave
+PASS digit is captured with visible answer through 450 ms
+PASS unknown/replay/pause help/resume/resize/finish
+PASS saved-summary hold over 4 seconds / resume / Esc 20 responses
+PASS held result remains complete without technical compromise
+Verified deterministic score/evidence and policy-state replay for 9 records (stored policy versions)
+PASS terminal restoration / NO_COLOR / binary history replay
+PASS saved audio preferences after restart
+DIRECTORY /var/folders/sv/g72ryxhn72nf_bycs99ly09c0000gn/T/cw-console-native-b9jk46h4

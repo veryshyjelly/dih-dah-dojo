@@ -1,0 +1,38 @@
+   Compiling dih_dah_dojo v0.1.0 (/Users/biswas/code/veryshyjelly/dih_dah_dojo)
+    Finished `release` profile [optimized] target(s) in 0.84s
+     Running `target/release/examples/measure_session 120`
+Isolated synthetic workload: /var/folders/sv/g72ryxhn72nf_bycs99ly09c0000gn/T/cw-session-measure-3353-1794632149982082000
+Duration: 120 s; silent audio; 10 key events/s
+elapsed=30s sent=301 terminal_bytes=13352 scoring_jobs=60625 durable_writes=533
+elapsed=60s sent=601 terminal_bytes=22907 scoring_jobs=115345 durable_writes=1056
+elapsed=90s sent=901 terminal_bytes=37416 scoring_jobs=185911 durable_writes=1584
+PASS: 1200 scripted keys, 47257 terminal bytes, 5 replay-verified records
+status=completed
+measurement=software_receipt_and_terminal_draw_completion
+physical_keyboard_and_display_measured=false
+physical_loopback_performed=false
+histogram_quantum_ns=100000
+input_receipt_to_coordinator_count=1202
+input_receipt_to_coordinator_p99_upper_ns=2800000
+input_receipt_to_coordinator_max_ns=16090917
+view_submission_to_draw_completion_count=1288
+view_submission_to_draw_completion_p99_upper_ns=20000000
+view_submission_to_draw_completion_max_ns=22051792
+draw_count=1288
+draw_p99_upper_ns=1100000
+draw_max_ns=4400709
+audio_render_count=44973
+audio_render_p99_upper_ns=100000
+audio_render_max_ns=27375
+input_sequence_gaps=0
+coalesced_views=0
+audio_frames=5756544
+sample_rate=48000
+actual_buffer_min=128
+actual_buffer_max=128
+callback_deadline_misses=0
+max_rolling_clock_residual_p99_ns=95333
+saved_records=4
+compromised_blocks=1
+fault=false
+Report: /var/folders/sv/g72ryxhn72nf_bycs99ly09c0000gn/T/cw-session-measure-3353-1794632149982082000/session-latency.txt

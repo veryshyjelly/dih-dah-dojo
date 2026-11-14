@@ -1,0 +1,36 @@
+   Compiling dih_dah_dojo v0.1.0 (/Users/biswas/code/veryshyjelly/dih_dah_dojo)
+    Finished `release` profile [optimized] target(s) in 1.02s
+     Running `target/release/examples/measure_session 60`
+Isolated synthetic workload: /var/folders/sv/g72ryxhn72nf_bycs99ly09c0000gn/T/cw-session-measure-6481-1794632338571479000
+Duration: 60 s; silent audio; 10 key events/s
+elapsed=30s sent=301 terminal_bytes=13808 scoring_jobs=111161 durable_writes=527
+PASS: 600 scripted keys, 25502 terminal bytes, 4 replay-verified records
+status=completed
+measurement=software_receipt_and_terminal_draw_completion
+physical_keyboard_and_display_measured=false
+physical_loopback_performed=false
+histogram_quantum_ns=100000
+input_receipt_to_coordinator_count=602
+input_receipt_to_coordinator_p99_upper_ns=1500000
+input_receipt_to_coordinator_max_ns=1501875
+view_submission_to_draw_completion_count=662
+view_submission_to_draw_completion_p99_upper_ns=23300000
+view_submission_to_draw_completion_max_ns=24081250
+draw_count=662
+draw_p99_upper_ns=500000
+draw_max_ns=493083
+audio_render_count=22489
+audio_render_p99_upper_ns=100000
+audio_render_max_ns=8125
+input_sequence_gaps=0
+coalesced_views=0
+audio_frames=2878592
+sample_rate=48000
+actual_buffer_min=128
+actual_buffer_max=128
+callback_deadline_misses=0
+max_rolling_clock_residual_p99_ns=29291
+saved_records=3
+compromised_blocks=1
+fault=false
+Report: /var/folders/sv/g72ryxhn72nf_bycs99ly09c0000gn/T/cw-session-measure-6481-1794632338571479000/session-latency.txt
