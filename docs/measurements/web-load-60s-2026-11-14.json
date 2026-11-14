@@ -1,0 +1,15 @@
+{
+  "durationSeconds": 60,
+  "inputs": 559,
+  "renderSamples": 22800,
+  "backgroundCommits": 120,
+  "restoredBlocks": 121,
+  "integrity": "ok",
+  "inputReceiptP99Ms": 1.399999976158142,
+  "inputToNextFrameP99Ms": 17,
+  "wasmRenderP99Ms": 0.006834000007074792,
+  "wasmRenderMaxMs": 0.7972909999998592,
+  "serverEvaluateCommitP99Ms": 4.679000000000087,
+  "errors": [],
+  "physicalTiming": "unverified"
+}
