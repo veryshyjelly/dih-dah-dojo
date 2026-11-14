@@ -180,3 +180,11 @@ Answered trials now request an immediate redraw and retain the response during
 the 500 ms inter-trial silence before feedback/replay. The same PTY check observes
 `Response: Z` at all three sample times. Timeout is labeled `Timed out` rather than
 leaving the waiting placeholder. Capture/timeout tests and strict Clippy pass.
+
+## Audio settings preview
+
+An isolated native PTY session verified automatic preview after a volume change,
+rapid pitch changes coalescing to the latest 750 Hz setting, manual Space/F6 replay,
+and stopping playback when saving/returning. The low-volume test reported healthy
+native audio, one preferences checkpoint, and no practice observations. Preview
+uses the existing prepared transport; audio callback ownership is unchanged.

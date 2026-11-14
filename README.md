@@ -29,7 +29,8 @@ sound patterns; copying continues while you type.
 | Esc | End practice and preserve completed evidence |
 | Ctrl-C | Quit and restore the terminal |
 
-Volume and tone are available in Settings. Speed needs no normal configuration.
+Volume and tone are available in Settings. Changes play a short preview; Space or
+F6 replays it. Enter/Esc saves and returns. Speed needs no normal configuration.
 Optional overrides apply to a session without replacing automatic speed settings:
 
 ```sh

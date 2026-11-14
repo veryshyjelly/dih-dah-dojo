@@ -1510,21 +1510,40 @@ impl Runtime {
     }
     fn settings(&mut self) -> Result<()> {
         let mut selected = 0usize;
+        let mut preview_at = None;
         loop {
             let mut view = View::message(
                 "Audio settings",
-                "Up/Down chooses a field; Left/Right adjusts. Enter saves.\nSpeed adapts automatically; --c/--e provide deliberate session overrides.",
+                format!(
+                    "Up/Down chooses a field; Left/Right adjusts and previews.\nSpace or F6: replay preview. Enter/Esc: save and return.\n{}",
+                    if preview_at.is_some() {
+                        "Previewing the latest settings shortly…"
+                    } else if self.controls.busy.load(Ordering::Acquire) {
+                        "Playing preview with the current volume and tone."
+                    } else {
+                        "Preview does not count as practice."
+                    }
+                ),
             );
             view.options = vec![
                 format!("Volume: {}%", self.profile.volume),
                 format!("Tone: {} Hz", self.profile.tone_hz),
             ];
             view.selected = selected;
+            view.footer =
+                "Left/Right: adjust · Space/F6: preview · Enter/Esc: save · Ctrl-C: quit".into();
             self.show(view);
             self.pump();
+            self.notes.clear();
             if self.quit.load(Ordering::Acquire) {
+                self.stop_audio();
                 return Ok(());
             }
+            if let Some(error) = self.fatal.as_ref().or(self.audio_error.as_ref()) {
+                return Err(error.clone().into());
+            }
+            let previous = (self.profile.volume, self.profile.tone_hz);
+            let mut replay = false;
             for event in self.keys() {
                 match event.key {
                     Key::Up | Key::Down => selected = 1 - selected,
@@ -1542,7 +1561,9 @@ impl Runtime {
                             self.profile.tone_hz = (self.profile.tone_hz + 50).min(1000);
                         }
                     }
+                    Key::Character(' ') | Key::Replay => replay = true,
                     Key::Enter | Key::Escape => {
+                        self.stop_audio();
                         self.checkpoint(Kind::Teaching, "Audio preferences updated")?;
                         return Ok(());
                     }
@@ -1550,6 +1571,18 @@ impl Runtime {
                 }
             }
             self.controls.volume(self.profile.volume);
+            if previous != (self.profile.volume, self.profile.tone_hz) || replay {
+                // Fade out an old preview and coalesce repeated adjustments.
+                self.controls.stop.store(true, Ordering::Release);
+                preview_at =
+                    Some(Instant::now() + Duration::from_millis(if replay { 0 } else { 100 }));
+            }
+            if preview_at.is_some_and(|at| Instant::now() >= at)
+                && !self.controls.busy.load(Ordering::Acquire)
+            {
+                self.start_sound("K", 20, 20, false)?;
+                preview_at = None;
+            }
         }
     }
     fn progress(&mut self) -> Result<()> {
