@@ -60,7 +60,7 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 3px solid var(--theme-border, #9ab583);
+  outline: 3px solid var(--theme-focus-ring, #9ab583);
   outline-offset: 5px;
 }
 button {
@@ -103,7 +103,7 @@ svg {
   flex-shrink: 0;
 }
 ::selection {
-  background: var(--theme-soft-background, #d8e9ba);
+  background: var(--theme-selection, #d8e9ba);
   color: var(--ink);
 }
 .site-shell {
