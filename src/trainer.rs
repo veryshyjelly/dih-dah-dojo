@@ -129,6 +129,19 @@ struct RecognitionCapture {
     rejected: u32,
 }
 impl RecognitionCapture {
+    fn response_text(&self) -> String {
+        if let Some(response) = self.response {
+            response.character.to_string()
+        } else if self.unknown {
+            "I don't know".into()
+        } else if self.replay {
+            "Replay requested".into()
+        } else if self.answered {
+            "Timed out".into()
+        } else {
+            "…".into()
+        }
+    }
     fn receive(
         &mut self,
         key: Key,
@@ -759,16 +772,7 @@ impl Runtime {
                 "Recognition",
                 format!(
                     "Listen, then type one character.\n\nResponse: {} · rejected input: {}\nCharacter speed: {c} WPM · response window: {} s after sound\n{}",
-                    capture.response.map_or_else(
-                        || if capture.unknown {
-                            "I don't know".into()
-                        } else if capture.replay {
-                            "Replay requested".into()
-                        } else {
-                            "…".into()
-                        },
-                        |s| s.character.to_string()
-                    ),
+                    capture.response_text(),
                     capture.rejected,
                     self.profile.timeout_seconds,
                     if assisted || capture.replay {
@@ -780,7 +784,12 @@ impl Runtime {
             );
             view.footer =
                 "First answer only · Tab: unknown · F5: pause · F6: replay · Esc: end".into();
-            self.show(view);
+            if capture.answered {
+                // A completed trial may return before the next throttled refresh.
+                self.force_show(view);
+            } else {
+                self.show(view);
+            }
             if self.quit.load(Ordering::Acquire) {
                 stop = true;
                 compromised = true;
@@ -902,6 +911,11 @@ impl Runtime {
                 if stopped {
                     break;
                 }
+                // Keep the response visible before replay/feedback or the next trial.
+                if !self.idle(500)? {
+                    stopped = true;
+                    break;
+                }
                 if replay && repeats < 2 {
                     repeats += 1;
                     self.profile
@@ -921,8 +935,6 @@ impl Runtime {
                     } {
                         stopped = true;
                     }
-                } else if !self.idle(500)? {
-                    stopped = true;
                 }
                 break;
             }
@@ -1845,6 +1857,7 @@ mod tests {
             })
         );
         assert!(!capture.replay);
+        assert_eq!(capture.response_text(), "K");
     }
     #[test]
     fn recognition_deadline_unknown_pause_and_replay_are_distinct() {
@@ -1863,6 +1876,7 @@ mod tests {
         assert!(!unknown.answered);
         unknown.receive(Key::Unknown, 150, Some(100), Some(200), 4, false);
         assert!(unknown.unknown && unknown.response.is_none());
+        assert_eq!(unknown.response_text(), "I don't know");
         let mut replay = RecognitionCapture::default();
         replay.receive(Key::Replay, 150, Some(100), Some(200), 4, false);
         assert!(replay.replay && replay.answered);
@@ -1871,6 +1885,7 @@ mod tests {
         assert!(!timeout.answered);
         timeout.expire(8_000_000_200, Some(200), 8);
         assert!(timeout.answered && timeout.response.is_none());
+        assert_eq!(timeout.response_text(), "Timed out");
     }
     #[test]
     fn space_and_modified_keys_cannot_create_invalid_recognition_history() {

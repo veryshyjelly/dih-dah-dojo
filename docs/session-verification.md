@@ -168,3 +168,15 @@ scoring, and telemetry loss requests silence/retirement with zero callback
 allocation or deallocation. The revised streaming archive is byte-identical to the
 previous container, and compact-head restart reconstructs exercise, passage and
 offer indexes. No physical timing check is closed by these tests.
+
+## Recognition response visibility regression
+
+A muted isolated PTY check reproduced a missing response in the previous build:
+a supported wrong answer typed after playback was accepted and scored, but the
+response was absent at 150, 300 and 450 ms. The trial could return before the
+33 ms redraw gate opened, and immediate answer feedback replaced the view.
+
+Answered trials now request an immediate redraw and retain the response during
+the 500 ms inter-trial silence before feedback/replay. The same PTY check observes
+`Response: Z` at all three sample times. Timeout is labeled `Timed out` rather than
+leaving the waiting placeholder. Capture/timeout tests and strict Clippy pass.
