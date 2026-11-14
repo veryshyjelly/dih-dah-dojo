@@ -282,19 +282,10 @@ fn comparable_records(records: &[Record], context: Context) -> Vec<&Record> {
     let mut comparable: Vec<_> = records
         .iter()
         .rev()
-        .filter(|r| {
-            r.context == context
-                && r.completed
-                && r.compromised.is_none()
-                && r.rescues == 0
-                && r.policy == crate::learner::POLICY
-                && r.is_practice()
-        })
+        .filter(|r| r.context == context && crate::progress::independent_practice(r))
         .collect();
     if let Some(latest) = comparable.first().copied() {
-        comparable.retain(|r| {
-            r.repertoire == latest.repertoire && r.corpus_version == latest.corpus_version
-        });
+        comparable.retain(|r| r.comparable(latest));
     }
     comparable
 }

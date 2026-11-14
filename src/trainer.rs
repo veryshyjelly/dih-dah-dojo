@@ -9,7 +9,10 @@ use crate::{
     live_audio::LiveOutput,
     planner::{self, Random},
     recording::{Delivery, Kind, RecognitionTrial, Record},
-    screen::{self, Sender, View},
+    screen::{
+        self, AudioPage, CopyingPage, FeedbackPage, MenuPage, Page, Presentation, RecognitionPage,
+        RecognitionState, Sender, SummaryPage, View,
+    },
     timing::{SYMBOLS, Schedule, Timing},
     transcript::{Edit, Symbol, Transcript},
     transport::{Controls, EventKind, Prepared},
@@ -39,6 +42,7 @@ struct Options {
     effective: Option<u8>,
     known: Option<String>,
     skip_readiness: bool,
+    plain: bool,
     latency_report: Option<PathBuf>,
 }
 impl Options {
@@ -53,6 +57,7 @@ impl Options {
             effective: None,
             known: None,
             skip_readiness: false,
+            plain: false,
             latency_report: None,
         };
         let mut i = 0;
@@ -93,6 +98,7 @@ impl Options {
                     }
                     out.known = Some(commands::canonical_repertoire(&value));
                 }
+                "--plain" => out.plain = true,
                 "--skip-readiness" => out.skip_readiness = true,
                 "--latency-report" => {
                     i += 1;
@@ -231,6 +237,8 @@ struct Note {
     value: u64,
 }
 struct Runtime {
+    section: usize,
+    feedback_answer: Option<String>,
     text_next: bool,
     submit_tail: bool,
     audio: Option<LiveOutput>,
@@ -285,6 +293,8 @@ impl Runtime {
         }
         let seed = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(1) as u64;
         Ok(Self {
+            section: 0,
+            feedback_answer: None,
             text_next: false,
             submit_tail: false,
             audio: None,
@@ -407,13 +417,25 @@ impl Runtime {
         }
         thread::sleep(Duration::from_millis(1));
     }
-    fn show(&mut self, view: View) {
+    fn presentation(&self) -> Presentation {
+        Presentation {
+            plain: self.options.plain,
+            monochrome: std::env::var_os("NO_COLOR").is_some(),
+        }
+    }
+    fn help(&mut self) -> Result<()> {
+        self.notice("Console help", "Idle: 1 Dashboard | 2 Practice | 3 Progress | 4 Audio | F1 Progress\nTab / Shift-Tab moves focus; arrows select; Enter activates.\nPractice: type letters, digits and punctuation as responses.\nRecognition: Tab unknown | F6 replay | F5 pause | Esc finish.\nCopying: Backspace edits only the transcript tail; correctness waits until saved.\nSummary: Space holds/resumes the saved-result countdown; Enter continues.\nProgress: Tab selects card; Enter expands; Left/Right selects points or characters.\nR cycles latest 30 / 100 / all eligible blocks. Esc collapses/returns.\nLatency includes typing. Graphs show comparable observed contexts, not next targets.\nTiming estimated: audio/response times use software clock mapping.\nPhysical output, key and display timing remain unverified.\nNO_COLOR removes colors; train --plain uses ASCII without decorative motion.")?;
+        Ok(())
+    }
+    fn show(&mut self, mut view: View) {
+        view.presentation = self.presentation();
         if self.last_view.elapsed() >= Duration::from_millis(33) {
             self.ui.send(view);
             self.last_view = Instant::now();
         }
     }
-    fn force_show(&mut self, view: View) {
+    fn force_show(&mut self, mut view: View) {
+        view.presentation = self.presentation();
         self.ui.send(view);
         self.last_view = Instant::now();
     }
@@ -564,11 +586,17 @@ impl Runtime {
         Ok(())
     }
     fn notice(&mut self, title: &str, body: &str) -> Result<bool> {
-        self.force_show(View::message(
-            title,
-            format!("{body}\n\nEnter: continue · Esc: return"),
-        ));
+        let mut scroll = 0u16;
         loop {
+            let mut view = View::page(
+                title,
+                Page::Notice {
+                    lines: body.lines().map(str::to_string).collect(),
+                    scroll,
+                },
+            );
+            view.footer = "Up/Down: scroll | Enter: continue | Esc: return | Ctrl-C: quit".into();
+            self.show(view);
             self.pump();
             if self.quit.load(Ordering::Acquire) {
                 return Ok(false);
@@ -580,6 +608,12 @@ impl Runtime {
                 match event.key {
                     Key::Enter => return Ok(true),
                     Key::Escape => return Ok(false),
+                    Key::Up => scroll = scroll.saturating_sub(1),
+                    Key::Down => {
+                        scroll = scroll
+                            .saturating_add(1)
+                            .min(body.len().min(u16::MAX as usize) as u16)
+                    }
                     _ => {}
                 }
             }
@@ -608,8 +642,8 @@ impl Runtime {
     }
     fn pause_dialog(&mut self) -> Result<bool> {
         self.controls.pause.store(true, Ordering::Release);
-        self.force_show(View::message("Practice paused","The affected trial/block is excluded from unassisted assessment.\nF5: resume · Esc: end session"));
         loop {
+            self.show(View::message("Practice paused","The affected trial/block is excluded from unassisted assessment.\nF5: resume | ?: help | Esc: end session"));
             self.pump();
             if self.quit.load(Ordering::Acquire) {
                 return Ok(false);
@@ -624,6 +658,7 @@ impl Runtime {
                         return Ok(true);
                     }
                     Key::Escape => return Ok(false),
+                    Key::Character('?') => self.help()?,
                     _ => {}
                 }
             }
@@ -641,6 +676,7 @@ impl Runtime {
     }
     fn clip(&mut self, symbol: char, title: &str, ack: bool) -> Result<bool> {
         let c = self.options.character.unwrap_or(self.profile.recognition_c);
+        let answer = self.feedback_answer.take();
         let mut id = self.start_sound(&symbol.to_string(), c, c, false)?;
         let mut finished = false;
         let mut start = Instant::now();
@@ -649,14 +685,18 @@ impl Runtime {
             for note in self.notes(id) {
                 finished |= matches!(note.kind, EventKind::Finished | EventKind::Stopped);
             }
-            let mut view = View::message(
+            let mut view = View::page(
                 title,
-                format!(
-                    "{symbol}   {}\n\nListen to the whole sound pattern.\nVolume: {}% · tone: {} Hz",
-                    crate::timing::pattern(symbol).unwrap(),
-                    self.profile.volume,
-                    self.profile.tone_hz
-                ),
+                Page::Feedback(FeedbackPage {
+                    answer: answer.clone(),
+                    expected: symbol,
+                    pattern: crate::timing::pattern(symbol).unwrap().into(),
+                    explanation: format!(
+                        "Listen to the whole sound pattern. Volume {}% / tone {} Hz",
+                        self.profile.volume, self.profile.tone_hz
+                    ),
+                    assisted: true,
+                }),
             );
             view.footer = if ack {
                 "Enter after sound: continue · F6: replay · Up/Down: volume · Esc: return"
@@ -768,19 +808,37 @@ impl Runtime {
                 }
             }
             capture.expire(self.now(), end, self.profile.timeout_seconds);
-            let mut view = View::message(
+            let state = if compromised
+                || stop
+                || self.audio_error.is_some()
+                || self.fatal.is_some()
+                || self.quit.load(Ordering::Acquire)
+            {
+                RecognitionState::Interrupted
+            } else if capture.response.is_some() {
+                RecognitionState::Captured
+            } else if capture.unknown {
+                RecognitionState::Unknown
+            } else if capture.replay {
+                RecognitionState::Replay
+            } else if capture.answered {
+                RecognitionState::Timeout
+            } else if end.is_some() {
+                RecognitionState::Waiting
+            } else {
+                RecognitionState::Listening
+            };
+            let mut view = View::page(
                 "Recognition",
-                format!(
-                    "Listen, then type one character.\n\nResponse: {} · rejected input: {}\nCharacter speed: {c} WPM · response window: {} s after sound\n{}",
-                    capture.response_text(),
-                    capture.rejected,
-                    self.profile.timeout_seconds,
-                    if assisted || capture.replay {
-                        "Assisted repetition — separate from independent evidence"
-                    } else {
-                        "Independent attempt"
-                    }
-                ),
+                Page::Recognition(RecognitionPage {
+                    response: capture.response.map(|s| s.character),
+                    caption: capture.response_text(),
+                    state,
+                    speed: c,
+                    timeout: self.profile.timeout_seconds,
+                    assisted: assisted || capture.replay,
+                    rejected: capture.rejected,
+                }),
             );
             view.footer =
                 "First answer only · Tab: unknown · F5: pause · F6: replay · Esc: end".into();
@@ -864,6 +922,7 @@ impl Runtime {
         let budget = if entry { 120 } else { 90 };
         let mut stopped = false;
         for plan in plans {
+            self.feedback_answer = None;
             if began.elapsed() >= Duration::from_secs(budget) {
                 break;
             }
@@ -906,6 +965,15 @@ impl Runtime {
                             .introduce(plan.symbol, chrono::Utc::now().timestamp_millis());
                     }
                 }
+                self.feedback_answer = Some(if let Some(response) = trial.response {
+                    response.character.to_string()
+                } else if trial.explicit_unknown {
+                    "I don't know".into()
+                } else if replay {
+                    "Replay requested".into()
+                } else {
+                    "Timed out".into()
+                });
                 record.trials.push(trial);
                 stopped |= stop;
                 if stopped {
@@ -942,6 +1010,7 @@ impl Runtime {
                 break;
             }
         }
+        self.feedback_answer = None;
         if entry {
             for c in ['K', 'M'] {
                 if stopped {
@@ -982,24 +1051,12 @@ impl Runtime {
         if stopped {
             return Ok(false);
         }
-        let accuracy = saved.metrics.attempt_accuracy.map_or_else(
-            || "no independent samples".into(),
-            |a| format!("{:.1}% independent accuracy", 100.0 * a),
-        );
-        self.review(
-            "Recognition block saved",
-            &format!(
-                "{accuracy}\n{}\n{}\nIntroduced: {}\n{}",
-                saved.selection_reason,
-                saved.decision,
-                self.profile.introduced,
-                if entry && !self.profile.entry_complete {
-                    "Remaining placement symbols will be sampled next session."
-                } else {
-                    ""
-                }
-            ),
-        )
+        self.review("Recognition block saved", SummaryPage {
+            accuracy: format!("Attempt: {} | final: {}", accuracy(saved.metrics.attempt_accuracy), accuracy(saved.metrics.final_accuracy)),
+            pace: format!("Character speed {} WPM | response window {} s\nTiming estimated; typing-inclusive response latency", c, self.profile.timeout_seconds),
+            adaptation: saved.decision.clone(), evidence: format!("{}\nIntroduced: {}",saved.selection_reason,self.profile.introduced),
+            remaining_ms: 3000, held: false,
+        })
     }
     fn copying_block(&mut self, check: Option<(Context, String)>) -> Result<bool> {
         self.submit_tail = false;
@@ -1073,7 +1130,6 @@ impl Runtime {
         let mut submitted_revision = None;
         let mut last_input = self.now();
         let mut last_backlog = 0u32;
-        let mut last_backlog_max = 0u32;
         let baseline = self
             .records
             .iter()
@@ -1253,7 +1309,6 @@ impl Runtime {
                     match result.result {
                         Ok(alignment) => {
                             last_backlog = alignment.backlog_min;
-                            last_backlog_max = alignment.backlog_max;
                             let sample = Backlog {
                                 at_ns: result.at_ns,
                                 min: alignment.backlog_min,
@@ -1314,29 +1369,28 @@ impl Runtime {
             } else {
                 0
             };
-            let mut view = View::message(
+            let mut view = View::page(
                 if is_check {
                     "Unassisted progress check"
                 } else {
                     "Continuous copying"
                 },
-                format!(
-                    "{}\n{}/{} WPM · {} s · backlog {}..{} · catch-up gaps {}\nRejected input: {} (paste, modifiers, unsupported symbols)\n\n{}\n\n{}",
-                    record.selection_reason,
-                    work.copying_c,
-                    work.copying_e,
-                    elapsed,
-                    last_backlog,
-                    last_backlog_max,
-                    record.rescues,
-                    transcript.events().iter().filter(|e| !e.accepted).count(),
-                    transcript.final_string(),
-                    if finished {
-                        "Response tail: Enter submits; recording remains bounded."
+                Page::Copying(CopyingPage {
+                    transcript: transcript.final_string(),
+                    character_wpm: work.copying_c,
+                    effective_wpm: work.copying_e,
+                    elapsed_seconds: elapsed,
+                    gaps: record.rescues,
+                    rejected: transcript.events().iter().filter(|e| !e.accepted).count(),
+                    transmission: if finished {
+                        "RESPONSE TAIL / Enter submits"
+                    } else if self.controls.pause.load(Ordering::Acquire) {
+                        "PAUSED"
                     } else {
-                        "Keep listening. Skip missed material and rejoin."
+                        "RECEIVING"
                     }
-                ),
+                    .into(),
+                }),
             );
             view.footer =
                 "Type your copy · Tab: skip · Backspace: correct · F5: pause · Esc: end".into();
@@ -1389,13 +1443,41 @@ impl Runtime {
         if transcript.attempts().is_empty() {
             self.notice("No copy received — ready to resume?", &summary)
         } else {
-            self.review("Copying block saved", &summary)
+            self.review(
+                "Copying block saved",
+                SummaryPage {
+                    accuracy: format!(
+                        "Attempt: {} | final: {}",
+                        accuracy(saved.metrics.attempt_accuracy),
+                        accuracy(saved.metrics.final_accuracy)
+                    ),
+                    pace: saved.pace_summary(),
+                    adaptation: saved.decision.clone(),
+                    evidence: format!(
+                        "{}\n{}\nAssistance: {} catch-up gaps",
+                        saved.selection_reason,
+                        saved.evidence_summary(),
+                        saved.rescues
+                    ),
+                    remaining_ms: 3000,
+                    held: false,
+                },
+            )
         }
     }
-    fn review(&mut self, title: &str, body: &str) -> Result<bool> {
-        self.force_show(View::message(title,format!("{body}\n\nNext block starts automatically in three seconds. Enter continues now; Esc ends.")));
-        let started = Instant::now();
+    fn review(&mut self, title: &str, mut page: SummaryPage) -> Result<bool> {
+        let mut countdown = SummaryCountdown::new();
+        let mut last = Instant::now();
         loop {
+            let now = Instant::now();
+            countdown.tick(now.duration_since(last));
+            last = now;
+            page.remaining_ms = countdown.remaining.as_millis() as u64;
+            page.held = countdown.held;
+            let mut view = View::page(title, Page::Summary(page.clone()));
+            view.footer =
+                "Space: hold/resume | Enter: continue | Esc: finish | Ctrl-C: quit".into();
+            self.show(view);
             self.pump();
             if self.quit.load(Ordering::Acquire) {
                 return Ok(false);
@@ -1404,15 +1486,11 @@ impl Runtime {
                 match event.key {
                     Key::Enter => return Ok(true),
                     Key::Escape => return Ok(false),
-                    Key::Pause => {
-                        if !self.pause_dialog()? {
-                            return Ok(false);
-                        }
-                    }
+                    Key::Character(' ') | Key::Pause => countdown.held = !countdown.held,
                     _ => {}
                 }
             }
-            if started.elapsed() >= Duration::from_secs(3) {
+            if countdown.remaining.is_zero() && !countdown.held {
                 return Ok(true);
             }
         }
@@ -1512,31 +1590,30 @@ impl Runtime {
         let mut selected = 0usize;
         let mut preview_at = None;
         loop {
-            let mut view = View::message(
+            let mut view = View::page(
                 "Audio settings",
-                format!(
-                    "Up/Down chooses a field; Left/Right adjusts and previews.\nSpace or F6: replay preview. Enter/Esc: save and return.\n{}",
-                    if preview_at.is_some() {
-                        "Previewing the latest settings shortly…"
+                Page::Audio(AudioPage {
+                    volume: self.profile.volume,
+                    frequency: self.profile.tone_hz,
+                    selected,
+                    preview: if preview_at.is_some() {
+                        "PREVIEW QUEUED / latest settings"
                     } else if self.controls.busy.load(Ordering::Acquire) {
-                        "Playing preview with the current volume and tone."
+                        "PLAYING PREVIEW"
                     } else {
-                        "Preview does not count as practice."
+                        "PREVIEW READY / unscored"
                     }
-                ),
+                    .into(),
+                }),
             );
-            view.options = vec![
-                format!("Volume: {}%", self.profile.volume),
-                format!("Tone: {} Hz", self.profile.tone_hz),
-            ];
-            view.selected = selected;
             view.footer =
-                "Left/Right: adjust · Space/F6: preview · Enter/Esc: save · Ctrl-C: quit".into();
+                "Tab: field | Left/Right: adjust | Space/F6: preview | Enter/Esc: save | 1-4: section | ?: help".into();
             self.show(view);
             self.pump();
             self.notes.clear();
             if self.quit.load(Ordering::Acquire) {
                 self.stop_audio();
+                self.checkpoint(Kind::Teaching, "Audio preferences updated")?;
                 return Ok(());
             }
             if let Some(error) = self.fatal.as_ref().or(self.audio_error.as_ref()) {
@@ -1545,8 +1622,15 @@ impl Runtime {
             let previous = (self.profile.volume, self.profile.tone_hz);
             let mut replay = false;
             for event in self.keys() {
+                if let Some(section) = idle_section(event.key) {
+                    self.stop_audio();
+                    self.checkpoint(Kind::Teaching, "Audio preferences updated")?;
+                    self.section = section;
+                    return Ok(());
+                }
                 match event.key {
-                    Key::Up | Key::Down => selected = 1 - selected,
+                    Key::Character('?') => self.help()?,
+                    Key::Up | Key::Down | Key::Unknown | Key::BackTab => selected = 1 - selected,
                     Key::Left => {
                         if selected == 0 {
                             self.profile.volume = self.profile.volume.saturating_sub(5);
@@ -1565,6 +1649,7 @@ impl Runtime {
                     Key::Enter | Key::Escape => {
                         self.stop_audio();
                         self.checkpoint(Kind::Teaching, "Audio preferences updated")?;
+                        self.section = 0;
                         return Ok(());
                     }
                     _ => {}
@@ -1586,136 +1671,110 @@ impl Runtime {
         }
     }
     fn progress(&mut self) -> Result<()> {
-        let now = chrono::Utc::now().timestamp_millis();
-        let mut lines=vec![format!("Completed sessions: {} · records: {}",self.profile.sessions,self.records.len()),"Character estimates are context-specific; intervals are approximate model uncertainty.".into()];
-        for c in SYMBOLS
-            .chars()
-            .filter(|c| self.profile.introduced.contains(*c))
-        {
-            let r = self
-                .learner
-                .estimate(c, Context::recognition(self.profile.recognition_c), now);
-            let copy = self.learner.estimate(
-                c,
-                Context::copying(
-                    self.profile.copying_c,
-                    self.profile.copying_e,
-                    Material::Groups,
-                ),
-                now,
-            );
-            let metric = |p: &crate::learner::Estimate| {
-                if p.effective_evidence == 0.0 {
-                    "unobserved".into()
-                } else {
-                    format!(
-                        "{:.0}% [{:.0}–{:.0}], n={:.1}",
-                        100.0 * p.mean,
-                        100.0 * p.lower,
-                        100.0 * p.upper,
-                        p.effective_evidence
-                    )
-                }
-            };
-            lines.push(format!(
-                "{c} · recognition {} · copying {}",
-                metric(&r),
-                metric(&copy)
-            ));
-            lines.push(format!(
-                "    response p90: {} · review {}",
-                r.latency_p90_ns.map_or_else(
-                    || "unknown".into(),
-                    |v| format!("{:.0} ms (typing included)", v as f64 / 1e6)
-                ),
-                if self
-                    .profile
-                    .reviews
-                    .get(&c)
-                    .is_some_and(|v| v.due_ms <= now)
-                {
-                    "due"
-                } else {
-                    "scheduled"
-                }
-            ));
-            for (response, _, count) in r.confusions.iter().filter(|v| v.2 >= 3).take(2) {
-                lines.push(format!(
-                    "    recurring {c} → {response}: {count} attributable substitutions"
-                ));
-            }
-        }
-        lines.push("Recent copying / checks:".into());
-        for r in self
-            .records
-            .iter()
-            .rev()
-            .filter(|r| matches!(r.kind, Kind::Copying | Kind::Check))
-            .take(10)
-        {
-            lines.push(format!(
-                "{} {:?} {}/{} WPM · attempt {} · rescue {} · {}",
-                r.local_date,
-                r.kind,
-                r.context.character_wpm,
-                r.context.effective_wpm,
-                r.metrics
-                    .attempt_accuracy
-                    .map_or_else(|| "unavailable".into(), |a| format!("{:.1}%", 100.0 * a)),
-                r.rescues,
-                if r.compromised.is_some() {
-                    "compromised"
-                } else if r.completed {
-                    "complete"
-                } else {
-                    "incomplete"
-                }
-            ));
-        }
-        lines.extend(commands::milestones(&self.records));
-        let context = Context::copying(
-            self.profile.copying_c,
-            self.profile.copying_e,
-            Material::Groups,
-        );
-        if let Some(trend) = commands::trend(&self.records, context) {
-            lines.push(format!(
-                "Comparable copying mean-score change: {:+.1} percentage points (descriptive)",
-                trend * 100.0
-            ));
-        }
-        for context in [Context::recognition(self.profile.recognition_c), context] {
-            if let Some(change) = commands::latency_trend(&self.records, context) {
-                lines.push(format!(
-                    "{:?} comparable response-latency change: {:+.0} ms (typing included)",
-                    context.mode,
-                    change as f64 / 1e6
-                ));
-            }
-        }
-        let mut offset = 0u16;
+        let mut range = crate::progress::Range::default();
+        let mut data = Arc::new(self.progress_data(range));
+        let mut focus = 0usize;
+        let mut expanded = false;
+        let mut point = 0usize;
+        let mut scroll = 0u16;
         loop {
-            let mut view = View::message(
-                "Progress — independent and assisted evidence stay separate",
-                "",
+            let mut view = View::page(
+                "Progress / observed evidence",
+                Page::Progress {
+                    data: data.clone(),
+                    focus,
+                    expanded,
+                    point,
+                    scroll,
+                },
             );
-            view.lines = lines.clone();
-            view.scroll = offset;
-            view.footer = "Up/Down: scroll · Enter/Esc: return · Ctrl-C: quit".into();
+            view.footer = if expanded {
+                "Left/Right: point | Up/Down: scroll | R: 30/100/all | Esc: collapse | ?: help"
+            } else {
+                "Tab/arrows: card | Enter: expand | R: 30/100/all | 1-4: section | ?: help"
+            }
+            .into();
             self.show(view);
             self.pump();
             if self.quit.load(Ordering::Acquire) {
                 return Ok(());
             }
             for event in self.keys() {
+                if let Some(section) = idle_section(event.key) {
+                    self.section = section;
+                    return Ok(());
+                }
                 match event.key {
-                    Key::Up => offset = offset.saturating_sub(1),
-                    Key::Down => offset = (offset + 1).min(lines.len() as u16),
-                    Key::Enter | Key::Escape => return Ok(()),
+                    Key::Character('?') => self.help()?,
+                    Key::Character('r' | 'R') => {
+                        range = range.next();
+                        data = Arc::new(self.progress_data(range));
+                        point = 0;
+                        scroll = 0;
+                    }
+                    Key::Enter if !expanded => {
+                        expanded = true;
+                        point = 0;
+                        scroll = 0;
+                    }
+                    Key::Escape if expanded => {
+                        expanded = false;
+                        point = 0;
+                        scroll = 0;
+                    }
+                    Key::Escape => {
+                        self.section = 0;
+                        return Ok(());
+                    }
+                    Key::Unknown | Key::Down if !expanded => focus = (focus + 1) % 5,
+                    Key::BackTab | Key::Up if !expanded => focus = (focus + 4) % 5,
+                    Key::Right if !expanded => focus = (focus + 1) % 5,
+                    Key::Left if !expanded => focus = (focus + 4) % 5,
+                    Key::Down if expanded => scroll = scroll.saturating_add(1).min(100),
+                    Key::Up if expanded => scroll = scroll.saturating_sub(1),
+                    Key::Right if expanded => {
+                        let n = if focus < 3 {
+                            data.graphs[focus].points.len()
+                        } else if focus == 3 {
+                            data.characters.len()
+                        } else {
+                            data.history.len()
+                        };
+                        point = (point + 1).min(n.saturating_sub(1));
+                        scroll = 0;
+                    }
+                    Key::Left if expanded => {
+                        point = point.saturating_sub(1);
+                        scroll = 0;
+                    }
                     _ => {}
                 }
             }
         }
+    }
+    fn progress_data(&self, range: crate::progress::Range) -> crate::progress::ProgressData {
+        let now = chrono::Utc::now().timestamp_millis();
+        let mut data = crate::progress::prepare(&self.records, range);
+        data.characters = SYMBOLS.chars().map(|symbol| {
+            let mut detail = vec![format!("Character {symbol} | {}", if self.profile.introduced.contains(symbol) { "introduced" } else { "not introduced" }),
+                "Estimates use current automatic speeds; unobserved conditions are not mastery.".into()];
+            for context in [Context::recognition(self.profile.recognition_c),
+                Context::copying(self.profile.copying_c, self.profile.copying_e, Material::Groups)] {
+                let estimate = self.learner.estimate(symbol, context, now);
+                detail.push(format!("{:?} {}/{} WPM: {}", context.mode, context.character_wpm, context.effective_wpm,
+                    if estimate.effective_evidence == 0.0 { "unobserved".into() } else {
+                        format!("{:.0}% [model 10-90%: {:.0}-{:.0}] n={:.1} | {}", estimate.mean*100.0,
+                            estimate.lower*100.0, estimate.upper*100.0, estimate.effective_evidence,
+                            if estimate.reliable { "reliable at these conditions" } else { "limited evidence" }) }));
+                detail.push(format!("Typing-inclusive latency median {} / p90 {} | n={}", milliseconds(estimate.latency_median_ns), milliseconds(estimate.latency_p90_ns), estimate.latency_count));
+                for (response, _, count) in estimate.confusions.iter().filter(|v| v.2 >= 3).take(2) {
+                    detail.push(format!("Recurring {symbol} -> {response}: {count} attributable substitutions"));
+                }
+            }
+            detail.push(format!("Review {}", if self.profile.reviews.get(&symbol).is_some_and(|v|v.due_ms <= now) { "due" } else { "scheduled / not yet introduced" }));
+            crate::progress::Character { symbol, introduced: self.profile.introduced.contains(symbol), detail }
+        }).collect();
+        data
     }
     fn reset(&mut self) -> Result<()> {
         let mut typed = String::new();
@@ -1755,7 +1814,9 @@ impl Runtime {
         }
     }
     fn run(&mut self) -> Result<()> {
-        let mut selected = 0usize;
+        let mut selected = [0usize; 2];
+        let mut milestone_records = usize::MAX;
+        let mut latest_milestone = String::new();
         loop {
             self.pump();
             if self.quit.load(Ordering::Acquire) {
@@ -1764,71 +1825,149 @@ impl Runtime {
             if let Some(error) = &self.fatal {
                 return Err(error.clone().into());
             }
-            let mut view = View::message(
-                "CW DOJO",
-                format!(
-                    "{} sessions · {} introduced symbols · automatic target {}/{} WPM\nOffline · native Rust audio · redb binary history\n{}",
-                    self.profile.sessions,
-                    self.profile.introduced.len(),
-                    self.profile.copying_c,
-                    self.profile.copying_e,
-                    self.audio_error
-                        .as_deref()
-                        .unwrap_or("Choose practice and let the trainer select the next block.")
-                ),
-            );
-            view.options = vec![
-                "Continue adaptive practice".into(),
-                "Recognition practice".into(),
-                "Continuous copying".into(),
-                "Progress and weaknesses".into(),
-                "Audio settings".into(),
-                "Export binary backup".into(),
-                "Reset history".into(),
-                "Quit".into(),
-            ];
-            view.selected = selected;
-            view.footer =
-                "Up/Down: choose · Enter: select · F1: progress · Esc/Ctrl-C: quit".into();
-            self.show(view);
-            let mut action = None;
-            for event in self.keys() {
-                match event.key {
-                    Key::Up => selected = (selected + 7) % 8,
-                    Key::Down => selected = (selected + 1) % 8,
-                    Key::Enter => action = Some(selected),
-                    Key::Progress => action = Some(3),
-                    Key::Escape => self.quit.store(true, Ordering::Release),
-                    _ => {}
+            let result = if self.section == 2 {
+                self.progress()
+            } else if self.section == 3 {
+                self.settings()
+            } else {
+                if milestone_records != self.records.len() {
+                    latest_milestone = commands::milestones(&self.records)
+                        .last()
+                        .cloned()
+                        .unwrap_or_else(|| "MILESTONE  No verified milestone yet".into());
+                    milestone_records = self.records.len();
                 }
-            }
-            let Some(action) = action else { continue };
-            let result = match action {
-                0 => self.session(None),
-                1 => self.session(Some(Mode::Recognition)),
-                2 => self.session(Some(Mode::Copying)),
-                3 => self.progress(),
-                4 => self.settings(),
-                5 => {
-                    let path = self.options.directory.join(format!(
-                        "practice-{}.cwbackup",
-                        chrono::Utc::now().timestamp_millis()
-                    ));
-                    let reply = self
-                        .writer
-                        .as_ref()
-                        .unwrap()
-                        .request(Operation::Export(path.clone()))?;
-                    self.wait_reply(reply, "Exporting a consistent binary snapshot")?;
-                    self.notice("Backup saved", &path.display().to_string())
-                        .map(|_| ())
+                let practice = self.section == 1;
+                let menu = if practice {
+                    MenuPage {
+                        instruments: vec![
+                            "Choose a practice mode".into(),
+                            "Adaptive selects the next exercise and pace automatically.".into(),
+                            "Recognition: one sound at a time. Copying: continuous reception."
+                                .into(),
+                        ],
+                        actions: vec![
+                            "Adaptive (default)".into(),
+                            "Recognition".into(),
+                            "Copying".into(),
+                        ],
+                        selected: selected[1],
+                    }
+                } else {
+                    MenuPage {
+                        instruments: vec![
+                            format!(
+                                "NEXT AUTOMATIC SPEED  C {} / E {} WPM",
+                                self.profile.copying_c, self.profile.copying_e
+                            ),
+                            format!(
+                                "RECOGNITION  {} WPM | COVERAGE  {}/42 introduced",
+                                self.profile.recognition_c,
+                                self.profile.introduced.len()
+                            ),
+                            format!("SESSIONS  {}", self.profile.sessions),
+                            latest_milestone.clone(),
+                            self.audio_error
+                                .clone()
+                                .unwrap_or_else(|| "Ready to continue training".into()),
+                        ],
+                        actions: vec![
+                            "Continue Training".into(),
+                            "Choose Practice".into(),
+                            "Progress".into(),
+                            "Audio".into(),
+                            "Data: Export binary backup".into(),
+                            "Data: Reset history".into(),
+                            "Quit".into(),
+                        ],
+                        selected: selected[0],
+                    }
+                };
+                let count = menu.actions.len();
+                let mut view = View::page(
+                    if practice {
+                        "Practice launcher"
+                    } else {
+                        "Dashboard"
+                    },
+                    if practice {
+                        Page::Practice(menu)
+                    } else {
+                        Page::Dashboard(menu)
+                    },
+                );
+                view.footer = "1-4: section | Tab/Shift-Tab/arrows: select | Enter: activate | F1: progress | ?: help".into();
+                self.show(view);
+                let mut action = None;
+                for event in self.keys() {
+                    if let Some(section) = idle_section(event.key) {
+                        self.section = section;
+                        action = None;
+                        break;
+                    }
+                    match event.key {
+                        Key::Up | Key::BackTab | Key::Left => {
+                            selected[usize::from(practice)] =
+                                (selected[usize::from(practice)] + count - 1) % count
+                        }
+                        Key::Down | Key::Unknown | Key::Right => {
+                            selected[usize::from(practice)] =
+                                (selected[usize::from(practice)] + 1) % count
+                        }
+                        Key::Enter => action = Some(selected[usize::from(practice)]),
+                        Key::Character('?') => self.help()?,
+                        Key::Escape if practice => {
+                            self.section = 0;
+                            action = None;
+                            break;
+                        }
+                        Key::Escape => self.quit.store(true, Ordering::Release),
+                        _ => {}
+                    }
                 }
-                6 => self.reset(),
-                7 => {
-                    self.quit.store(true, Ordering::Release);
-                    Ok(())
+                match action {
+                    Some(index) if practice => {
+                        let mode = match index {
+                            0 => None,
+                            1 => Some(Mode::Recognition),
+                            _ => Some(Mode::Copying),
+                        };
+                        self.session(mode)
+                    }
+                    Some(0) => self.session(None),
+                    Some(1) => {
+                        self.section = 1;
+                        Ok(())
+                    }
+                    Some(2) => {
+                        self.section = 2;
+                        Ok(())
+                    }
+                    Some(3) => {
+                        self.section = 3;
+                        Ok(())
+                    }
+                    Some(4) => {
+                        let path = self.options.directory.join(format!(
+                            "practice-{}.cwbackup",
+                            chrono::Utc::now().timestamp_millis()
+                        ));
+                        let reply = self
+                            .writer
+                            .as_ref()
+                            .unwrap()
+                            .request(Operation::Export(path.clone()))?;
+                        self.wait_reply(reply, "Exporting a consistent binary snapshot")?;
+                        self.notice("Backup saved", &path.display().to_string())
+                            .map(|_| ())
+                    }
+                    Some(5) => self.reset(),
+                    Some(6) => {
+                        self.quit.store(true, Ordering::Release);
+                        Ok(())
+                    }
+                    _ => Ok(()),
                 }
-                _ => unreachable!(),
             };
             if let Err(error) = result {
                 if let Some(fatal) = &self.fatal {
@@ -1838,14 +1977,13 @@ impl Runtime {
                 self.audio.take();
                 self.controls.fault.store(false, Ordering::Release);
                 self.audio_error = None;
-                if !self.notice(
+                self.section = 0;
+                self.notice(
                     "Practice could not continue",
                     &format!(
                         "{error}\nNo failed operation is silently treated as a learner mistake."
                     ),
-                )? {
-                    continue;
-                }
+                )?;
             }
         }
         self.stop_audio();
@@ -1863,6 +2001,37 @@ impl Drop for Runtime {
     }
 }
 
+// Only idle screens call this: punctuation and section digits remain practice input.
+fn idle_section(key: Key) -> Option<usize> {
+    match key {
+        Key::Character(c @ '1'..='4') => Some(c as usize - '1' as usize),
+        Key::Progress => Some(2),
+        _ => None,
+    }
+}
+fn milliseconds(value: Option<i64>) -> String {
+    value.map_or_else(|| "unknown".into(), |v| format!("{:.0} ms", v as f64 / 1e6))
+}
+fn accuracy(value: Option<f64>) -> String {
+    value.map_or_else(|| "unavailable".into(), |v| format!("{:.1}%", v * 100.0))
+}
+struct SummaryCountdown {
+    remaining: Duration,
+    held: bool,
+}
+impl SummaryCountdown {
+    fn new() -> Self {
+        Self {
+            remaining: Duration::from_secs(3),
+            held: false,
+        }
+    }
+    fn tick(&mut self, elapsed: Duration) {
+        if !self.held {
+            self.remaining = self.remaining.saturating_sub(elapsed);
+        }
+    }
+}
 fn median(mut values: Vec<f64>) -> f64 {
     if values.is_empty() {
         return 0.0;
@@ -1875,6 +2044,40 @@ fn median(mut values: Vec<f64>) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn saved_summary_holds_remaining_time_without_any_policy_or_pause_effect() {
+        let mut clock = SummaryCountdown::new();
+        clock.tick(Duration::from_millis(500));
+        clock.held = true;
+        clock.tick(Duration::from_secs(60));
+        assert_eq!(clock.remaining, Duration::from_millis(2500));
+        clock.held = false;
+        clock.tick(Duration::from_millis(2499));
+        assert!(!clock.remaining.is_zero());
+        clock.tick(Duration::from_millis(1));
+        assert!(clock.remaining.is_zero());
+    }
+    #[test]
+    fn idle_section_shortcuts_never_replace_supported_recognition_responses() {
+        for symbol in "1234?.,/=+".chars() {
+            let mut capture = RecognitionCapture::default();
+            capture.receive(Key::Character(symbol), 200, Some(100), Some(150), 3, false);
+            assert_eq!(capture.response.unwrap().character, symbol);
+            if symbol.is_ascii_digit() {
+                assert!(idle_section(Key::Character(symbol)).is_some());
+            } else {
+                assert!(idle_section(Key::Character(symbol)).is_none());
+            }
+        }
+    }
+    #[test]
+    fn plain_option_does_not_change_training_configuration() {
+        let options = Options::parse(&["--plain".into()]).unwrap();
+        assert!(options.plain);
+        assert!(!options.speed_override());
+        assert!(options.mode.is_none());
+        assert_eq!(options.duration, 600);
+    }
     #[test]
     fn recognition_uses_first_eligible_capture_time_and_preserves_early_recognition() {
         let mut capture = RecognitionCapture::default();

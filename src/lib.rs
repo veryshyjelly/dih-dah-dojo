@@ -10,6 +10,7 @@ pub mod latency;
 pub mod learner;
 pub mod live_audio;
 pub mod planner;
+pub mod progress;
 pub mod recording;
 pub mod scoring;
 pub mod screen;
