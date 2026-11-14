@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dih-dah-dojo",
+  "workers_dev": false,
+  "compatibility_date": "2026-11-14",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+  "routes": [{ "pattern": "dojo.veryshyjelly.in", "custom_domain": true }],
+}

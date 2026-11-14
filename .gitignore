@@ -3,3 +3,21 @@
 .codegraphcontext/
 
 .serena/
+
+/web/node_modules/
+/web/dist/
+/web/server-dist/
+/web/public/engine/
+/web/.env*
+!/web/.env.example
+/web/data/
+/web/test-results/
+/web/playwright-report/
+/.local/
+
+/web/src/generated/
+
+__pycache__/
+*.pyc
+
+/web/.wrangler/

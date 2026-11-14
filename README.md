@@ -1,10 +1,18 @@
 # Dih Dah Dojo
 
-An offline, native Rust Morse trainer for macOS. Recognition and continuous copying
+A Morse learning studio for the web, with an offline native Rust trainer for macOS. Recognition and continuous copying
 share a persistent learner model. Practice selects material, revisits weak symbols,
 introduces new ones, and adjusts character speed and spacing from observed performance.
 
-## Start practicing
+## Web studio
+
+Practice at [dojo.veryshyjelly.in](https://dojo.veryshyjelly.in). Public listening
+tools and the five-sound demo need no account. Guided training and synchronized
+progress use sign-in, with separate keyboard and touch profiles. The browser and
+native app share Rust timing, synthesis, scoring and training policy through WASM.
+See [web development](web/README.md) and [deployment evidence](docs/web-verification.md).
+
+## Start practicing natively
 
 Requires Rust 1.94+, a real terminal, and a local audio output device.
 

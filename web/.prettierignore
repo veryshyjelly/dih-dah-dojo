@@ -1,0 +1,10 @@
+node_modules
+dist
+server-dist
+public/engine
+src/generated
+data
+test-results
+playwright-report
+
+.wrangler
