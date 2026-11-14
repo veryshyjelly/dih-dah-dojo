@@ -1,0 +1,5 @@
+Use a small external same-origin head script to resolve the saved/browser theme before the app paints, consistent with the existing CSP. A React external-store subscriber controls an accessible header toggle. CSS semantic palette variables cover both themes; theme preference lives in localStorage rather than learner state. Unsupported browser storage falls back to an in-memory preference. Device changes apply until a manual override, and browser tabs share preference changes.
+
+Preserve the current light palette. Use a deep forest palette with pale green highlights, distinct amber assistance and red faults in dark mode. Changing theme only affects presentation and never sends practice controls or reloads the app.
+
+Review current files and Git history for secrets before creating the requested public repository. Keep runtime secrets, learner data, build artifacts and local tooling ignored. Publish the existing source history, set the repository homepage to the live URL and use a normal external footer link.

@@ -56,3 +56,6 @@ restricts browser connections to the API and permits local WASM compilation.
 
 See [operations](../docs/web-operations.md), [OAuth setup](../docs/web-oauth.md),
 and [verification](../docs/web-verification.md).
+
+The header theme toggle follows the device initially and remembers a browser-local
+choice. See [appearance and source publication](../docs/web-appearance.md).

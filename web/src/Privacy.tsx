@@ -34,10 +34,11 @@ export function Privacy() {
         </p>
         <h2>Cookies and pending practice</h2>
         <p>
-          Essential session cookies keep you signed in. If a result cannot sync, this browser
-          retains an account-scoped copy in IndexedDB until it is acknowledged. Signing out
-          preserves pending results for that same account; avoid leaving them on a shared browser.
-          Clearing browser storage removes unsynced results.
+          Essential session cookies keep you signed in. The appearance toggle stores your light/dark
+          preference in this browser’s local storage. If a result cannot sync, this browser retains
+          an account-scoped copy in IndexedDB until it is acknowledged. Signing out preserves
+          pending results for that same account; avoid leaving them on a shared browser. Clearing
+          browser storage removes unsynced results.
         </p>
         <h2>Your choices</h2>
         <p>

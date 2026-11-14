@@ -1,0 +1,83 @@
+/* The light palette stays in style.css; these semantic colors cover dark surfaces. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #e5ebdf;
+  --muted: #abb8a6;
+  --green: #bed59d;
+  --line: #34473b;
+  --lime: #2b402a;
+  --cream: #352f24;
+  --sage: #1d3027;
+  --red: #ed9b88;
+  --amber: #e2bd73;
+  --surface: #16251f;
+  --page-background: #101b19;
+  --theme-detail-text: #a8b7a0;
+  --theme-accent-text: #bad59c;
+  --theme-on-primary: #16241b;
+  --theme-primary-hover: #d2e4b5;
+  --theme-border: #3c5140;
+  --theme-soft-background: #1d3027;
+  --theme-well-background: #13211c;
+  --theme-card-background: #16251f;
+  --theme-lime-background: #2b402a;
+  --theme-warm-background: #352f24;
+  --theme-decoration: #77966c;
+  --theme-illustration: #1c2b23;
+  --theme-illustration-ring: #42583a;
+  --theme-illustration-glow: #283d28;
+  --theme-success-background: #263c29;
+  --theme-success-text: #c0dba9;
+  --theme-success-border: #47623c;
+  --theme-warning-background: #3c321f;
+  --theme-warning-text: #e4c582;
+  --theme-warning-border: #75603c;
+  --theme-fault-background: #3c2824;
+  --theme-fault-text: #f0ad9b;
+  --theme-fault-border: #795047;
+  --theme-shadow: #00000040;
+  --theme-backdrop: #030b08b8;
+  --theme-toast-background: #29432e;
+  --theme-toast-text: #edf3e6;
+  --chart-primary: #bed59d;
+  --chart-secondary: #e2bd73;
+  --chart-selected: #edf7d8;
+  --chart-grid: #34473b;
+}
+
+.theme-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+}
+.theme-toggle:hover {
+  border-color: currentColor;
+}
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-size: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-footer a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.site-footer a svg {
+  width: 13px;
+  height: 13px;
+}
+.site-footer > div {
+  flex-wrap: wrap;
+}
+.site-footer > div:last-child {
+  justify-content: flex-end;
+}
+@media (max-width: 780px) {
+  .site-footer > div:last-child {
+    justify-content: flex-start;
+  }
+}

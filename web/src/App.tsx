@@ -36,6 +36,7 @@ import { EngineClient } from './engine-client';
 import { Training, type TrainingView } from './training';
 import { audio } from './audio';
 import { Privacy } from './Privacy';
+import { ThemeToggle } from './ThemeToggle';
 import * as api from './api';
 import { pending, putPending, removePending } from './outbox';
 import {
@@ -562,6 +563,7 @@ export default function App() {
           ))}
         </nav>
         <div className="header-actions">
+          <ThemeToggle />
           <button
             className="icon-button help-button"
             aria-label="Help"
@@ -859,6 +861,14 @@ export default function App() {
             How the dojo works <ArrowUpRight size={13} />
           </button>
           <button onClick={() => void navigate('privacy')}>Privacy</button>
+          <a
+            href="https://github.com/veryshyjelly/dih-dah-dojo"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub source code"
+          >
+            <GithubIcon /> GitHub <ArrowUpRight size={13} />
+          </a>
           <span>Made for curious ears.</span>
         </div>
       </footer>
@@ -2491,7 +2501,11 @@ function MiniGraph({
         role="img"
         aria-label={`${graph.title}, ${graph.points.length} actual points`}
       >
-        <path d="M20 16H266M20 58H266M20 100H266" stroke="#dfe5da" strokeDasharray="3 5" />
+        <path
+          d="M20 16H266M20 58H266M20 100H266"
+          stroke="var(--chart-grid, #dfe5da)"
+          strokeDasharray="3 5"
+        />
         <text x="2" y="18">
           {Math.round(max)}
         </text>
@@ -2500,12 +2514,16 @@ function MiniGraph({
         </text>
         {graph.points.map((p, i) => (
           <g key={i}>
-            {p.secondary !== null && <circle cx={x(i)} cy={y(p.secondary)} r="3" fill="#c19641" />}
+            {p.secondary !== null && (
+              <circle cx={x(i)} cy={y(p.secondary)} r="3" fill="var(--chart-secondary, #c19641)" />
+            )}
             <circle
               cx={x(i)}
               cy={y(p.primary)}
               r={selected === i ? 5 : 3.5}
-              fill={selected === i ? '#173d38' : '#729078'}
+              fill={
+                selected === i ? 'var(--chart-selected, #173d38)' : 'var(--chart-primary, #729078)'
+              }
               onClick={() => onPoint?.(i)}
               style={{ cursor: onPoint ? 'pointer' : 'default' }}
             >
@@ -2514,7 +2532,10 @@ function MiniGraph({
               </title>
             </circle>
             {p.milestone && (
-              <path d={`M${x(i)} ${y(p.secondary ?? p.primary) - 8}l-4 -6h8Z`} fill="#173d38" />
+              <path
+                d={`M${x(i)} ${y(p.secondary ?? p.primary) - 8}l-4 -6h8Z`}
+                fill="var(--chart-selected, #173d38)"
+              />
             )}
           </g>
         ))}
