@@ -418,7 +418,7 @@ export function LanguagePractice({
     : 0;
   return (
     <section
-      className={`language-practice ${kind === 'story' ? 'story-mode' : 'word-mode'} ${kind === 'word' && phase === 'setup' ? 'word-setup' : ''} ${kind === 'story' && !story ? 'story-library-page' : ''}`}
+      className={`language-practice ${kind === 'story' ? 'story-mode' : 'word-mode'} ${kind === 'word' && phase === 'setup' ? 'word-setup' : ''} ${kind === 'story' && !story ? 'story-library-page' : ''} ${phase !== 'setup' && (kind === 'word' ? words.length > 0 : !!story) ? 'language-session' : ''}`}
     >
       <div className="language-heading">
         <div className="language-title">
@@ -426,11 +426,25 @@ export function LanguagePractice({
             {kind === 'word' ? <BookOpen size={25} /> : <Headphones size={25} />}
           </span>
           <div className="language-title-copy">
-            <p className="eyebrow">{kind === 'word' ? 'ONE WHOLE WORD' : 'THE STORY ROOM'}</p>
+            <p className="eyebrow">{kind === 'word' ? 'YOUR WORD PRACTICE' : 'THE STORY ROOM'}</p>
             <h1>
-              {kind === 'word'
-                ? 'Find your word rhythm.'
-                : story?.title || 'A little story. A little signal.'}
+              {kind === 'word' && phase === 'setup' ? (
+                <>
+                  Find your
+                  <br />
+                  <em>word rhythm.</em>
+                </>
+              ) : kind === 'story' && !story ? (
+                <>
+                  A little story.
+                  <br />
+                  <em>A little signal.</em>
+                </>
+              ) : kind === 'word' ? (
+                'One whole word.'
+              ) : (
+                story?.title
+              )}
             </h1>
             {kind === 'word' && phase === 'setup' && (
               <p className="word-intro">
@@ -449,141 +463,220 @@ export function LanguagePractice({
           {status}
         </span>
       </div>
-      {(phase === 'setup' || (kind === 'story' && !story)) && (
-        <>
-          <div className="language-settings story-pace">
-            <div className="story-pace-caption">
-              <strong>
-                <SlidersHorizontal size={14} aria-hidden="true" />
-                Your listening pace
-              </strong>
-              <span>Set the sound speed and the space to think.</span>
-            </div>
-            <label>
-              Character WPM
-              <input
-                type="number"
-                min="5"
-                max="60"
-                value={c}
-                onChange={(ev) => setC(Math.max(5, Math.min(60, Number(ev.target.value) || 5)))}
-              />
-            </label>
-            <label>
-              Effective WPM
-              <input
-                type="number"
-                min="5"
-                max={c}
-                value={Math.min(e, c)}
-                onChange={(ev) => setE(Math.max(5, Math.min(c, Number(ev.target.value) || 5)))}
-              />
-            </label>
-          </div>
-          {kind === 'word' ? (
-            <>
-              <section className="word-letter-section" aria-labelledby="word-letters-title">
-                <div className="word-section-heading">
-                  <div>
-                    <h3 id="word-letters-title">
-                      <Target size={14} aria-hidden="true" />
-                      Letters for this round <span>{new Set(repertoire).size} / 26</span>
-                    </h3>
-                    <p>
-                      {owner === 'guest'
-                        ? 'Choose the sounds you want to practise.'
-                        : 'Your introduced letters are selected to start.'}
-                    </p>
-                  </div>
-                  <div className="word-letter-actions">
-                    <button onClick={() => setRepertoire('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}>
-                      Use all letters
-                    </button>
-                    {owner !== 'guest' && (
-                      <button
-                        onClick={() => setRepertoire(snapshot.introduced.replace(/[^A-Z]/g, ''))}
-                      >
-                        Use introduced letters
-                      </button>
-                    )}
-                    <button onClick={() => setRepertoire('')}>Clear letters</button>
-                  </div>
-                </div>
-                <div className="word-letter-picker" role="group" aria-label="Word characters">
-                  {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => (
-                    <button
-                      type="button"
-                      key={letter}
-                      aria-label={letter}
-                      aria-pressed={repertoire.includes(letter)}
-                      onClick={() =>
-                        setRepertoire((current) =>
-                          current.includes(letter)
-                            ? current.replaceAll(letter, '')
-                            : current + letter,
-                        )
-                      }
-                    >
-                      {letter}
-                    </button>
-                  ))}
-                </div>
-                {repertoire.length === 0 && (
-                  <p className="word-selection-hint">
-                    Select a few letters to build your word round.
-                  </p>
-                )}
-              </section>
-              <fieldset className="word-round-settings">
-                <legend>
-                  <Shuffle size={14} aria-hidden="true" />
-                  Your round
-                </legend>
-                <div className="language-settings">
-                  <label>
-                    Word length
-                    <select value={length} onChange={(ev) => setLength(ev.target.value)}>
-                      <option value="2-3">2–3 letters</option>
-                      <option value="4-5">4–5 letters</option>
-                      <option value="6-30">6+ letters</option>
-                      <option value="1-30">All lengths</option>
-                    </select>
-                  </label>
-                  <label>
-                    Vocabulary
-                    <select value={set} onChange={(ev) => setSet(ev.target.value)}>
-                      <option value="words">Common English words</option>
-                      <option value="radio">Radio abbreviations</option>
-                    </select>
-                  </label>
-                  <label>
-                    Response
-                    <select
-                      value={String(listen)}
-                      onChange={(ev) => setListen(ev.target.value === 'true')}
-                    >
-                      <option value="false">Type the word</option>
-                      <option value="true">Listen and reveal</option>
-                    </select>
-                  </label>
-                </div>
-              </fieldset>
-              <div className="word-start-bar">
-                <div>
-                  <strong>One word at a time.</strong>
-                  <span>Up to 10 words · No timer · Feedback after each answer</span>
-                </div>
+      {(phase === 'setup' || (kind === 'story' && !story)) &&
+        (kind === 'word' ? (
+          <div className="word-workspace">
+            <div className="word-start-bar continue-card">
+              <div className="word-launch-copy">
+                <span className="pill">ONE WHOLE SOUND</span>
+                <h2>
+                  Let the sounds
+                  <br />
+                  come together.
+                </h2>
+                <p>
+                  {length === '1-30'
+                    ? 'All lengths'
+                    : length === '6-30'
+                      ? '6+ letters'
+                      : length.replace('-', '–') + ' letters'}{' '}
+                  · {set === 'radio' ? 'Radio abbreviations' : 'Common English words'}
+                  <br />
+                  {listen ? 'Listen and reveal' : 'Type what you hear'} · Up to 10 words · No timer
+                </p>
+                <p className="word-launch-pace">
+                  {c} / {Math.min(c, e)} character / effective WPM
+                </p>
                 <button
                   className="btn"
                   disabled={busy || repertoire.length === 0 || status === 'Loading saved activity…'}
                   onClick={() => void startWords()}
                 >
-                  <Play size={15} aria-hidden="true" />
+                  <Play size={17} aria-hidden="true" />
                   Start word round
+                  <ArrowUpRight size={17} aria-hidden="true" />
                 </button>
               </div>
-            </>
-          ) : (
+              <div
+                className="pace-orbit"
+                role="img"
+                aria-label={`Requested speed: ${c} character and ${Math.min(c, e)} overall words per minute`}
+              >
+                <span>
+                  {c}
+                  <small> / {Math.min(c, e)}</small>
+                </span>
+                <label>character / effective WPM</label>
+                <i>YOUR LISTENING PACE</i>
+              </div>
+            </div>
+            <fieldset className="word-round-settings">
+              <legend>
+                <Shuffle size={14} aria-hidden="true" />
+                Your round
+              </legend>
+              <div className="language-settings">
+                <label>
+                  Word length
+                  <select
+                    aria-label="Word length"
+                    value={length}
+                    onChange={(ev) => setLength(ev.target.value)}
+                  >
+                    <option value="2-3">2–3 letters</option>
+                    <option value="4-5">4–5 letters</option>
+                    <option value="6-30">6+ letters</option>
+                    <option value="1-30">All lengths</option>
+                  </select>
+                </label>
+                <label>
+                  Vocabulary
+                  <select
+                    aria-label="Vocabulary"
+                    value={set}
+                    onChange={(ev) => setSet(ev.target.value)}
+                  >
+                    <option value="words">Common English words</option>
+                    <option value="radio">Radio abbreviations</option>
+                  </select>
+                </label>
+                <label>
+                  Response
+                  <select
+                    aria-label="Response"
+                    value={String(listen)}
+                    onChange={(ev) => setListen(ev.target.value === 'true')}
+                  >
+                    <option value="false">Type the word</option>
+                    <option value="true">Listen and reveal</option>
+                  </select>
+                </label>
+              </div>
+            </fieldset>
+            <div className="language-settings story-pace">
+              <div className="story-pace-caption">
+                <strong>
+                  <SlidersHorizontal size={14} aria-hidden="true" />
+                  Your listening pace
+                </strong>
+                <span>Set the sound speed and the space to think.</span>
+              </div>
+              <label>
+                Character WPM
+                <input
+                  type="number"
+                  min="5"
+                  max="60"
+                  value={c}
+                  onChange={(ev) => setC(Math.max(5, Math.min(60, Number(ev.target.value) || 5)))}
+                />
+              </label>
+              <label>
+                Effective WPM
+                <input
+                  type="number"
+                  min="5"
+                  max={c}
+                  value={Math.min(e, c)}
+                  onChange={(ev) => setE(Math.max(5, Math.min(c, Number(ev.target.value) || 5)))}
+                />
+              </label>
+            </div>
+            <section className="word-letter-section" aria-labelledby="word-letters-title">
+              <div className="word-section-heading">
+                <div>
+                  <h3 id="word-letters-title">
+                    <Target size={14} aria-hidden="true" />
+                    Letters for this round <span>{new Set(repertoire).size} / 26</span>
+                  </h3>
+                  <p>
+                    {owner === 'guest'
+                      ? 'Choose the sounds you want to practise.'
+                      : 'Your introduced letters are selected to start.'}
+                  </p>
+                </div>
+                <div className="word-letter-actions">
+                  <button onClick={() => setRepertoire('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}>
+                    Use all letters
+                  </button>
+                  {owner !== 'guest' && (
+                    <button
+                      onClick={() => setRepertoire(snapshot.introduced.replace(/[^A-Z]/g, ''))}
+                    >
+                      Use introduced letters
+                    </button>
+                  )}
+                  <button onClick={() => setRepertoire('')}>Clear letters</button>
+                </div>
+              </div>
+              <div className="word-letter-picker" role="group" aria-label="Word characters">
+                {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => (
+                  <button
+                    type="button"
+                    key={letter}
+                    aria-label={letter}
+                    aria-pressed={repertoire.includes(letter)}
+                    onClick={() =>
+                      setRepertoire((current) =>
+                        current.includes(letter)
+                          ? current.replaceAll(letter, '')
+                          : current + letter,
+                      )
+                    }
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+              {repertoire.length === 0 && (
+                <p className="word-selection-hint">
+                  Select a few letters to build your word round.
+                </p>
+              )}
+              <div className="word-letter-note">
+                <Headphones size={17} aria-hidden="true" />
+                <p>Start with familiar sounds. Add a few more whenever you feel ready.</p>
+              </div>
+            </section>
+          </div>
+        ) : (
+          <>
+            <div className="language-settings story-pace">
+              <div className="story-pace-caption">
+                <strong>
+                  <SlidersHorizontal size={14} aria-hidden="true" />
+                  Your listening pace
+                </strong>
+                <span>Set the sound speed and the space to think.</span>
+              </div>
+              <label>
+                Character WPM
+                <input
+                  type="number"
+                  min="5"
+                  max="60"
+                  value={c}
+                  onChange={(ev) => setC(Math.max(5, Math.min(60, Number(ev.target.value) || 5)))}
+                />
+              </label>
+              <label>
+                Effective WPM
+                <input
+                  type="number"
+                  min="5"
+                  max={c}
+                  value={Math.min(e, c)}
+                  onChange={(ev) => setE(Math.max(5, Math.min(c, Number(ev.target.value) || 5)))}
+                />
+              </label>
+            </div>
+            <div className="story-shelf-heading">
+              <div>
+                <span className="eyebrow">A PLACE TO BEGIN</span>
+                <h2>The listening shelf.</h2>
+              </div>
+              <p>Six short escapes. Pick a place to tune in.</p>
+            </div>
             <div className="story-library" aria-label="Story library">
               {catalog.map((s, number) => {
                 const required = [...new Set(s.sentences.join('').replace(/ /g, ''))].sort();
@@ -599,7 +692,10 @@ export function LanguagePractice({
                 const note = storyNotes[s.id];
                 const StoryIcon = storyIcons[number % storyIcons.length];
                 return (
-                  <article className={`story-entry story-tone-${number % 3}`} key={s.id}>
+                  <article
+                    className={`story-entry story-tone-${number % 3} ${number === 0 ? 'story-featured' : ''}`}
+                    key={s.id}
+                  >
                     <button
                       className="story-card"
                       disabled={status === 'Loading saved activity…'}
@@ -618,6 +714,12 @@ export function LanguagePractice({
                       <span className="story-description">
                         {note?.description || 'A short story to find your listening rhythm.'}
                       </span>
+                      {number === 0 && (
+                        <svg className="story-cover-art" viewBox="0 0 440 190" aria-hidden="true">
+                          <circle cx="325" cy="42" r="28" />
+                          <path d="M0 99 Q80 55 165 92 T330 90 T470 94 M0 116 Q90 80 180 114 T360 111 T470 117 M30 140 Q120 115 210 142 T430 140 M90 165 Q190 142 285 164 T465 160" />
+                        </svg>
+                      )}
                       <span className="story-card-bottom">
                         <span className="story-metrics">
                           <Clock size={12} aria-hidden="true" />
@@ -675,10 +777,9 @@ export function LanguagePractice({
                   </article>
                 );
               })}
-            </div>
-          )}
-        </>
-      )}
+            </div>{' '}
+          </>
+        ))}
       {phase !== 'setup' && (kind === 'word' ? words.length > 0 : !!story) && phase !== 'done' && (
         <>
           <div className="language-strip">

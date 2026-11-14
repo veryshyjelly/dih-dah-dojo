@@ -1,0 +1,4 @@
+- [x] 1. Restructure setup headers, word launch/options/sidebar and story shelf; preserve existing controls and active-player behavior.
+- [x] 2. Apply shared Practice typography, palette, icon styling and responsive layouts in both themes.
+- [x] 3. Verify keyboard selection/start, story selection/disclosure independence, progress links, playback regressions and compact/wide screenshots.
+- [x] 4. Run build, formatting, strict OpenSpec validation and browser checks; document evidence, deploy and smoke-test production, commit/push.

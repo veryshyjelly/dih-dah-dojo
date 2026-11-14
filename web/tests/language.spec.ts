@@ -232,3 +232,33 @@ test('word setup groups controls, supports letter chips by keyboard, and shares 
     .locator('.language-practice')
     .screenshot({ path: `test-results/story-icons-${test.info().project.name}.png` });
 });
+
+test('standalone setup presents live launch settings and a featured story without starting audio', async ({
+  page,
+}) => {
+  await page.goto('/words');
+  await page.getByLabel('Character WPM', { exact: true }).fill('30');
+  await page.getByLabel('Effective WPM', { exact: true }).fill('15');
+  await page.getByLabel('Word length', { exact: true }).selectOption('4-5');
+  await page.getByLabel('Vocabulary', { exact: true }).selectOption('radio');
+  await expect(page.locator('.word-start-bar')).toContainText('4–5 letters');
+  await expect(page.locator('.word-start-bar')).toContainText('Radio abbreviations');
+  if ((await page.viewportSize())!.width > 520) {
+    await expect(
+      page.getByRole('img', {
+        name: 'Requested speed: 30 character and 15 overall words per minute',
+      }),
+    ).toBeVisible();
+  } else {
+    await expect(page.locator('.word-launch-pace')).toContainText('30 / 15');
+  }
+  const launch = await page.locator('.word-start-bar').boundingBox(),
+    letters = await page.locator('.word-letter-section').boundingBox();
+  if ((await page.viewportSize())!.width > 1100) expect(letters!.x).toBeGreaterThan(launch!.x);
+  await page.getByRole('navigation').getByRole('button', { name: 'Stories', exact: true }).click();
+  await expect(page.locator('.story-featured')).toHaveCount(1);
+  await expect(page.locator('.story-entry')).toHaveCount(6);
+  await page.locator('.story-featured summary').click();
+  await expect(page.locator('.story-featured details')).toHaveAttribute('open', '');
+  await expect(page.locator('.language-readout')).toHaveCount(0);
+});
