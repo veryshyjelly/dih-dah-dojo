@@ -28,6 +28,17 @@ support/contact email. Choose **External** audience for a public trainer. Reques
 only the basic OpenID profile/email identity scopes used by Better Auth. The public
 privacy information URL is `https://dojo.veryshyjelly.in/privacy`.
 
+In **Branding**, set:
+
+| Field | Value |
+| --- | --- |
+| App name | `Dih Dah Dojo` |
+| Support/developer contact | Your own monitored email |
+| Homepage | `https://dojo.veryshyjelly.in` |
+| Privacy policy | `https://dojo.veryshyjelly.in/privacy` |
+| Authorized domain | `veryshyjelly.in` |
+
+The logo and Terms of Service URL can stay empty for the initial setup.
 Under **Clients**, create a **Web application** named **Dih Dah Dojo Web**:
 
 | Field | Value |
@@ -35,11 +46,14 @@ Under **Clients**, create a **Web application** named **Dih Dah Dojo Web**:
 | Authorized JavaScript origin | `https://dojo.veryshyjelly.in` |
 | Authorized redirect URI | `https://dojoapi.veryshyjelly.in/api/auth/callback/google` |
 
+Copy the secret privately when Google first displays it; it may not be shown again.
 The owner must complete credential creation and enter the client ID/secret with the
 phone helper. Press Enter through the GitHub prompts to retain its configuration.
-In Google's testing audience, only added test users can sign in. Complete Google's
-required publication/verification steps before representing it as available to all
-users. Do not request sensitive API scopes or enable unrelated APIs.
+Start with the Testing audience and add your own Google account as a test user if
+the field is offered. Google currently makes an allowlist exception for basic
+identity-only scopes; Testing is still a development configuration. Complete Google's
+required publication/verification steps before representing the Google login as
+production-ready. Do not request sensitive API scopes or enable unrelated APIs.
 
 Callbacks follow [Better Auth's provider contract](https://www.better-auth.com/docs/concepts/oauth).
 Google's [web-server OAuth documentation](https://developers.google.com/identity/protocols/oauth2/web-server)
