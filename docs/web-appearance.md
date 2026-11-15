@@ -190,3 +190,14 @@ inspected at 320/1440 pixels in both themes; the audit reported no missing fonts
 page errors or viewport overflow. Literal input computed to Neon with `calt`,
 `liga`, `clig` and `dlig` disabled. Physical timing and learning effectiveness
 remain unverified; no new claims are made by this presentation change.
+
+Typography deployment: `5df68ae9-0dab-4f7d-bba3-e08477ee0638`; source milestone
+`0ebaa97`. Live Chromium verified all six reviewed pages in both themes at
+320/1440 pixels using intercepted mock-account requests; no real learner data
+was changed. The first batch timed out waiting for a navigation `load` event;
+the repeat using explicit application and font readiness completed without
+missing fonts, page errors or overflow. A separate live Firefox check loaded
+all five faces, verified Krypton numeric controls and Neon literal answers with
+ligatures disabled. Font responses have `font/woff2` MIME type and the existing
+one-year immutable cache policy. The script security policy and asset-only
+Cloudflare configuration are unchanged.

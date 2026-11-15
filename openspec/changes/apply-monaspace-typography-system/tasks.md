@@ -2,4 +2,4 @@
 - [x] Add pinned assets/provenance and implement scoped typography roles.
 - [x] Review desktop/mobile light/dark screens and literal practice material.
 - [x] Run relevant appearance/help/practice checks, build, format and strict validation.
-- [ ] Commit, publish and verify the live typography system.
+- [x] Commit, publish and verify the live typography system.
