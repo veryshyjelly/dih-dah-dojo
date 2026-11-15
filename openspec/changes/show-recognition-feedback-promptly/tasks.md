@@ -1,0 +1,3 @@
+- [x] 1. Remove the pre-feedback delay while guarding engine acceptance and playback completion.
+- [x] 2. Verify prompt feedback, early responses, delayed acknowledgements and existing practice/help behavior.
+- [x] 3. Build, format and validate OpenSpec; deploy and smoke-test the static frontend; commit/push evidence.

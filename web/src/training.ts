@@ -63,10 +63,10 @@ export class Training {
   private activeId = 0;
   private track = false;
   private answered = false;
+  private answerPending = false;
   private onset: number | null = null;
   private ended: number | null = null;
   private soundFinished = false;
-  private captureAt = 0;
   private trialOpen = false;
   private closePending: Promise<Feedback> | null = null;
   private pausedPhase: Phase = 'idle';
@@ -230,6 +230,7 @@ export class Training {
       return;
     }
     this.answered = false;
+    this.answerPending = false;
     this.onset = null;
     this.ended = null;
     this.soundFinished = false;
@@ -273,7 +274,6 @@ export class Training {
               () => {
                 if (!this.answered) {
                   this.answered = true;
-                  this.captureAt = performance.now();
                   this.emit({ phase: 'timeout', answer: 'Timed out' });
                   this.scheduleClose();
                 }
@@ -296,7 +296,8 @@ export class Training {
     if (key !== 'replay' && (this.onset === null || at < this.onset)) return;
     if (this.ended !== null && at > this.ended + (this.view.plan?.timeout || 4) * 1000) return;
     this.answered = true;
-    this.captureAt = at;
+    this.answerPending = true;
+    const epoch = this.epoch;
     if (this.deadline) clearTimeout(this.deadline);
     this.emit({
       phase: key === 'unknown' ? 'unknown' : key === 'replay' ? 'replay' : 'captured',
@@ -309,6 +310,8 @@ export class Training {
     });
     try {
       const result = await this.engine.json<{ accepted: boolean }>('answer', key, at);
+      if (epoch !== this.epoch || this.stopping) return;
+      this.answerPending = false;
       if (!result.accepted) {
         this.answered = false;
         this.emit({
@@ -319,14 +322,21 @@ export class Training {
       }
       this.scheduleClose();
     } catch (error) {
-      this.fail(error);
+      if (epoch === this.epoch && !this.stopping) this.fail(error);
     }
   }
   private scheduleClose() {
-    if (!this.soundFinished || !this.answered || this.stopping || this.view.phase === 'paused')
+    if (
+      !this.soundFinished ||
+      !this.answered ||
+      this.answerPending ||
+      this.stopping ||
+      this.view.phase === 'paused'
+    )
       return;
     this.soundFinished = false;
-    this.after(Math.max(0, this.captureAt + 500 - performance.now()), () => void this.closeTrial());
+    // The response remains visible throughout feedback; disclosure need not wait.
+    void this.closeTrial();
   }
   private async closeTrial() {
     const epoch = this.epoch;
