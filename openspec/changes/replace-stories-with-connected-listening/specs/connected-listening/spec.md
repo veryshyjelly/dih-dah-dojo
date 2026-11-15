@@ -52,6 +52,11 @@ story identities/text, archive history, old links, bookmarks and backup compatib
 - **THEN** it identifies the legacy archive and preserves the recorded position
 - **AND** playback does not start automatically
 
+#### Scenario: Configure slow individual-word practice
+- **WHEN** a learner opens Words from another activity and selects a slow effective speed
+- **THEN** setup does not load or validate unrelated archived-story clips
+- **AND** the duration limit still applies to actual playback requests
+
 ### Requirement: Consistent activity ordering
 Primary navigation, studio cards and progress categories SHALL present Prosigns
 before Callsigns.

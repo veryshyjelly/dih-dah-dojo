@@ -1,4 +1,20 @@
 import { test, expect } from '@playwright/test';
+test('entering Words from another activity keeps slow word settings independent of archived stories', async ({
+  page,
+}) => {
+  await page.goto('/prosigns');
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Words', exact: true })
+    .click();
+  await page.getByLabel('Effective WPM', { exact: true }).fill('1');
+  // The old story-catalog request failed asynchronously at this valid word pace.
+  await page.waitForTimeout(500);
+  await expect(page.getByText(/Keep this clip under three minutes/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Start word round', exact: true }).click();
+  await expect(page.locator('.language-readout')).toHaveText('Ready when you are.');
+  await expect(page.getByText(/Keep this clip under three minutes/)).toHaveCount(0);
+});
 test('word rounds use real audio, hide answers, and keep feedback stable', async ({ page }) => {
   await page.goto('/words');
   await page.getByRole('button', { name: 'Clear letters', exact: true }).click();

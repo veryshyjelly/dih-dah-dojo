@@ -138,17 +138,20 @@ export function LanguagePractice({
     };
   }, []);
   useEffect(() => {
+    if (kind !== 'story') return;
     let active = true;
     void engine
       .json<{ stories: Story[] }>('language_catalog', c, Math.min(c, e))
       .then((v) => {
         if (active) setCatalog(v.stories);
       })
-      .catch((err) => setMessage(String(err)));
+      .catch((err) => {
+        if (active) setMessage(String(err));
+      });
     return () => {
       active = false;
     };
-  }, [c, e, engine]);
+  }, [kind, c, e, engine]);
   function persist(values: Partial<Activity> = {}) {
     if (!item) return;
     const activity: Activity = {
