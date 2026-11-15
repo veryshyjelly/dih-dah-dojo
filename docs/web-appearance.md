@@ -148,3 +148,7 @@ injector was not identified. No CSP weakening, guessed hash, or static nonce was
 added. Cloudflare's optional script injection is another documented CSP source,
 but was not observed in these responses; see its
 [JavaScript Detections documentation](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/javascript-detections/).
+
+Words-fix deployment: `f017e34f-378a-4768-8cb3-cded518023e8`. Live Chromium and
+Firefox sessions opened Words from Prosigns, selected 1 effective WPM and started
+a stopped word round without the unrelated duration error or any page errors.
