@@ -67,7 +67,102 @@ pub struct Schedule {
     pub frames: u64,
 }
 
+/// An explicit prepared Morse unit. Joined signals are one unit, not ordinary
+/// letters with a shortened letter gap. Labels are presentation metadata only.
+#[derive(Debug, Clone, Copy)]
+pub struct MorseToken<'a> {
+    pub label: &'a str,
+    pub pattern: &'a str,
+    pub word_end: bool,
+}
+
 impl Schedule {
+    /// Compile explicit atomic units without changing legacy character parsing.
+    /// Multi-character labels use NUL in the legacy character marker field;
+    /// consumers identify those units by marker index, never learner char IDs.
+    pub fn compile_tokens(
+        tokens: &[MorseToken<'_>],
+        timing: Timing,
+        sample_rate: u32,
+    ) -> Result<Self, TimingError> {
+        if sample_rate == 0
+            || !timing.dot.is_finite()
+            || !timing.spacing.is_finite()
+            || timing.dot <= 0.0
+            || timing.spacing < timing.dot - 1e-12
+            || tokens.is_empty()
+            || tokens.len() > 4096
+        {
+            return Err(TimingError("invalid token schedule configuration".into()));
+        }
+        let mut out = Self {
+            sample_rate,
+            segments: Vec::new(),
+            characters: Vec::new(),
+            frames: 0,
+        };
+        let mut ideal = 0.0;
+        let mut add = |out: &mut Self, seconds: f64, tone: bool| -> Result<(), TimingError> {
+            ideal += seconds * f64::from(sample_rate);
+            if !ideal.is_finite() || ideal > f64::from(sample_rate) * 180.0 {
+                return Err(TimingError(
+                    "prototype blocks must fit within 180 seconds".into(),
+                ));
+            }
+            let end = ideal.round() as u64;
+            if end <= out.frames {
+                return Err(TimingError("element shorter than one sample".into()));
+            }
+            out.segments.push(Segment {
+                start: out.frames,
+                end,
+                tone,
+            });
+            out.frames = end;
+            Ok(())
+        };
+        for (index, token) in tokens.iter().enumerate() {
+            if token.label.is_empty()
+                || token.label.len() > 16
+                || token.pattern.is_empty()
+                || token.pattern.len() > 16
+                || !token.pattern.bytes().all(|b| b == b'.' || b == b'-')
+            {
+                return Err(TimingError("invalid atomic Morse token".into()));
+            }
+            let start = out.frames;
+            for (i, element) in token.pattern.bytes().enumerate() {
+                if i > 0 {
+                    add(&mut out, timing.dot, false)?;
+                }
+                add(
+                    &mut out,
+                    timing.dot * if element == b'-' { 3.0 } else { 1.0 },
+                    true,
+                )?;
+            }
+            out.characters.push(Character {
+                symbol: if token.label.chars().count() == 1 {
+                    token.label.chars().next().expect("nonempty token")
+                } else {
+                    '\0'
+                },
+                start,
+                end: out.frames,
+            });
+            add(
+                &mut out,
+                timing.spacing
+                    * if token.word_end || index + 1 == tokens.len() {
+                        7.0
+                    } else {
+                        3.0
+                    },
+                false,
+            )?;
+        }
+        Ok(out)
+    }
     /// Compile the whole block before starting output. A final word gap is included.
     pub fn compile(text: &str, timing: Timing, sample_rate: u32) -> Result<Self, TimingError> {
         if sample_rate == 0

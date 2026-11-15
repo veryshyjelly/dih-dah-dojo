@@ -210,7 +210,15 @@ impl Engine {
         )))
     }
     pub fn language_encode(&self, json: &str) -> Result<Vec<u8>> {
+        if json.len() > dojo_core::prosigns::MAX_PACKET {
+            return Err(error("Activity too large"));
+        }
         let kind: Value = serde_json::from_str(json).map_err(error)?;
+        if kind["kind"] == "prosign" {
+            let activity: dojo_core::prosigns::Activity =
+                serde_json::from_str(json).map_err(error)?;
+            return dojo_core::prosigns::encode(&activity).map_err(error);
+        }
         if kind["kind"] == "callsign" {
             if json.len() > dojo_core::callsigns::MAX_PACKET {
                 return Err(error("Activity too large"));
@@ -227,6 +235,10 @@ impl Engine {
         if bytes.len() > 65536 {
             return Err(error("Activity too large"));
         }
+        if bytes.starts_with(dojo_core::prosigns::MAGIC) {
+            let (activity, outcome) = dojo_core::prosigns::decode(bytes).map_err(error)?;
+            return Ok(view(json!({"activity":activity,"outcome":outcome})));
+        }
         if bytes.starts_with(dojo_core::callsigns::MAGIC) {
             let (activity, outcome) = dojo_core::callsigns::decode(bytes).map_err(error)?;
             return Ok(view(json!({"activity":activity,"outcome":outcome})));
@@ -237,6 +249,29 @@ impl Engine {
     }
     pub fn callsign_catalog(&self) -> String {
         view(json!(dojo_core::callsigns::catalog()))
+    }
+    pub fn prosign_catalog(&self) -> String {
+        view(json!(dojo_core::prosigns::catalog()))
+    }
+    pub fn prosign_generate(&self, config_json: &str) -> Result<String> {
+        if config_json.len() > 4096 {
+            return Err(error("Prosign configuration too large"));
+        }
+        let config: dojo_core::prosigns::Config =
+            serde_json::from_str(config_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::prosigns::generate(&config).map_err(error)?
+        )))
+    }
+    pub fn prosign_evaluate(&self, activity_json: &str) -> Result<String> {
+        if activity_json.len() > dojo_core::prosigns::MAX_PACKET {
+            return Err(error("Activity too large"));
+        }
+        let activity: dojo_core::prosigns::Activity =
+            serde_json::from_str(activity_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::prosigns::evaluate(&activity).map_err(error)?
+        )))
     }
     pub fn callsign_generate(&self, config_json: &str) -> Result<String> {
         if config_json.len() > 4096 {
@@ -1006,6 +1041,42 @@ impl AudioKernel {
         let prepared = Prepared::new(
             id as u64,
             Schedule::compile(text, Timing::new(c, e).map_err(error)?, rate).map_err(error)?,
+            frequency,
+            rescue,
+        )
+        .map_err(error)?;
+        self.id = id as u64;
+        self.kernel.controls.stop.store(false, Ordering::Release);
+        self.kernel.controls.pause.store(false, Ordering::Release);
+        self.kernel.controls.fault.store(false, Ordering::Release);
+        self.kernel.controls.busy.store(true, Ordering::Release);
+        self.kernel.controls.volume(volume);
+        self.ready
+            .push(prepared)
+            .map_err(|_| error("audio preparation queue full"))?;
+        Ok(())
+    }
+    /// Explicit joined-token preparation; legacy `prepare` remains character-only.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_tokens(
+        &mut self,
+        id: u32,
+        text: &str,
+        c: f64,
+        e: f64,
+        rate: u32,
+        frequency: f64,
+        volume: u8,
+        rescue: bool,
+    ) -> Result<()> {
+        while self.retired.pop().is_ok() {}
+        if self.kernel.controls.busy.load(Ordering::Acquire) {
+            return Err(error("audio is busy"));
+        }
+        let prepared = Prepared::new(
+            id as u64,
+            dojo_core::prosigns::compile_playback(text, Timing::new(c, e).map_err(error)?, rate)
+                .map_err(error)?,
             frequency,
             rescue,
         )

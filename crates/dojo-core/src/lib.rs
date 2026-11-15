@@ -6,6 +6,7 @@ pub mod events;
 pub mod learner;
 pub mod planner;
 pub mod progress;
+pub mod prosigns;
 pub mod recording;
 pub mod scoring;
 pub mod synth;
