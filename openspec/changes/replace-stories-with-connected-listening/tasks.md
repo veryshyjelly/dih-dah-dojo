@@ -5,8 +5,8 @@
 - [x] 5. Redesign Words progress, connected progress and compact legacy archive with explicit loading/error/retry and meaningful empty states.
 - [x] 6. Retire Stories primary navigation/promotion, add Words subviews and preserve archive links/bookmarks/content compatibility.
 - [x] 7. Fix shared light-mode tabs, update help/settings/backup descriptions and verify owner/reset isolation.
-- [ ] 8. Verify themes, compact/wide layouts, keyboard/touch, filters, pagination, selection focus, state races and old backups.
-- [ ] 9. Run Rust tests/format/strict Clippy, WASM/frontend/API/browser checks, workload verification and strict OpenSpec validation.
-- [ ] 10. Commit/push coherent milestones, back up API storage, deploy and smoke-test production without mutating real learner data.
+- [x] 8. Verify themes, compact/wide layouts, keyboard/touch, filters, pagination, selection focus, state races and old backups.
+- [x] 9. Run Rust tests/format/strict Clippy, WASM/frontend/API/browser checks, workload verification and strict OpenSpec validation.
+- [x] 10. Commit/push coherent milestones, back up API storage, deploy and smoke-test production without mutating real learner data.
 
 Physical audio/input timing and learning effectiveness remain an open gate.
