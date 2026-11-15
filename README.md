@@ -18,6 +18,11 @@ Settings supports [exporting and restoring web progress](docs/web-backups.md),
 with a preview before importing and explicit confirmation for account replacement.
 The [callsign trainer](docs/callsign-training.md) adds whole-call reception,
 international formats, exchange/recovery exercises and its own synced progress.
+[Words and connected listening](docs/message-training.md) bridge individual words,
+short phrases and messages through copying, detail recall and unscored listening.
+Their progress stays separate from guided training; earlier stories and saved
+places remain available in the archive. [Prosign practice](docs/prosign-training.md)
+teaches joined signals, meanings and operating situations with separate evidence.
 
 ## Start practicing natively
 

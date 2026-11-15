@@ -184,3 +184,45 @@ export function storyGraph(
     points: [...points.values()],
   };
 }
+
+export type WordProgressRow = {
+  id: string;
+  text: string;
+  entries: Entry[];
+  independent: number;
+  exact: number;
+  assisted: number;
+  interrupted: number;
+  last: number;
+};
+/** A bounded view can page these rows without changing the underlying evidence. */
+export function wordRows(entries: Entry[], catalog: Catalog, search = '', sort = 'recent') {
+  const words = new Map(catalog.words.map((w) => [w.id, w]));
+  const groups = new Map<string, Entry[]>();
+  for (const e of unique(entries).filter((e) => e.activity.kind === 'word')) {
+    const word = words.get(e.activity.item);
+    if (!word || !word.text.toLowerCase().includes(search.trim().toLowerCase())) continue;
+    groups.set(word.id, [...(groups.get(word.id) || []), e]);
+  }
+  const result: WordProgressRow[] = [...groups].map(([id, list]) => {
+    const independent = list.filter((e) => e.outcome.eligible);
+    return {
+      id,
+      text: words.get(id)!.text,
+      entries: list,
+      independent: independent.length,
+      exact: independent.filter((e) => e.outcome.correct === true).length,
+      assisted: list.filter((e) => e.activity.replay || e.activity.revealed).length,
+      interrupted: list.filter((e) => e.activity.interrupted).length,
+      last: list.at(-1)!.activity.created,
+    };
+  });
+  return result.sort((a, b) =>
+    sort === 'alphabetical'
+      ? a.text.localeCompare(b.text)
+      : sort === 'accuracy'
+        ? (a.independent ? a.exact / a.independent : 2) -
+            (b.independent ? b.exact / b.independent : 2) || a.text.localeCompare(b.text)
+        : b.last - a.last || a.text.localeCompare(b.text),
+  );
+}

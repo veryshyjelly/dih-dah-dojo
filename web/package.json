@@ -10,7 +10,7 @@
     "dev": "vite --host 127.0.0.1",
     "dev:api": "tsx watch server/index.ts",
     "build": "tsc --noEmit && vite build && node scripts/build-server.mjs",
-    "test": "node --import tsx --test server/*.test.ts",
+    "test": "node --import tsx --test server/*.test.ts src/*.test.ts",
     "test:browser": "playwright test",
     "start": "node server-dist/index.mjs",
     "format": "prettier --write src server tests scripts public/*.js *.ts *.json *.jsonc index.html",

@@ -5,7 +5,7 @@ import { ProsignPractice } from './ProsignPractice';
 import { ProsignProgress } from './ProsignProgress';
 import { MiniGraph } from './MiniGraph';
 import { LanguageProgress, LanguageData } from './LanguageProgress';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -60,6 +60,21 @@ import {
   type Graph,
   type CharacterEstimate,
 } from './types';
+const MessagePractice = lazy(() =>
+  import('./MessagePractice')
+    .then((module) => ({ default: module.MessagePractice }))
+    .catch(() => ({
+      default: () => (
+        <section className="page" role="alert">
+          <h1>Connected listening could not be opened.</h1>
+          <p>Your saved activity is still intact. Reload the page to retry.</p>
+          <button className="button" onClick={() => location.reload()}>
+            Reload page
+          </button>
+        </section>
+      ),
+    })),
+);
 const empty: Snapshot = {
   policy: 'cw-policy-v1.2',
   introduced: '',
@@ -640,21 +655,16 @@ export default function App() {
         </button>
         <nav aria-label="Main navigation">
           {(
-            [
-              'home',
-              'practice',
-              'words',
-              'stories',
-              'callsigns',
-              'prosigns',
-              'tools',
-              'progress',
-            ] as Route[]
+            ['home', 'practice', 'words', 'callsigns', 'prosigns', 'tools', 'progress'] as Route[]
           ).map((item, i) => (
             <button
               key={item}
-              className={route === item ? 'active' : ''}
-              aria-current={route === item ? 'page' : undefined}
+              className={
+                route === item || (route === 'stories' && item === 'words') ? 'active' : ''
+              }
+              aria-current={
+                route === item || (route === 'stories' && item === 'words') ? 'page' : undefined
+              }
               onClick={() => void navigate(item)}
             >
               {
@@ -662,7 +672,6 @@ export default function App() {
                   'The studio',
                   'Practice',
                   'Words',
-                  'Stories',
                   'Callsigns',
                   'Prosigns',
                   'Tools',
@@ -723,7 +732,6 @@ export default function App() {
                 onTools={() => void navigate('tools')}
                 onPractice={() => void navigate('practice')}
                 onWords={() => void navigate('words')}
-                onStories={() => void navigate('stories')}
                 onCallsigns={() => void navigate('callsigns')}
                 onProsigns={() => void navigate('prosigns')}
                 user={user}
@@ -896,21 +904,100 @@ export default function App() {
                 </div>
               </section>
             )}
-            {(route === 'words' || route === 'stories') && (
+            {route === 'words' && (
+              <>
+                <div
+                  className="word-mode-tabs segmented"
+                  role="group"
+                  aria-label="Word practice activity"
+                >
+                  <button
+                    aria-pressed={new URLSearchParams(query).get('mode') !== 'messages'}
+                    onClick={() => void navigate('words')}
+                  >
+                    <BookOpen size={16} /> Individual words
+                  </button>
+                  <button
+                    aria-pressed={new URLSearchParams(query).get('mode') === 'messages'}
+                    onClick={() => void navigate('words', '?mode=messages')}
+                  >
+                    <Headphones size={16} /> Phrases &amp; messages
+                  </button>
+                </div>
+                {new URLSearchParams(query).get('mode') === 'messages' ? (
+                  <Suspense
+                    fallback={
+                      <section className="page" aria-busy="true">
+                        <p role="status">Opening connected listening…</p>
+                      </section>
+                    }
+                  >
+                    <MessagePractice
+                      key={`messages-${user?.id || 'guest'}-${query}`}
+                      engine={engine}
+                      owner={user?.id || 'guest'}
+                      snapshot={snapshot}
+                      input={profile}
+                      reviewItems={callsignReview(query)}
+                      onProgress={() => void navigate('progress', '?mode=words&view=messages')}
+                      onSignin={() => setSignin(true)}
+                    />
+                  </Suspense>
+                ) : (
+                  <section className="page language-page" aria-label="Word training">
+                    <div className="tool-panel">
+                      <LanguagePractice
+                        key={`word-${user?.id || 'guest'}`}
+                        kind="word"
+                        engine={engine}
+                        owner={user?.id || 'guest'}
+                        snapshot={snapshot}
+                        input={profile}
+                        requestedStory={null}
+                        onProgress={() => void navigate('progress', '?mode=words')}
+                        onSignin={() => setSignin(true)}
+                      />
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+            {route === 'stories' && (
               <section
-                className="page language-page"
-                aria-label={route === 'words' ? 'Word training' : 'Story listening'}
+                className="page language-page legacy-story-page"
+                aria-label="Archived story listening"
               >
+                <aside className="legacy-story-notice" aria-label="Story archive">
+                  <div>
+                    <span className="eyebrow">STORY ARCHIVE</span>
+                    <p>
+                      Your earlier stories and saved places are kept here. New connected listening
+                      lives in Words.
+                    </p>
+                  </div>
+                  <button
+                    className="button secondary"
+                    onClick={() => void navigate('words', '?mode=messages')}
+                  >
+                    Try phrases &amp; messages <ArrowRight size={16} />
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() => void navigate('progress', '?mode=stories')}
+                  >
+                    Archived activity <ArrowUpRight size={14} />
+                  </button>
+                </aside>
                 <div className="tool-panel">
                   <LanguagePractice
-                    key={`${route}-${user?.id || 'guest'}`}
-                    kind={route === 'words' ? 'word' : 'story'}
+                    key={`story-${user?.id || 'guest'}`}
+                    kind="story"
                     engine={engine}
                     owner={user?.id || 'guest'}
                     snapshot={snapshot}
                     input={profile}
                     requestedStory={new URLSearchParams(query).get('story')}
-                    onProgress={() => void navigate('progress', `?mode=${route}`)}
+                    onProgress={() => void navigate('progress', '?mode=stories')}
                     onSignin={() => setSignin(true)}
                   />
                 </div>
@@ -963,10 +1050,12 @@ export default function App() {
                   role="group"
                   aria-label="Progress category"
                 >
-                  {['practice', 'words', 'stories', 'callsigns', 'prosigns'].map((mode) => (
+                  {['practice', 'words', 'callsigns', 'prosigns'].map((mode) => (
                     <button
                       key={mode}
-                      aria-pressed={progressMode === mode}
+                      aria-pressed={
+                        progressMode === mode || (progressMode === 'stories' && mode === 'words')
+                      }
                       onClick={() =>
                         void navigate('progress', mode === 'practice' ? '' : `?mode=${mode}`)
                       }
@@ -975,11 +1064,9 @@ export default function App() {
                         ? 'Practice'
                         : mode === 'words'
                           ? 'Words'
-                          : mode === 'stories'
-                            ? 'Stories'
-                            : mode === 'callsigns'
-                              ? 'Callsigns'
-                              : 'Prosigns'}
+                          : mode === 'callsigns'
+                            ? 'Callsigns'
+                            : 'Prosigns'}
                     </button>
                   ))}
                 </div>
@@ -1014,6 +1101,23 @@ export default function App() {
                     engine={engine}
                     owner={user?.id || 'guest'}
                     kind={new URLSearchParams(query).get('mode') === 'words' ? 'word' : 'story'}
+                    view={
+                      new URLSearchParams(query).get('view') === 'messages' ? 'messages' : 'words'
+                    }
+                    onView={(view) =>
+                      void navigate(
+                        'progress',
+                        view === 'messages' ? '?mode=words&view=messages' : '?mode=words',
+                      )
+                    }
+                    onPractice={() => void navigate('words')}
+                    onMessages={(items) =>
+                      void navigate(
+                        'words',
+                        `?mode=messages${items?.length ? `&review=${encodeURIComponent(JSON.stringify(items))}` : ''}`,
+                      )
+                    }
+                    onArchive={() => void navigate('progress', '?mode=stories')}
                     onContinue={(id) =>
                       void navigate('stories', `?story=${encodeURIComponent(id)}`)
                     }
@@ -1236,7 +1340,6 @@ function Home({
   onTools,
   onPractice,
   onWords,
-  onStories,
   onCallsigns,
   onProsigns,
   user,
@@ -1245,7 +1348,6 @@ function Home({
   onTools: () => void;
   onPractice: () => void;
   onWords: () => void;
-  onStories: () => void;
   onCallsigns: () => void;
   onProsigns: () => void;
   user: User | null;
@@ -1404,32 +1506,20 @@ function Home({
             </span>
           </button>
           <button className="feature-card cream" onClick={onWords}>
-            <span className="card-number">02 / WORD TRAINING</span>
+            <span className="card-number">02 / WORDS &amp; PHRASES</span>
             <BookOpen className="feature-icon" />
             <h3>
               Find your
               <br />
               word rhythm.
             </h3>
-            <p>Hear a whole word, give it time, and discover how the sounds come together.</p>
+            <p>Hear a whole word, then follow short phrases and recover a message's meaning.</p>
             <span className="feature-link">
               Train with words <ArrowUpRight size={18} />
             </span>
           </button>
-          <button className="feature-card sage" onClick={onStories}>
-            <span className="card-number">03 / STORY LISTENING</span>
-            <Headphones className="feature-icon" />
-            <h3>
-              A little story.
-              <br />A little signal.
-            </h3>
-            <p>Follow a story one sentence at a time, with room to pause and listen again.</p>
-            <span className="feature-link">
-              Find a story <ArrowUpRight size={18} />
-            </span>
-          </button>
           <button className="feature-card cream" onClick={onCallsigns}>
-            <span className="card-number">04 / CALLSIGN TRAINING</span>
+            <span className="card-number">03 / CALLSIGN TRAINING</span>
             <Radio className="feature-icon" />
             <h3>
               A whole call.
@@ -1443,7 +1533,7 @@ function Home({
             </span>
           </button>
           <button className="feature-card sage" onClick={onProsigns}>
-            <span className="card-number">05 / PROSIGN TRAINING</span>
+            <span className="card-number">04 / PROSIGN TRAINING</span>
             <Signal className="feature-icon" />
             <h3>
               A joined sound.

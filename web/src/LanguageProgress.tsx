@@ -1,6 +1,17 @@
 import { ProgressSignin } from './ProgressSignin';
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Headphones, ArrowUpRight, Download, Activity } from 'lucide-react';
+import {
+  BookOpen,
+  Headphones,
+  ArrowRight,
+  ArrowUpRight,
+  Activity,
+  Cloud,
+  RefreshCw,
+  Archive,
+  MessageSquare,
+  X,
+} from 'lucide-react';
 import type { EngineClient } from './engine-client';
 import { LanguageStore, clearLanguage, type Entry } from './language-store';
 import {
@@ -12,37 +23,85 @@ import {
   tail,
   unique,
   wordProgress,
+  wordRows,
   type Catalog,
   type StoryInfo,
 } from './language-progress';
-import { MiniGraph } from './MiniGraph';
-import type { Graph } from './types';
+import {
+  ProgressChart,
+  ProgressPagination,
+  ProgressRange,
+  ProgressStats,
+  FocusedProgressDetail,
+} from './LanguageProgressParts';
+import { MessageProgressView } from './MessageProgress';
+import './language-progress.css';
+
 const empty: Catalog = { words: [], stories: [] };
 function useActivity(engine: EngineClient, owner: string) {
   const [entries, setEntries] = useState<Entry[]>([]),
-    [status, setStatus] = useState('Loading saved activity…'),
-    [catalog, setCatalog] = useState<Catalog>(empty);
+    [status, setStatus] = useState('Loading saved activity…');
+  const [catalog, setCatalog] = useState<Catalog>(empty),
+    [dataLoading, setDataLoading] = useState(true),
+    [catalogLoading, setCatalogLoading] = useState(true);
+  const [dataError, setDataError] = useState(''),
+    [catalogError, setCatalogError] = useState(''),
+    [remoteError, setRemoteError] = useState(''),
+    [retry, setRetry] = useState(0);
   useEffect(() => {
     let live = true,
       revision = 0;
+    setDataLoading(true);
+    setCatalogLoading(true);
+    setDataError('');
+    setCatalogError('');
+    setRemoteError('');
     const load = () => {
-      const token = ++revision;
-      const store = new LanguageStore(owner, engine);
-      void store.open().then(() => {
-        if (live && token === revision) {
-          setEntries([...new Map(store.entries.map((e) => [e.activity.id, e])).values()]);
+      const token = ++revision,
+        store = new LanguageStore(owner, engine);
+      void store
+        .open()
+        .then(() => {
+          if (!live || token !== revision) return;
+          setEntries(unique(store.entries));
           setStatus(store.status);
-        }
-      });
+          const incomplete = owner !== 'guest' && !store.remoteReadComplete;
+          const remoteMessage = incomplete
+            ? store.remoteReadError ||
+              'Account history could not be fully loaded. Saved browser activity is still available.'
+            : '';
+          setRemoteError(remoteMessage);
+          setDataError(
+            store.status.includes('storage unavailable')
+              ? 'This browser could not open saved activity. Your account data has not been replaced.'
+              : incomplete && !store.entries.length
+                ? remoteMessage
+                : '',
+          );
+          setDataLoading(false);
+        })
+        .catch(() => {
+          if (live && token === revision) {
+            setDataLoading(false);
+            setDataError('Saved activity could not be loaded. Reconnect and retry.');
+          }
+        });
     };
     load();
     void engine
       .json<Catalog>('language_catalog', 20, 10)
-      .then((c) => {
-        if (live) setCatalog(c);
+      .then((value) => {
+        if (!live) return;
+        setCatalog(value);
+        setCatalogLoading(false);
       })
       .catch(() => {
-        if (live) setStatus('Content unavailable · reload to retry');
+        if (live) {
+          setCatalogLoading(false);
+          setCatalogError(
+            'Content could not be loaded. Saved activity is still intact; its results cannot be displayed safely yet.',
+          );
+        }
       });
     window.addEventListener('dojo-language-change', load);
     window.addEventListener('online', load);
@@ -51,22 +110,20 @@ function useActivity(engine: EngineClient, owner: string) {
       window.removeEventListener('dojo-language-change', load);
       window.removeEventListener('online', load);
     };
-  }, [engine, owner]);
-  return { entries, status, catalog };
+  }, [engine, owner, retry]);
+  return {
+    entries,
+    status,
+    catalog,
+    dataLoading,
+    catalogLoading,
+    dataError,
+    catalogError,
+    remoteError,
+    retry: () => setRetry((n) => n + 1),
+  };
 }
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '—');
-function Stats({ values }: { values: [string | number, string][] }) {
-  return (
-    <div className="progress-stat-row">
-      {values.map(([value, label]) => (
-        <div key={label}>
-          <strong>{value}</strong>
-          <span>{label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 export function ProgressSummary({
   entries,
   kind,
@@ -86,11 +143,11 @@ export function ProgressSummary({
         {kind === 'word' ? <BookOpen size={20} /> : <Headphones size={20} />}
       </span>
       <div>
-        <h3>Your {kind === 'word' ? 'word' : 'story'} progress</h3>
+        <h3>{kind === 'word' ? 'Your word progress' : 'Archived listening activity'}</h3>
         <p>
           {kind === 'word'
-            ? `${eligible.length} independent answers · ${pct(eligible.filter((e) => e.outcome.correct).length, eligible.length)} exact · ${new Set(eligible.map((e) => e.activity.item)).size} distinct words`
-            : `${stories.filter((s) => s.sentences.every((_, i) => heard.has(`${s.id}:${i}`))).length} stories completed · ${heard.size} sentences heard`}
+            ? `${eligible.length} independent answers · ${pct(eligible.filter((e) => e.outcome.correct).length, eligible.length)} exact final copies · ${new Set(eligible.map((e) => e.activity.item)).size} distinct words`
+            : `${heard.size} unique sentences heard · listening exposure, not an understanding score`}
         </p>
       </div>
       <button className="text-button" onClick={onProgress}>
@@ -99,343 +156,644 @@ export function ProgressSummary({
     </aside>
   );
 }
-function Chart({ graph }: { graph: Graph }) {
-  const [open, setOpen] = useState(false),
-    [point, setPoint] = useState(0);
-  const current = Math.min(point, Math.max(0, graph.points.length - 1));
-  return (
-    <article className="graph-card">
-      <h3>{graph.title}</h3>
-      <p>{graph.context}</p>
-      <MiniGraph
-        maximum={graph.title.toLowerCase().includes('accuracy') ? 100 : undefined}
-        graph={graph}
-        selected={open ? current : undefined}
-        onPoint={(i) => {
-          setOpen(true);
-          setPoint(i);
-        }}
-      />
-      <button className="text-button" onClick={() => setOpen(!open)} aria-expanded={open}>
-        Inspect <ArrowUpRight size={14} />
-      </button>
-      {open && (
-        <div
-          className="language-point-detail"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-              e.preventDefault();
-              setPoint(
-                Math.max(
-                  0,
-                  Math.min(graph.points.length - 1, current + (e.key === 'ArrowRight' ? 1 : -1)),
-                ),
-              );
-            }
-          }}
-        >
-          {graph.points.length ? (
-            <>
-              <label>
-                Recorded point{' '}
-                <input
-                  aria-label={`${graph.title} point`}
-                  type="range"
-                  min="0"
-                  max={Math.max(0, graph.points.length - 1)}
-                  value={current}
-                  onChange={(e) => setPoint(Number(e.target.value))}
-                />
-              </label>
-              <p>
-                {graph.primary_label}: {graph.points[current].primary.toFixed(1)}
-                {graph.points[current].secondary !== null
-                  ? ` · ${graph.secondary_label}: ${graph.points[current].secondary!.toFixed(1)}`
-                  : ''}
-              </p>
-              {graph.points[current].detail.map((d, i) => (
-                <p key={i}>{d}</p>
-              ))}
-            </>
-          ) : (
-            <p>No eligible activity yet.</p>
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
-function Range({
-  value,
-  onChange,
-  label,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  label: string;
-}) {
-  return (
-    <label>
-      {label}
-      <select value={value} onChange={(e) => onChange(Number(e.target.value))}>
-        {[30, 100, 0].map((n) => (
-          <option key={n} value={n}>
-            {n || 'All'}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-export function LanguageProgress({
-  engine,
-  owner,
-  kind,
-  onContinue,
-  onSignin,
-}: {
+type Props = {
   engine: EngineClient;
   owner: string;
   kind: 'word' | 'story';
   onContinue: (id: string) => void;
   onSignin: () => void;
+  view?: 'words' | 'messages';
+  onView?: (view: 'words' | 'messages') => void;
+  onPractice?: () => void;
+  onMessages?: (items?: string[]) => void;
+  onArchive?: () => void;
+};
+export function LanguageProgress(props: Props) {
+  return <SavedLanguageProgress key={`${props.owner}-${props.kind}`} {...props} />;
+}
+function SavedLanguageProgress(props: Props) {
+  const { engine, owner, kind, onSignin } = props;
+  const data = useActivity(engine, owner),
+    [localView, setLocalView] = useState<'words' | 'messages'>('words');
+  const view = props.view || localView,
+    messages = kind === 'word' && view === 'messages';
+  const error = data.dataError || (!messages ? data.catalogError : '');
+  const loading = data.dataLoading || (!messages && data.catalogLoading);
+  const hasArchive = data.entries.some((e) => e.activity.kind === 'story');
+  return (
+    <section
+      className="page language-progress lp-page"
+      aria-label={
+        kind === 'story'
+          ? 'Archived story progress'
+          : messages
+            ? 'Phrases and messages progress'
+            : 'Word progress'
+      }
+    >
+      <header className="lp-heading">
+        <div>
+          <span className="eyebrow">
+            {kind === 'story'
+              ? 'YOUR LISTENING ARCHIVE'
+              : messages
+                ? 'WORDS INTO MEANING'
+                : 'YOUR WORD JOURNEY'}
+          </span>
+          <h1>
+            {kind === 'story' ? (
+              'Your story so far.'
+            ) : messages ? (
+              <>
+                Follow a little <em>more.</em>
+              </>
+            ) : (
+              <>
+                Your word <em>rhythm.</em>
+              </>
+            )}
+          </h1>
+          <p>
+            {kind === 'story'
+              ? 'Your earlier listening and transcription records, kept with their original meaning.'
+              : messages
+                ? 'Connected copying, message-detail recall and listening reflection each have their own evidence.'
+                : 'See your final copies, the corrections along the way, and the words worth returning to.'}
+          </p>
+        </div>
+        <span className="tool-icon">
+          {kind === 'story' ? (
+            <Archive size={28} />
+          ) : messages ? (
+            <MessageSquare size={28} />
+          ) : (
+            <BookOpen size={28} />
+          )}
+        </span>
+      </header>
+      <div className="lp-actions">
+        <span className="lp-sync">
+          <Cloud size={16} />
+          {loading ? 'Loading saved activity…' : data.status}
+        </span>
+        {kind === 'story' ? (
+          <button className="button" onClick={() => props.onMessages?.()}>
+            Try phrases & messages <ArrowRight size={17} />
+          </button>
+        ) : (
+          <button
+            className="button"
+            onClick={() => (messages ? props.onMessages?.() : props.onPractice?.())}
+          >
+            {messages ? 'Practice phrases & messages' : 'Practice words'}
+            <ArrowRight size={17} />
+          </button>
+        )}
+        {kind === 'word' && hasArchive && (
+          <button className="text-button" onClick={props.onArchive}>
+            <Archive size={15} />
+            Story activity archive
+          </button>
+        )}
+      </div>
+      {owner === 'guest' && <ProgressSignin onSignin={onSignin} />}
+      {!loading && !error && data.remoteError && (
+        <div className="lp-notice" role="status">
+          <Cloud size={22} />
+          <div>
+            <p>
+              {data.remoteError} Showing available browser records only; totals may be incomplete.
+            </p>
+            <button className="text-button" onClick={data.retry}>
+              <RefreshCw size={15} />
+              Retry account synchronization
+            </button>
+          </div>
+        </div>
+      )}
+      {kind === 'word' && (
+        <div className="lp-view-tabs segmented" role="group" aria-label="Word progress view">
+          {(['words', 'messages'] as const).map((value) => (
+            <button
+              key={value}
+              aria-pressed={view === value}
+              onClick={() => {
+                setLocalView(value);
+                props.onView?.(value);
+              }}
+            >
+              {value === 'words' ? 'Words' : 'Phrases & messages'}
+            </button>
+          ))}
+        </div>
+      )}
+      {loading ? (
+        <div className="lp-state" role="status">
+          <Activity size={28} />
+          <h2>Opening your saved activity.</h2>
+          <p>Your results will appear once the records and their content are ready.</p>
+        </div>
+      ) : error ? (
+        <div className="lp-state lp-error" role="alert">
+          <Cloud size={28} />
+          <h2>Your progress is still yours.</h2>
+          <p>{error}</p>
+          <button className="button secondary" onClick={data.retry}>
+            <RefreshCw size={16} />
+            Retry loading progress
+          </button>
+        </div>
+      ) : kind === 'story' ? (
+        <StoryArchive entries={data.entries} catalog={data.catalog} onContinue={props.onContinue} />
+      ) : messages ? (
+        <MessageProgressView entries={data.entries} onPractice={props.onMessages || (() => {})} />
+      ) : (
+        <WordProgress
+          entries={data.entries}
+          catalog={data.catalog}
+          onPractice={props.onPractice || (() => {})}
+        />
+      )}
+      <p className="lp-footnote">
+        {kind === 'story'
+          ? 'Archived story completion records describe exposure or transcription. They have not been converted into message-understanding scores.'
+          : 'These activities have their own progress. They do not change guided training targets or verified milestones.'}
+      </p>
+    </section>
+  );
+}
+function WordProgress({
+  entries,
+  catalog,
+  onPractice,
+}: {
+  entries: Entry[];
+  catalog: Catalog;
+  onPractice: () => void;
 }) {
-  const { entries, status, catalog } = useActivity(engine, owner),
-    [selected, setSelected] = useState(''),
+  const [selected, setSelected] = useState(''),
     [range, setRange] = useState(30),
-    [story, setStory] = useState(''),
-    [transRange, setTransRange] = useState(30),
     [search, setSearch] = useState(''),
-    [detail, setDetail] = useState('');
+    [sort, setSort] = useState('recent');
+  const [scope, setScope] = useState('conditions'),
+    [detail, setDetail] = useState(''),
+    [wordPage, setWordPage] = useState(0),
+    [historyPage, setHistoryPage] = useState(0);
   const words = useMemo(
     () => wordProgress(entries, catalog, selected, range),
     [entries, catalog, selected, range],
   );
-  const heard = useMemo(() => coverage(entries, catalog.stories), [entries, catalog]);
-  const storyEntries = unique(entries).filter((e) => e.activity.kind === 'story'),
-    eligible = storyEntries.filter((e) => e.outcome.eligible),
-    contexts = [...new Set([...eligible].reverse().map((e) => context(e, catalog)))],
-    current = contexts.includes(selected) ? selected : contexts[0] || '';
-  const coverageGraph = useMemo(
-    () => storyGraph(entries, catalog.stories, story, range),
-    [entries, catalog, story, range],
+  const scoped = words.all.filter(
+    (e) => scope === 'all' || !words.current || context(e, catalog) === words.current,
   );
-  const trans = useMemo(
-    () =>
-      daily(
-        tail(
-          eligible.filter((e) => context(e, catalog) === current),
-          transRange,
-        ),
-        'Transcription accuracy',
-      ),
-    [entries, catalog, current, transRange],
-  );
-  const label = (e: Entry) =>
-    e.activity.kind === 'word'
-      ? catalog.words.find((w) => w.id === e.activity.item)?.text || 'Unavailable word'
-      : catalog.stories.find((s) => s.id === e.activity.item)?.title || 'Unavailable story';
-  const shown = entries.filter(
-    (e) => e.activity.kind === kind && (!detail || e.activity.item === detail),
-  );
-  return (
-    <section className="page progress-page language-progress">
-      <div className="page-heading">
-        <span className="tool-icon">{kind === 'word' ? <BookOpen /> : <Headphones />}</span>
-        <h1>{kind === 'word' ? 'Your word rhythm.' : 'Your story so far.'}</h1>
-        <p>{status}</p>
+  const rows = wordRows(scoped, catalog, search, sort),
+    selectedRow = wordRows(scoped, catalog).find((r) => r.id === detail);
+  const history = scoped
+    .filter((e) => !detail || e.activity.item === detail)
+    .slice()
+    .reverse();
+  const rowPage = Math.min(wordPage, Math.max(0, Math.ceil(rows.length / 10) - 1)),
+    recordPage = Math.min(historyPage, Math.max(0, Math.ceil(history.length / 10) - 1));
+  const changeConditions = (value: string) => {
+    setSelected(value);
+    setDetail('');
+    setWordPage(0);
+    setHistoryPage(0);
+  };
+  if (!words.all.length)
+    return (
+      <div className="lp-state">
+        <BookOpen size={32} />
+        <h2>Your first word starts here.</h2>
         <p>
-          {owner === 'guest' ? 'Saved on this browser.' : 'Your account activity.'} These activities
-          have their own progress.
+          Complete a word round to see final-copy accuracy, corrections and the words you have
+          practiced. There is nothing to estimate yet.
         </p>
+        <button className="button" onClick={onPractice}>
+          Listen to a word <ArrowRight size={17} />
+        </button>
       </div>
-      {owner === 'guest' && <ProgressSignin onSignin={onSignin} />}
-      {kind === 'word' ? (
+    );
+  return (
+    <>
+      {words.contexts.length ? (
         <>
-          <div className="language-filters">
+          <div className="lp-filters">
             <label>
               Recorded conditions
-              <select value={words.current} onChange={(e) => setSelected(e.target.value)}>
-                {!words.contexts.length && <option value="">No independent answers yet</option>}
-                {words.contexts.map((c) => (
-                  <option key={c}>{c}</option>
+              <select value={words.current} onChange={(e) => changeConditions(e.target.value)}>
+                {words.contexts.map((value) => (
+                  <option key={value}>{value}</option>
                 ))}
               </select>
             </label>
-            <Range value={range} onChange={setRange} label="Eligible answers" />
+            <ProgressRange value={range} onChange={setRange} label="Eligible answers" />
           </div>
-          <Stats
+          <ProgressStats
             values={[
-              [words.filtered.length, 'independent answers'],
-              [pct(words.correct, words.filtered.length), 'exact-word accuracy'],
-              [words.distinct, 'distinct attempted words'],
+              [words.filtered.length, 'Independent answers'],
+              [pct(words.correct, words.filtered.length), 'Exact final copies'],
+              [words.distinct, 'Distinct attempted words'],
             ]}
           />
-          <div className="graph-grid">
-            {words.graphs.map((g) => (
-              <Chart key={g.title} graph={g} />
+          <p className="lp-evidence">
+            Exact-word accuracy describes the final submitted copy. Character scores retain the
+            original attempt stream and final copy separately. Historical selected repertoires were
+            not recorded.
+          </p>
+          <div className="lp-graph-grid">
+            {words.graphs.map((graph) => (
+              <ProgressChart key={graph.title} graph={graph} />
             ))}
-          </div>
-          <h2>Your words</h2>
-          <p>All recorded activity · chart filters apply above.</p>
-          <label>
-            Find a word
-            <input value={search} onChange={(e) => setSearch(e.target.value)} />
-          </label>
-          <div className="word-progress-list">
-            {catalog.words
-              .filter(
-                (w) =>
-                  words.all.some((e) => e.activity.item === w.id) &&
-                  w.text.toLowerCase().includes(search.toLowerCase()),
-              )
-              .map((w) => {
-                const list = words.all.filter((e) => e.activity.item === w.id),
-                  independent = list.filter((e) => e.outcome.eligible);
-                return (
-                  <button key={w.id} onClick={() => setDetail(w.id)}>
-                    <strong>{w.text}</strong>
-                    <span>
-                      {independent.length} independent ·{' '}
-                      {independent.filter((e) => e.outcome.correct).length} correct ·{' '}
-                      {pct(independent.filter((e) => e.outcome.correct).length, independent.length)}{' '}
-                      · {list.filter((e) => e.activity.replay || e.activity.revealed).length}{' '}
-                      assisted
-                    </span>
-                    <small>{new Date(list.at(-1)!.activity.created).toLocaleDateString()}</small>
-                  </button>
-                );
-              })}
           </div>
         </>
       ) : (
-        <>
-          <Stats
-            values={[
-              [
-                catalog.stories.filter((s) => storyEntries.some((e) => e.activity.item === s.id))
-                  .length,
-                'stories started',
-              ],
-              [
-                catalog.stories.filter((s) =>
-                  s.sentences.every((_, i) => heard.has(`${s.id}:${i}`)),
-                ).length,
-                'stories completed',
-              ],
-              [heard.size, 'unique sentences heard'],
-            ]}
-          />
-          <div className="story-progress-list">
-            {catalog.stories.map((s) => {
-              const list = entries.filter(
-                  (e) => e.activity.kind === 'story' && e.activity.item === s.id,
-                ),
-                last = list.at(-1),
-                n = s.sentences.filter((_, i) => heard.has(`${s.id}:${i}`)).length;
-              return (
-                <article className="settings-card" key={s.id}>
-                  <h3>{s.title}</h3>
-                  <progress
-                    aria-label={`${s.title} completion`}
-                    value={n}
-                    max={s.sentences.length}
-                  />
-                  <p>
-                    {n}/{s.sentences.length} sentences heard
-                  </p>
-                  <p>
-                    {last
-                      ? `Saved sentence ${last.activity.sentence + 1} · ${new Date(last.activity.created).toLocaleDateString()}`
-                      : 'Ready for your first listen'}
-                  </p>
-                  <button className="text-button" onClick={() => onContinue(s.id)}>
-                    Continue listening <ArrowUpRight size={14} />
-                  </button>
-                </article>
-              );
-            })}
+        <div className="lp-notice">
+          <Activity size={22} />
+          <div>
+            <h2>Practice saved. Independent evidence comes next.</h2>
+            <p>
+              Your saved records are listening, replayed, disclosed, repeated or interrupted
+              activity. They stay below, but do not become independent accuracy.
+            </p>
+            <button className="text-button" onClick={onPractice}>
+              Try an independent word round <ArrowRight size={16} />
+            </button>
           </div>
-          <div className="language-filters">
-            <label>
-              Listening coverage
-              <select value={story} onChange={(e) => setStory(e.target.value)}>
-                <option value="">All stories</option>
-                {catalog.stories.map((s) => (
-                  <option value={s.id} key={s.id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Range value={range} onChange={setRange} label="Completed listening events" />
-          </div>
-          <Chart graph={coverageGraph} />
-          <h2>Transcription</h2>
-          <div className="language-filters">
-            <label>
-              Transcription conditions
-              <select value={current} onChange={(e) => setSelected(e.target.value)}>
-                {!contexts.length && <option value="">No independent transcriptions yet</option>}
-                {contexts.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </label>
-            <Range value={transRange} onChange={setTransRange} label="Eligible transcriptions" />
-          </div>
-          <Chart graph={trans} />
-        </>
-      )}
-      <h2>Recorded activity</h2>
-      {detail && (
-        <button className="text-button" onClick={() => setDetail('')}>
-          Show all words
-        </button>
-      )}
-      {!shown.length && (
-        <div className="quiet-empty">
-          <Activity />
-          <p>Your first {kind === 'word' ? 'answer' : 'listen'} will appear here.</p>
         </div>
       )}
-      <div className="language-records">
-        {[...shown].reverse().map((e) => (
-          <details key={e.activity.id}>
-            <summary>
-              {label(e)} · {new Date(e.activity.created).toLocaleDateString()} · {labels(e)}
-            </summary>
+      <section className="lp-record-section" aria-labelledby="word-results-heading">
+        <div className="lp-section-heading">
+          <div>
+            <h2 id="word-results-heading">Your words</h2>
             <p>
-              {context(e, catalog)} · {new Date(e.activity.created).toLocaleString()}
+              {scope === 'all'
+                ? 'All recorded conditions, across saved history.'
+                : words.current
+                  ? 'The selected recorded conditions, across saved history.'
+                  : 'All saved activity; no independent conditions are available yet.'}{' '}
+              Charts above use their own answer range.
             </p>
-            {e.activity.answer !== null && (
-              <p>
-                Your answer: {e.activity.answer || '(no answer)'} ·{' '}
-                {e.outcome.correct ? 'Exact answer' : 'Answer differs'}
-              </p>
-            )}
-            {e.activity.kind === 'story' && (
-              <p>
-                Sentence {e.activity.sentence + 1}
-                {e.activity.answer !== null || e.activity.revealed
-                  ? `: ${catalog.stories.find((s) => s.id === e.activity.item)?.sentences[e.activity.sentence] || 'Unavailable content'}`
-                  : ''}
-              </p>
-            )}
+          </div>
+        </div>
+        <div className="lp-table-filters">
+          <label>
+            Find a word
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setWordPage(0);
+              }}
+              placeholder="Search saved words"
+            />
+          </label>
+          <label>
+            Result scope
+            <select
+              value={scope}
+              onChange={(e) => {
+                setScope(e.target.value);
+                setDetail('');
+                setWordPage(0);
+                setHistoryPage(0);
+              }}
+            >
+              <option value="conditions">Selected conditions</option>
+              <option value="all">All recorded conditions</option>
+            </select>
+          </label>
+          <label>
+            Sort words
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setWordPage(0);
+              }}
+            >
+              <option value="recent">Most recently practiced</option>
+              <option value="alphabetical">Alphabetical</option>
+              <option value="accuracy">Lowest final-copy accuracy</option>
+            </select>
+          </label>
+        </div>
+        {selectedRow && (
+          <FocusedProgressDetail identity={selectedRow.id} label="Selected word details">
+            <div className="lp-section-heading">
+              <h3>{selectedRow.text}</h3>
+              <button
+                className="icon-button"
+                aria-label="Close word details"
+                onClick={() => setDetail('')}
+              >
+                <X size={18} />
+              </button>
+            </div>
             <p>
-              {e.outcome.attempt_accuracy !== null
-                ? `Attempt ${Math.round(e.outcome.attempt_accuracy * 100)}% · Final ${Math.round((e.outcome.final_accuracy || 0) * 100)}%`
-                : 'Listening exposure · no accuracy score'}
+              {selectedRow.independent} independent answers · {selectedRow.exact} exact final copies
+              · {selectedRow.assisted} assisted · {selectedRow.interrupted} interrupted.
             </p>
-          </details>
-        ))}
+            <p>
+              Recorded activity below is filtered to this word. These totals use the result scope
+              selected above.
+            </p>
+          </FocusedProgressDetail>
+        )}
+        <div className="lp-word-table" role="group" aria-label="Saved word results">
+          <div className="lp-word-table-heading" aria-hidden="true">
+            <span>Word</span>
+            <span>Independent</span>
+            <span>Final exact</span>
+            <span>Assisted</span>
+            <span>Last practiced</span>
+          </div>
+          {rows.slice(rowPage * 10, rowPage * 10 + 10).map((row) => (
+            <button
+              key={row.id}
+              className="lp-word-row"
+              aria-pressed={detail === row.id}
+              onClick={() => {
+                setDetail(row.id);
+                setHistoryPage(0);
+              }}
+            >
+              <strong>{row.text}</strong>
+              <span>
+                <small>Independent</small>
+                {row.independent}
+              </span>
+              <span>
+                <small>Final exact</small>
+                {pct(row.exact, row.independent)}
+              </span>
+              <span>
+                <small>Assisted</small>
+                {row.assisted}
+              </span>
+              <time>
+                <small>Last practiced</small>
+                {new Date(row.last).toLocaleDateString()}
+              </time>
+            </button>
+          ))}
+        </div>
+        {!rows.length && (
+          <p className="lp-list-empty">No saved words match this search and scope.</p>
+        )}
+        <ProgressPagination
+          page={rowPage}
+          count={rows.length}
+          onChange={setWordPage}
+          label="Words"
+        />
+      </section>
+      <section className="lp-record-section" aria-labelledby="word-history-heading">
+        <div className="lp-section-heading">
+          <div>
+            <h2 id="word-history-heading">Recorded activity</h2>
+            <p>
+              {detail ? 'The selected word' : 'Saved words'} ·{' '}
+              {scope === 'all' ? 'all recorded conditions' : 'selected conditions'} · includes extra
+              practice.
+            </p>
+          </div>
+          {detail && (
+            <button className="text-button" onClick={() => setDetail('')}>
+              Show all words <ArrowRight size={15} />
+            </button>
+          )}
+        </div>
+        <div className="language-records lp-history">
+          {history.slice(recordPage * 10, recordPage * 10 + 10).map((e) => (
+            <ActivityRecord key={e.activity.id} entry={e} catalog={catalog} />
+          ))}
+        </div>
+        <ProgressPagination
+          page={recordPage}
+          count={history.length}
+          onChange={setHistoryPage}
+          label="Activity records"
+        />
+      </section>
+    </>
+  );
+}
+function ActivityRecord({ entry: e, catalog }: { entry: Entry; catalog: Catalog }) {
+  const a = e.activity,
+    word = catalog.words.find((w) => w.id === a.item),
+    story = catalog.stories.find((s) => s.id === a.item);
+  const outcome = a.interrupted
+    ? 'Interrupted'
+    : a.answer === null
+      ? 'Listening exposure'
+      : e.outcome.correct
+        ? 'Exact final copy'
+        : 'Final copy differs';
+  return (
+    <details>
+      <summary>
+        <strong>
+          {a.kind === 'word'
+            ? word?.text || 'Unavailable word'
+            : story?.title || 'Unavailable story'}
+        </strong>
+        <span>{outcome}</span>
+        <time>{new Date(a.created).toLocaleDateString()}</time>
+        <ArrowRight className="lp-history-arrow" size={15} aria-hidden="true" />
+      </summary>
+      <div className="lp-history-detail">
+        <p>
+          {context(e, catalog)} · {new Date(a.created).toLocaleString()}
+        </p>
+        <p>
+          {labels(e)} ·{' '}
+          {e.outcome.eligible ? 'Independent answer' : 'Excluded from independent accuracy'}
+        </p>
+        {a.answer !== null && (
+          <p>
+            Your final answer: <strong>{a.answer || '(no answer)'}</strong>
+          </p>
+        )}
+        {a.kind === 'word' && a.answer !== null && (
+          <p>Expected word: {word?.text || 'Unavailable content'}</p>
+        )}
+        {a.kind === 'story' && (
+          <p>
+            Sentence {a.sentence + 1}
+            {a.answer !== null || a.revealed
+              ? `: ${story?.sentences[a.sentence] || 'Unavailable content'}`
+              : ''}
+          </p>
+        )}
+        <p>
+          {e.outcome.attempt_accuracy !== null
+            ? `Attempt ${Math.round(e.outcome.attempt_accuracy * 100)}% · Final ${e.outcome.final_accuracy === null ? 'not recorded' : `${Math.round(e.outcome.final_accuracy * 100)}%`}`
+            : 'Listening exposure · no accuracy score'}
+        </p>
       </div>
-      <p className="fine-print">
-        Recorded conditions describe this activity. Language practice does not establish guided
-        milestones.
-      </p>
-    </section>
+    </details>
+  );
+}
+function StoryArchive({
+  entries,
+  catalog,
+  onContinue,
+}: {
+  entries: Entry[];
+  catalog: Catalog;
+  onContinue: (id: string) => void;
+}) {
+  const all = unique(entries).filter((e) => e.activity.kind === 'story'),
+    heard = coverage(all, catalog.stories);
+  const [story, setStory] = useState(''),
+    [range, setRange] = useState(30),
+    [transRange, setTransRange] = useState(30),
+    [selected, setSelected] = useState(''),
+    [page, setPage] = useState(0);
+  const saved = catalog.stories.filter((s) => all.some((e) => e.activity.item === s.id));
+  const eligible = all.filter((e) => e.outcome.eligible),
+    contexts = [
+      ...new Set(
+        eligible
+          .slice()
+          .reverse()
+          .map((e) => context(e, catalog)),
+      ),
+    ],
+    current = contexts.includes(selected) ? selected : contexts[0] || '';
+  const history = all
+    .filter((e) => !story || e.activity.item === story)
+    .slice()
+    .reverse();
+  const coverageGraph = storyGraph(all, catalog.stories, story, range),
+    transcription = daily(
+      tail(
+        eligible.filter((e) => context(e, catalog) === current),
+        transRange,
+      ),
+      'Transcription accuracy',
+    );
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(history.length / 10) - 1));
+  if (!all.length)
+    return (
+      <div className="lp-state">
+        <Archive size={30} />
+        <h2>No archived story activity.</h2>
+        <p>
+          Earlier story records appear here when available. Phrases & messages now offers short
+          connected listening with a clear task.
+        </p>
+      </div>
+    );
+  return (
+    <>
+      <div className="lp-notice">
+        <Archive size={22} />
+        <p>
+          This archive preserves the original listening and transcription records. Finished playback
+          describes exposure; it does not establish comprehension. Old story links and bookmarks
+          still work.
+        </p>
+      </div>
+      <ProgressStats
+        values={[
+          [saved.length, 'Stories with saved activity'],
+          [heard.size, 'Unique sentences heard'],
+          [eligible.length, 'Independent transcriptions'],
+        ]}
+      />
+      <div className="lp-archive-controls lp-filters">
+        <label>
+          Listening coverage
+          <select
+            value={story}
+            onChange={(e) => {
+              setStory(e.target.value);
+              setPage(0);
+            }}
+          >
+            <option value="">All saved stories</option>
+            {saved.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ProgressRange value={range} onChange={setRange} label="Completed listening events" />
+      </div>
+      <div className="lp-graph-grid lp-two-graphs">
+        <ProgressChart graph={coverageGraph} />
+        {eligible.length > 0 ? (
+          <ProgressChart graph={transcription} />
+        ) : (
+          <div className="lp-state lp-small-state">
+            <Headphones size={28} />
+            <h3>Listening exposure only.</h3>
+            <p>
+              No independent transcriptions were saved. Understanding was not measured by these
+              records.
+            </p>
+          </div>
+        )}
+      </div>
+      {contexts.length > 0 && (
+        <div className="lp-filters">
+          <label>
+            Transcription conditions
+            <select value={current} onChange={(e) => setSelected(e.target.value)}>
+              {contexts.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <ProgressRange
+            value={transRange}
+            onChange={setTransRange}
+            label="Eligible transcriptions"
+          />
+        </div>
+      )}
+      <section className="lp-record-section">
+        <h2>Saved listening bookmarks</h2>
+        <div className="lp-archive-list">
+          {saved.map((s) => {
+            const list = all.filter((e) => e.activity.item === s.id),
+              last = list.at(-1)!,
+              count = s.sentences.filter((_, i) => heard.has(`${s.id}:${i}`)).length;
+            return (
+              <article key={s.id}>
+                <div>
+                  <h3>{s.title}</h3>
+                  <p>
+                    {count}/{s.sentences.length} unique sentences heard · saved sentence{' '}
+                    {last.activity.sentence + 1}
+                  </p>
+                </div>
+                <button className="button secondary" onClick={() => onContinue(s.id)}>
+                  Continue listening <ArrowUpRight size={15} />
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      <section className="lp-record-section">
+        <h2>Recorded activity</h2>
+        <div className="language-records lp-history">
+          {history.slice(currentPage * 10, currentPage * 10 + 10).map((e) => (
+            <ActivityRecord key={e.activity.id} entry={e} catalog={catalog} />
+          ))}
+        </div>
+        <ProgressPagination
+          page={currentPage}
+          count={history.length}
+          onChange={setPage}
+          label="Activity records"
+        />
+      </section>
+    </>
   );
 }
 export function LanguageData({ engine, owner }: { engine: EngineClient; owner: string }) {

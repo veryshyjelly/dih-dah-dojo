@@ -60,9 +60,16 @@ and [verification](../docs/web-verification.md).
 The header theme toggle follows the device initially and remembers a browser-local
 choice. See [appearance and source publication](../docs/web-appearance.md).
 
-Word training and Story listening are available in Tools. Guest activity stays in
-browser storage; signed-in activity uses the separate `/api/language` API and never
-updates guided training targets. Content lives in `assets/words.tsv` and
-`assets/stories.tsv` with CC0 provenance. See
-[`docs/word-story-verification.md`](../docs/word-story-verification.md) for persistence,
-export framing, verification evidence, and remaining hardware limitations.
+Words contains individual-word practice and **Phrases & Messages**. The latter
+uses original controlled material for connected copying, after-listening detail
+recall, and unscored listening reflection, with distinct progress for each task.
+Guest activity stays in browser storage; signed-in activity uses `/api/language`
+and never updates guided training targets. See
+[message contracts](../docs/message-training.md) and
+[verification](../docs/connected-listening-verification.md).
+
+Earlier stories remain at `/stories` with their original text and saved places;
+`/progress?mode=stories` opens archived activity. The existing CC0 assets
+`assets/words.tsv` and `assets/stories.tsv`, legacy packets and backup frames stay
+compatible. [Earlier implementation evidence](../docs/word-story-verification.md)
+describes the original persistence format and hardware limitations.

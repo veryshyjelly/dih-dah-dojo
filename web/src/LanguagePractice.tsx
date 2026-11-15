@@ -429,7 +429,9 @@ export function LanguagePractice({
             {kind === 'word' ? <BookOpen size={25} /> : <Headphones size={25} />}
           </span>
           <div className="language-title-copy">
-            <p className="eyebrow">{kind === 'word' ? 'YOUR WORD PRACTICE' : 'THE STORY ROOM'}</p>
+            <p className="eyebrow">
+              {kind === 'word' ? 'YOUR WORD PRACTICE' : 'THE STORY ARCHIVE'}
+            </p>
             <h1>
               {kind === 'word' && phase === 'setup' ? (
                 <>
@@ -439,9 +441,9 @@ export function LanguagePractice({
                 </>
               ) : kind === 'story' && !story ? (
                 <>
-                  A little story.
+                  Earlier stories.
                   <br />
-                  <em>A little signal.</em>
+                  <em>Saved places.</em>
                 </>
               ) : kind === 'word' ? (
                 'One whole word.'
@@ -456,7 +458,7 @@ export function LanguagePractice({
             )}
             {kind === 'story' && !story && (
               <p className="story-intro">
-                Six short escapes. Listen one sentence at a time, at your own pace.
+                Your earlier listening material, kept with its original text and saved places.
               </p>
             )}
           </div>
@@ -1005,7 +1007,7 @@ export function LanguagePractice({
               setPhase('setup');
             }}
           >
-            Back to {kind === 'word' ? 'words' : 'stories'}
+            Back to {kind === 'word' ? 'words' : 'the archive'}
           </button>
         </div>
       )}

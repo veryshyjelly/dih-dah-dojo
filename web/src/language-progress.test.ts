@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { coverage, daily, storyGraph, wordProgress, type Catalog } from './language-progress';
+import {
+  coverage,
+  daily,
+  storyGraph,
+  wordProgress,
+  wordRows,
+  type Catalog,
+} from './language-progress';
 import type { Entry } from './language-store';
 const catalog: Catalog = {
   words: [{ id: 'words-AN', text: 'AN', meaning: '', set: 'words' }],
@@ -87,4 +94,29 @@ test('short story graph window retains full-history baseline', () => {
   const graph = storyGraph(records, catalog.stories, '', 1);
   assert.equal(graph.points[0].primary, 2);
   assert.match(graph.context, /1 before/);
+});
+
+test('word rows preserve final-copy semantics, assistance and distinct recorded conditions', () => {
+  const words: Catalog = {
+    ...catalog,
+    words: [...catalog.words, { id: 'words-NO', text: 'NO', meaning: '', set: 'words' }],
+  };
+  const records = [
+    entry('first', {}, { attempt_accuracy: 0.5, final_accuracy: 1 }),
+    entry('assisted', { replay: true, created: 300 }, { eligible: false }),
+    entry('other', { item: 'words-NO', created: 200 }, { correct: false }),
+  ];
+  const rows = wordRows(records, words);
+  assert.equal(rows[0].text, 'AN');
+  assert.equal(rows[0].independent, 1);
+  assert.equal(rows[0].exact, 1);
+  assert.equal(rows[0].assisted, 1);
+  assert.deepEqual(
+    wordRows(records, words, ' no ').map((row) => row.text),
+    ['NO'],
+  );
+  assert.deepEqual(
+    wordRows(records, words, '', 'accuracy').map((row) => row.text),
+    ['NO', 'AN'],
+  );
 });

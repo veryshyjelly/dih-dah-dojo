@@ -7,7 +7,7 @@ export function ProgressSignin({ onSignin }: { onSignin: () => void }) {
       </span>
       <div>
         <h2>Make this progress yours.</h2>
-        <p>Sign in to keep your practice and story bookmarks across devices.</p>
+        <p>Sign in to keep your practice and saved places across devices.</p>
         <small>
           Guest activity stays in this browser and isn’t automatically added to your account.
         </small>

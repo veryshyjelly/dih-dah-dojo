@@ -23,6 +23,7 @@
   --red: #a9443a;
   --amber: #a67d32;
   --surface: #fcfcf7;
+  --page-background: #f7f8f2;
 }
 * {
   box-sizing: border-box;
@@ -4572,7 +4573,44 @@ kbd {
 }
 .progress-tabs button[aria-pressed='true'] {
   background: var(--ink);
+  color: var(--page-background, #f7f8f2);
+}
+.word-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  margin: 32px 0 0;
+}
+.word-mode-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  white-space: normal;
+}
+.word-mode-tabs button[aria-pressed='true'] {
+  background: var(--ink);
   color: var(--page-background);
+}
+.legacy-story-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-bottom: 32px;
+}
+.legacy-story-notice > div {
+  flex: 1 1 280px;
+}
+.legacy-story-notice p {
+  margin: 9px 0 0;
+  font-size: 12px;
 }
 .language-progress-summary {
   display: flex;

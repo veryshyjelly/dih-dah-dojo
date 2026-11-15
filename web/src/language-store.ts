@@ -6,7 +6,7 @@ export type Activity = {
   id: string;
   item: string;
   sentence: number;
-  kind: 'word' | 'story' | 'callsign' | 'prosign';
+  kind: 'word' | 'story' | 'callsign' | 'prosign' | 'message';
   input: string;
   c: number;
   e: number;
@@ -17,7 +17,7 @@ export type Activity = {
   review: boolean;
   interrupted: boolean;
   finished: boolean;
-  self_report: boolean | null;
+  self_report: boolean | 'understood' | 'partly' | 'missed' | null;
   created: number;
   // Independent practice packets extend this interface without changing legacy bytes.
   latency_ms?: number | null;
@@ -26,6 +26,7 @@ export type Activity = {
   exchange_attempts?: string[];
   trial_id?: string;
   revision?: number;
+  familiar?: boolean;
 };
 export type Outcome = {
   eligible: boolean;
@@ -98,6 +99,8 @@ export class LanguageStore {
   epoch = '';
   private cursor = 0;
   status = 'Saved on this browser';
+  remoteReadComplete = false;
+  remoteReadError = '';
   entries: Entry[] = [];
   constructor(
     readonly owner: string,
@@ -273,6 +276,8 @@ export class LanguageStore {
     return preview.packets.size;
   }
   private async synchronize() {
+    this.remoteReadError = '';
+    this.remoteReadComplete = this.owner === 'guest';
     if (this.owner === 'guest') return;
     let expected = generation(this.owner);
     const current = () => expected === generation(this.owner);
@@ -328,12 +333,20 @@ export class LanguageStore {
         await write(row, current);
       }
       const ordered = await rows(this.owner);
+      if (!current()) return;
+      await this.decode(ordered);
+      if (!current()) {
+        this.entries = [];
+        return;
+      }
+      this.remoteReadComplete = true;
       const order = new Map(this.entries.map((e, i) => [`${this.owner}:${e.activity.id}`, i]));
       ordered.sort(
         (a, b) =>
           (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
           (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
       );
+      let uploaded = false;
       for (const row of ordered) {
         if (!current()) return;
         if (!row.synced) {
@@ -352,12 +365,16 @@ export class LanguageStore {
           if (!current()) return;
           this.cursor = Math.max(this.cursor, saved.seq);
           await write({ ...row, synced: true, accepted: saved.seq }, current);
+          uploaded = true;
         }
       }
       if (!current()) return;
-      await this.decode(await rows(this.owner));
+      if (uploaded) await this.decode(await rows(this.owner));
       this.status = 'Synced';
     } catch (error) {
+      if (!this.remoteReadComplete)
+        this.remoteReadError =
+          'Account history could not be fully loaded. Saved browser activity is still available.';
       this.status =
         error instanceof ApiError && error.status === 410
           ? 'Activity was reset · reopen this tool'

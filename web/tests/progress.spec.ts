@@ -49,11 +49,8 @@ test('language progress counts independent answers and unique story coverage', a
   await expect(page.locator('.progress-stat-row strong').first()).toHaveText('2');
   await page.getByRole('button', { name: 'Inspect', exact: true }).nth(1).click();
   await expect(page.getByText('1/2 exact answers', { exact: true })).toBeVisible();
-  await page
-    .getByRole('group', { name: 'Progress category' })
-    .getByRole('button', { name: 'Stories', exact: true })
-    .click();
-  await expect(page.locator('.progress-stat-row strong').nth(2)).toHaveText('1');
+  await page.getByRole('button', { name: 'Story activity archive', exact: true }).click();
+  await expect(page.locator('.progress-stat-row strong').nth(1)).toHaveText('1');
   await page.getByRole('button', { name: 'Continue listening', exact: true }).first().click();
   await expect(page).toHaveURL(/\/stories\?story=story-1$/);
   await expect(page.getByText(/Sentence 1 \/ /)).toBeVisible();
@@ -128,8 +125,8 @@ test('setup links and Settings clearing refresh saved progress', async ({ page }
   await page.getByRole('button', { name: 'View progress', exact: true }).click();
   await expect(page).toHaveURL(/\/progress\?mode=words$/);
   await page
-    .getByRole('group', { name: 'Progress category' })
-    .getByRole('button', { name: 'Stories', exact: true })
+    .getByRole('group', { name: 'Word progress view' })
+    .getByRole('button', { name: 'Phrases & messages', exact: true })
     .click();
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Your word rhythm.' })).toBeVisible();
@@ -168,7 +165,8 @@ test('unknown binary activity stays exportable without contributing progress', a
     });
   });
   await page.goto('/progress?mode=words');
-  await expect(page.locator('.progress-stat-row strong').first()).toHaveText('0');
+  await expect(page.getByRole('heading', { name: 'Your first word starts here.' })).toBeVisible();
+  await expect(page.locator('.progress-stat-row')).toHaveCount(0);
   const exported = await page.evaluate(async () => {
     const path = '/src/language-store.ts';
     const { LanguageStore } = await import(path);

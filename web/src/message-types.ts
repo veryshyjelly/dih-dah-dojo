@@ -1,0 +1,63 @@
+import type { Activity } from './language-store';
+
+export type MessageStage = 'phrase' | 'message';
+export type MessageTask = 'copy' | 'detail' | 'listen';
+export type MessageFamily = 'time' | 'place' | 'object' | 'weather' | 'mixed';
+export type MessageCatalog = {
+  version: 1;
+  corpus: 'dojo-messages';
+  corpus_version: 1;
+  provenance: string;
+  stages: { id: MessageStage; label: string; description: string }[];
+  tasks: { id: MessageTask; label: string; description: string }[];
+  families: { id: MessageFamily; label: string; description: string }[];
+};
+export type MessageItem = {
+  id: string;
+  content_id: string;
+  version: 1;
+  corpus: 'dojo-messages';
+  corpus_version: 1;
+  stage: MessageStage;
+  task: MessageTask;
+  family: MessageFamily;
+  topic: Exclude<MessageFamily, 'mixed'>;
+  repertoire: string;
+  text: string;
+  audio_text: string;
+  question: string;
+  expected: string | null;
+  accepted: string[];
+  choices: { id: string; label: string }[];
+  required: string;
+  word_count: number;
+  seconds: number;
+};
+export type MessageGeneration = { items: MessageItem[]; available: number; reason: string | null };
+export type MessageActivity = Omit<Activity, 'kind' | 'self_report'> & {
+  kind: 'message';
+  trial_id: string;
+  revision: number;
+  familiar: boolean;
+  self_report: 'understood' | 'partly' | 'missed' | null;
+};
+export type MessageOutcome = {
+  eligible: boolean;
+  exposure: boolean;
+  correct: boolean | null;
+  attempt_accuracy: number | null;
+  final_accuracy: number | null;
+  first_exact: boolean | null;
+  final_exact: boolean | null;
+  expected: string | null;
+  first_answer: string | null;
+  item: MessageItem;
+  corpus: 'dojo-messages';
+  corpus_version: 1;
+  stage: MessageStage;
+  task: MessageTask;
+  family: MessageFamily;
+  repertoire: string;
+  content_id: string;
+  accepted: string[];
+};

@@ -57,10 +57,11 @@ export function HelpGuide({
               continues.
             </p>
             <p>
-              Words offers self-paced word drills. Stories plays one sentence at a time, with
-              optional continuous listening or transcription. Callsigns trains complete station
-              identities and exchanges. F5 pauses, F6 replays, and Esc finishes the activity. Replay
-              and reveal are assisted practice.
+              Words offers self-paced word drills and Phrases &amp; Messages for short connected
+              listening. Copying, recalling a message detail and self-reported listening have
+              separate results. Earlier stories remain in the archive. Callsigns trains complete
+              station identities and exchanges. F5 pauses, F6 replays, and Esc finishes the
+              activity. Replay and reveal are assisted practice.
             </p>
           </section>
           <section className="help-section help-practice" aria-label="Ways to practice">

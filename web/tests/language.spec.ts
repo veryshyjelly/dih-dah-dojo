@@ -33,7 +33,7 @@ test('stories reveal only the current sentence and restore a stopped bookmark', 
   page,
 }) => {
   await page.goto('/words');
-  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await page.getByLabel('Character WPM').fill('60');
   await page.getByLabel('Effective WPM').fill('60');
   await expect(page.locator('.story-card')).toHaveCount(6);
@@ -56,7 +56,7 @@ test('stories reveal only the current sentence and restore a stopped bookmark', 
   await page.getByRole('button', { name: 'Reveal', exact: true }).click();
   await expect(page.getByText(/Saved on this browser/)).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await page.locator('.story-card').first().click();
   await expect(page.getByText(/Sentence 2 \/ /)).toBeVisible();
   await expect(page.locator('.language-readout')).toHaveText('Ready when you are.');
@@ -71,8 +71,8 @@ test('language tools fit both themes and compact viewports, and guest reset can 
     await page.setViewportSize({ width, height: 900 });
     for (const theme of ['light', 'dark']) {
       await page.evaluate((t) => window.dojoTheme.setTheme(t as 'light' | 'dark'), theme);
-      for (const name of ['Words', 'Stories']) {
-        await page.getByRole('button', { name, exact: true }).click();
+      for (const route of ['/words', '/stories']) {
+        await page.goto(route);
         await expect(page.locator('.language-practice')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
           true,
@@ -91,7 +91,7 @@ test('continuous stories advance without revealing answers, and help pauses play
   page,
 }) => {
   await page.goto('/words');
-  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await page.getByLabel('Character WPM').fill('60');
   await page.getByLabel('Effective WPM').fill('60');
   await page.locator('.story-card').first().click();
@@ -161,7 +161,7 @@ test('language storage keeps colliding activity IDs isolated between accounts', 
   expect(result).toEqual({ first: 'AN', second: 'NO', count: 1 });
 });
 
-test('Tools starts with custom text and the standalone story library keeps character details optional', async ({
+test('Tools starts with custom text and the archived story library keeps character details optional', async ({
   page,
 }) => {
   await page.goto('/tools');
@@ -169,14 +169,12 @@ test('Tools starts with custom text and the standalone story library keeps chara
     'selected',
   );
   await expect(page.getByRole('button', { name: 'Word training', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await expect(page.locator('.story-entry')).toHaveCount(6);
   await expect(page.locator('.story-characters[open]')).toHaveCount(0);
   await page.locator('.story-characters summary').first().click();
   await expect(page.locator('.story-character-chips').first()).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'A little story. A little signal.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Earlier stories. Saved places.' })).toBeVisible();
   await page.locator('.story-characters summary').first().click();
   for (const theme of ['light', 'dark']) {
     await page.evaluate((t) => window.dojoTheme.setTheme(t as 'light' | 'dark'), theme);
@@ -225,7 +223,7 @@ test('word setup groups controls, supports letter chips by keyboard, and shares 
       });
     }
   }
-  await page.getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await expect(page.locator('.language-title .tool-icon svg')).toHaveCount(1);
   await expect(page.locator('.story-category-icon svg')).toHaveCount(6);
   await page
@@ -233,7 +231,7 @@ test('word setup groups controls, supports letter chips by keyboard, and shares 
     .screenshot({ path: `test-results/story-icons-${test.info().project.name}.png` });
 });
 
-test('standalone setup presents live launch settings and a featured story without starting audio', async ({
+test('standalone setup presents live launch settings and an archived story without starting audio', async ({
   page,
 }) => {
   await page.goto('/words');
@@ -255,7 +253,7 @@ test('standalone setup presents live launch settings and a featured story withou
   const launch = await page.locator('.word-start-bar').boundingBox(),
     letters = await page.locator('.word-letter-section').boundingBox();
   if ((await page.viewportSize())!.width > 1100) expect(letters!.x).toBeGreaterThan(launch!.x);
-  await page.getByRole('navigation').getByRole('button', { name: 'Stories', exact: true }).click();
+  await page.goto('/stories');
   await expect(page.locator('.story-featured')).toHaveCount(1);
   await expect(page.locator('.story-entry')).toHaveCount(6);
   await page.locator('.story-featured summary').click();
