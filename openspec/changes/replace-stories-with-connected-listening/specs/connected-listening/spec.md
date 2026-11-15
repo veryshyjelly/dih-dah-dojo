@@ -52,6 +52,14 @@ story identities/text, archive history, old links, bookmarks and backup compatib
 - **THEN** it identifies the legacy archive and preserves the recorded position
 - **AND** playback does not start automatically
 
+### Requirement: Consistent activity ordering
+Primary navigation, studio cards and progress categories SHALL present Prosigns
+before Callsigns.
+
+#### Scenario: Browse learning activities
+- **WHEN** a learner opens the studio or progress screen
+- **THEN** Prosigns precedes Callsigns in the available activity choices
+
 ### Requirement: Readable bounded progress
 Words and connected progress SHALL present clear actions, readable metrics,
 bounded graphs/history, explicit context filters and visible focused details.

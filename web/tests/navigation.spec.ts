@@ -59,7 +59,7 @@ test('Words owns connected listening while story links remain an archive', async
   await expect(page).toHaveURL(/\/words$/);
   await page.goBack();
   await page.locator('.feature-card').nth(2).click();
-  await expect(page).toHaveURL(/\/callsigns$/);
+  await expect(page).toHaveURL(/\/prosigns$/);
   await page.goto('/stories?story=story-1');
   await expect(
     page.getByRole('complementary', { name: 'Story archive', exact: true }),

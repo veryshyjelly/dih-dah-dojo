@@ -655,7 +655,7 @@ export default function App() {
         </button>
         <nav aria-label="Main navigation">
           {(
-            ['home', 'practice', 'words', 'callsigns', 'prosigns', 'tools', 'progress'] as Route[]
+            ['home', 'practice', 'words', 'prosigns', 'callsigns', 'tools', 'progress'] as Route[]
           ).map((item, i) => (
             <button
               key={item}
@@ -672,8 +672,8 @@ export default function App() {
                   'The studio',
                   'Practice',
                   'Words',
-                  'Callsigns',
                   'Prosigns',
+                  'Callsigns',
                   'Tools',
                   'Your progress',
                 ][i]
@@ -1050,7 +1050,7 @@ export default function App() {
                   role="group"
                   aria-label="Progress category"
                 >
-                  {['practice', 'words', 'callsigns', 'prosigns'].map((mode) => (
+                  {['practice', 'words', 'prosigns', 'callsigns'].map((mode) => (
                     <button
                       key={mode}
                       aria-pressed={
@@ -1518,22 +1518,8 @@ function Home({
               Train with words <ArrowUpRight size={18} />
             </span>
           </button>
-          <button className="feature-card cream" onClick={onCallsigns}>
-            <span className="card-number">03 / CALLSIGN TRAINING</span>
-            <Radio className="feature-icon" />
-            <h3>
-              A whole call.
-              <br />A new connection.
-            </h3>
-            <p>
-              Hear a station's identity, build a complete copy, and find your way into an exchange.
-            </p>
-            <span className="feature-link">
-              Train with callsigns <ArrowUpRight size={18} />
-            </span>
-          </button>
           <button className="feature-card sage" onClick={onProsigns}>
-            <span className="card-number">04 / PROSIGN TRAINING</span>
+            <span className="card-number">03 / PROSIGN TRAINING</span>
             <Signal className="feature-icon" />
             <h3>
               A joined sound.
@@ -1544,6 +1530,20 @@ function Home({
             </p>
             <span className="feature-link">
               Discover prosigns <ArrowUpRight size={18} />
+            </span>
+          </button>
+          <button className="feature-card cream" onClick={onCallsigns}>
+            <span className="card-number">04 / CALLSIGN TRAINING</span>
+            <Radio className="feature-icon" />
+            <h3>
+              A whole call.
+              <br />A new connection.
+            </h3>
+            <p>
+              Hear a station's identity, build a complete copy, and find your way into an exchange.
+            </p>
+            <span className="feature-link">
+              Train with callsigns <ArrowUpRight size={18} />
             </span>
           </button>
         </div>
