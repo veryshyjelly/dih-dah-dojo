@@ -4,6 +4,7 @@ pub mod callsigns;
 pub mod control;
 pub mod events;
 pub mod learner;
+pub mod messages;
 pub mod planner;
 pub mod progress;
 pub mod prosigns;

@@ -214,6 +214,11 @@ impl Engine {
             return Err(error("Activity too large"));
         }
         let kind: Value = serde_json::from_str(json).map_err(error)?;
+        if kind["kind"] == "message" {
+            let activity: dojo_core::messages::Activity =
+                serde_json::from_str(json).map_err(error)?;
+            return dojo_core::messages::encode(&activity).map_err(error);
+        }
         if kind["kind"] == "prosign" {
             let activity: dojo_core::prosigns::Activity =
                 serde_json::from_str(json).map_err(error)?;
@@ -235,6 +240,10 @@ impl Engine {
         if bytes.len() > 65536 {
             return Err(error("Activity too large"));
         }
+        if bytes.starts_with(dojo_core::messages::MAGIC) {
+            let (activity, outcome) = dojo_core::messages::decode(bytes).map_err(error)?;
+            return Ok(view(json!({"activity":activity,"outcome":outcome})));
+        }
         if bytes.starts_with(dojo_core::prosigns::MAGIC) {
             let (activity, outcome) = dojo_core::prosigns::decode(bytes).map_err(error)?;
             return Ok(view(json!({"activity":activity,"outcome":outcome})));
@@ -249,6 +258,29 @@ impl Engine {
     }
     pub fn callsign_catalog(&self) -> String {
         view(json!(dojo_core::callsigns::catalog()))
+    }
+    pub fn message_catalog(&self) -> String {
+        view(json!(dojo_core::messages::catalog()))
+    }
+    pub fn message_generate(&self, config_json: &str) -> Result<String> {
+        if config_json.len() > 4096 {
+            return Err(error("Message configuration too large"));
+        }
+        let config: dojo_core::messages::Config =
+            serde_json::from_str(config_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::messages::generate(&config).map_err(error)?
+        )))
+    }
+    pub fn message_evaluate(&self, activity_json: &str) -> Result<String> {
+        if activity_json.len() > dojo_core::messages::MAX_PACKET {
+            return Err(error("Activity too large"));
+        }
+        let activity: dojo_core::messages::Activity =
+            serde_json::from_str(activity_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::messages::evaluate(&activity).map_err(error)?
+        )))
     }
     pub fn prosign_catalog(&self) -> String {
         view(json!(dojo_core::prosigns::catalog()))
