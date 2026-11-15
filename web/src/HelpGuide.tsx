@@ -1,4 +1,4 @@
-import { Headphones, Keyboard, Hand } from 'lucide-react';
+import { Headphones, Keyboard, Hand, Radio } from 'lucide-react';
 
 export function HelpGuide({
   onClose,
@@ -57,9 +57,10 @@ export function HelpGuide({
               continues.
             </p>
             <p>
-              In Tools, Words offers self-paced word drills. Stories plays one sentence at a time,
-              with optional continuous listening or transcription. F5 pauses, F6 replays, and Esc
-              returns to the library. Replay and reveal are assisted practice.
+              Words offers self-paced word drills. Stories plays one sentence at a time, with
+              optional continuous listening or transcription. Callsigns trains complete station
+              identities and exchanges. F5 pauses, F6 replays, and Esc finishes the activity. Replay
+              and reveal are assisted practice.
             </p>
           </section>
           <section className="help-section help-practice" aria-label="Ways to practice">
@@ -68,6 +69,15 @@ export function HelpGuide({
                 <Headphones size={17} aria-hidden="true" /> Recognition
               </h3>
               <p>One character at a time. Give your first answer as soon as you recognize it.</p>
+            </article>
+            <article>
+              <h3>
+                <Radio size={17} aria-hidden="true" /> Callsigns
+              </h3>
+              <p>
+                Listen to a whole call, type it, and press Enter. First attempts and repaired copies
+                stay separate. Optional band conditions and exchanges have their own progress.
+              </p>
             </article>
             <article>
               <h3>

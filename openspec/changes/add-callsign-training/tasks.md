@@ -1,0 +1,11 @@
+- [x] 1. Validate proposal and team contracts; record primary research and original corpus provenance.
+- [x] 2. Implement deterministic international call families and structural metadata; repair legacy generator validation.
+- [x] 3. Implement versioned binary callsign activity validation, first/final exact scoring, diagnostics and legacy packet compatibility.
+- [x] 4. Implement dedicated signed-in setup, stable whole-call rounds, feedback, assistance, pause/finish and targeted review.
+- [x] 5. Implement callsign progress, account synchronization, backup/import/reset compatibility and matching-context latency/accuracy views.
+- [x] 6. Implement optional independent adaptive pace and format/sound reference connections.
+- [x] 7. Implement partial-copy recovery, CQ/DE and separately scored serial/zone exchange exercises.
+- [x] 8. Implement optional noise, fading and overlapping-caller practice with isolated context and safe audio cleanup.
+- [x] 9. Integrate navigation/progress/auth and repair inherited tool-state and stable batch/replay behavior.
+- [x] 10. Verify compact/wide themes, keyboard/touch, races, storage, scoring and audio lifecycle; run all required builds/checks.
+- [x] 11. Back up and deploy API/frontend, smoke-test production safely, and commit/push verification evidence.

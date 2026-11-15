@@ -5,7 +5,7 @@ Open **Settings → Your progress, backed up**.
 - **Export my history** downloads a full account `.cwweb` backup when signed in.
   It contains synchronized training state, both input profiles, acknowledged
   practice history, words and story bookmarks. Sync pending results first.
-- **Export this browser's activity** downloads a word/story `.bin` backup,
+- **Export this browser's activity** downloads a word/story/callsign `.bin` backup,
   including local activity still waiting to sync.
 - **Choose backup** checks a file and shows its destination and contents before
   importing. Files must be under 32 MiB and contain no more than 10,000 records.
@@ -16,7 +16,7 @@ stay intact. Review the file preview, export the current state if you want to ke
 it, and type **RESTORE** to confirm. Cancelling does nothing. If another device
 changes progress after preview, choose the file again to get a fresh preview.
 
-A browser word/story import merges records into the current guest or signed-in
+A browser activity import merges records into the current guest or signed-in
 account. Matching records are skipped. Conflicting IDs or invalid records reject
 the whole local merge. Signed-in imports need an online account and synchronize
 through the normal activity service. Existing records are retained. Guest files

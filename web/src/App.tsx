@@ -1,4 +1,6 @@
 import { BackupControls } from './BackupControls';
+import { CallsignPractice } from './CallsignPractice';
+import { CallsignProgress } from './CallsignProgress';
 import { MiniGraph } from './MiniGraph';
 import { LanguageProgress, LanguageData } from './LanguageProgress';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -72,13 +74,40 @@ const empty: Snapshot = {
   checkOffer: null,
 };
 type Route =
-  'home' | 'practice' | 'words' | 'stories' | 'tools' | 'progress' | 'settings' | 'privacy';
+  | 'home'
+  | 'practice'
+  | 'words'
+  | 'stories'
+  | 'callsigns'
+  | 'tools'
+  | 'progress'
+  | 'settings'
+  | 'privacy';
 const routeFromPath = (): Route => {
   const path = location.pathname.split('/')[1];
-  return ['practice', 'words', 'stories', 'tools', 'progress', 'settings', 'privacy'].includes(path)
+  return [
+    'practice',
+    'words',
+    'stories',
+    'callsigns',
+    'tools',
+    'progress',
+    'settings',
+    'privacy',
+  ].includes(path)
     ? (path as Route)
     : 'home';
 };
+function callsignReview(query: string): string[] {
+  try {
+    const values: unknown = JSON.parse(new URLSearchParams(query).get('review') || '[]');
+    return Array.isArray(values)
+      ? values.filter((v): v is string => typeof v === 'string' && v.length <= 200).slice(0, 30)
+      : [];
+  } catch {
+    return [];
+  }
+}
 const seed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 function Mark({ small = false }: { small?: boolean }) {
   return (
@@ -303,6 +332,7 @@ export default function App() {
   }, [session.phase, session.mode]);
   async function openHelp() {
     try {
+      window.dispatchEvent(new Event('dojo-help-opening'));
       if (training.view.phase === 'summary' && !training.view.held) training.hold();
       else if (training.active && training.view.phase !== 'paused') await training.pause();
       setHelp(true);
@@ -586,6 +616,11 @@ export default function App() {
     await navigate('home');
   }
   const busy = training.active || session.phase === 'summary';
+  const progressMode = ['words', 'stories', 'callsigns'].includes(
+    new URLSearchParams(query).get('mode') || '',
+  )
+    ? new URLSearchParams(query).get('mode')!
+    : 'practice';
   return (
     <div className="site-shell">
       <header className="site-header">
@@ -600,18 +635,28 @@ export default function App() {
           </span>
         </button>
         <nav aria-label="Main navigation">
-          {(['home', 'practice', 'words', 'stories', 'tools', 'progress'] as Route[]).map(
-            (item, i) => (
-              <button
-                key={item}
-                className={route === item ? 'active' : ''}
-                aria-current={route === item ? 'page' : undefined}
-                onClick={() => void navigate(item)}
-              >
-                {['The studio', 'Practice', 'Words', 'Stories', 'Tools', 'Your progress'][i]}
-              </button>
-            ),
-          )}
+          {(
+            ['home', 'practice', 'words', 'stories', 'callsigns', 'tools', 'progress'] as Route[]
+          ).map((item, i) => (
+            <button
+              key={item}
+              className={route === item ? 'active' : ''}
+              aria-current={route === item ? 'page' : undefined}
+              onClick={() => void navigate(item)}
+            >
+              {
+                [
+                  'The studio',
+                  'Practice',
+                  'Words',
+                  'Stories',
+                  'Callsigns',
+                  'Tools',
+                  'Your progress',
+                ][i]
+              }
+            </button>
+          ))}
         </nav>
         <div className="header-actions">
           <ThemeToggle />
@@ -665,6 +710,7 @@ export default function App() {
                 onPractice={() => void navigate('practice')}
                 onWords={() => void navigate('words')}
                 onStories={() => void navigate('stories')}
+                onCallsigns={() => void navigate('callsigns')}
                 user={user}
               />
             )}
@@ -867,6 +913,19 @@ export default function App() {
                 onStart={(mode, extra) => void start(mode, 'tool', extra)}
                 onError={notify}
                 onSignin={() => setSignin(true)}
+                onCallsigns={() => void navigate('callsigns')}
+              />
+            )}
+            {route === 'callsigns' && (
+              <CallsignPractice
+                key={`callsigns-${user?.id || 'guest'}-${query}`}
+                engine={engine}
+                owner={user?.id || 'guest'}
+                snapshot={snapshot}
+                input={profile}
+                reviewItems={callsignReview(query)}
+                onProgress={() => void navigate('progress', '?mode=callsigns')}
+                onSignin={() => setSignin(true)}
               />
             )}
             {route === 'progress' && (
@@ -876,24 +935,37 @@ export default function App() {
                   role="group"
                   aria-label="Progress category"
                 >
-                  {['practice', 'words', 'stories'].map((mode) => (
+                  {['practice', 'words', 'stories', 'callsigns'].map((mode) => (
                     <button
                       key={mode}
-                      aria-pressed={
-                        (new URLSearchParams(query).get('mode') === 'words' ||
-                        new URLSearchParams(query).get('mode') === 'stories'
-                          ? new URLSearchParams(query).get('mode')
-                          : 'practice') === mode
-                      }
+                      aria-pressed={progressMode === mode}
                       onClick={() =>
                         void navigate('progress', mode === 'practice' ? '' : `?mode=${mode}`)
                       }
                     >
-                      {mode === 'practice' ? 'Practice' : mode === 'words' ? 'Words' : 'Stories'}
+                      {mode === 'practice'
+                        ? 'Practice'
+                        : mode === 'words'
+                          ? 'Words'
+                          : mode === 'stories'
+                            ? 'Stories'
+                            : 'Callsigns'}
                     </button>
                   ))}
                 </div>
-                {['words', 'stories'].includes(new URLSearchParams(query).get('mode') || '') ? (
+                {progressMode === 'callsigns' ? (
+                  <CallsignProgress
+                    engine={engine}
+                    owner={user?.id || 'guest'}
+                    onSignin={() => setSignin(true)}
+                    onPractice={(items) =>
+                      void navigate(
+                        'callsigns',
+                        items?.length ? `?review=${encodeURIComponent(JSON.stringify(items))}` : '',
+                      )
+                    }
+                  />
+                ) : ['words', 'stories'].includes(progressMode) ? (
                   <LanguageProgress
                     onSignin={() => setSignin(true)}
                     key={`${query}-${user?.id || 'guest'}`}
@@ -1123,6 +1195,7 @@ function Home({
   onPractice,
   onWords,
   onStories,
+  onCallsigns,
   user,
 }: {
   onStart: () => void;
@@ -1130,6 +1203,7 @@ function Home({
   onPractice: () => void;
   onWords: () => void;
   onStories: () => void;
+  onCallsigns: () => void;
   user: User | null;
 }) {
   return (
@@ -1308,6 +1382,20 @@ function Home({
             <p>Follow a story one sentence at a time, with room to pause and listen again.</p>
             <span className="feature-link">
               Find a story <ArrowUpRight size={18} />
+            </span>
+          </button>
+          <button className="feature-card cream" onClick={onCallsigns}>
+            <span className="card-number">04 / CALLSIGN TRAINING</span>
+            <Radio className="feature-icon" />
+            <h3>
+              A whole call.
+              <br />A new connection.
+            </h3>
+            <p>
+              Hear a station's identity, build a complete copy, and find your way into an exchange.
+            </p>
+            <span className="feature-link">
+              Train with callsigns <ArrowUpRight size={18} />
             </span>
           </button>
         </div>
@@ -1834,6 +1922,7 @@ function Tools({
   onStart,
   onError,
   onSignin,
+  onCallsigns,
 }: {
   engine: EngineClient;
   reference: { symbol: string; pattern: string }[];
@@ -1845,6 +1934,7 @@ function Tools({
   onStart: (mode: string, extra: Record<string, unknown>) => void;
   onError: (error: unknown) => void;
   onSignin: () => void;
+  onCallsigns: () => void;
 }) {
   const [tool, setTool] = useState('text');
   const [text, setText] = useState('HELLO WORLD');
@@ -1854,8 +1944,33 @@ function Tools({
   const [e, setE] = useState(10);
   const [playing, setPlaying] = useState(false);
   const [material, setMaterial] = useState('');
+  const prepared = useRef<{ key: string; promise: Promise<string> } | null>(null);
+  const listenGeneration = useRef(0);
+  const listenActive = useRef(false);
   const [frequency, setFrequency] = useState(snapshot.frequency);
   const [volume, setVolume] = useState(snapshot.volume);
+  useEffect(() => {
+    const cancel = () => {
+      listenGeneration.current++;
+      if (listenActive.current) void audio.stop();
+      listenActive.current = false;
+      setPlaying(false);
+    };
+    window.addEventListener('dojo-navigation', cancel);
+    return () => {
+      window.removeEventListener('dojo-navigation', cancel);
+      listenGeneration.current++;
+      if (listenActive.current) void audio.stop();
+      listenActive.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    listenGeneration.current++;
+    if (listenActive.current) void audio.stop();
+    listenActive.current = false;
+    setPlaying(false);
+    setMaterial('');
+  }, [tool, text, characters, count]);
   const tools = [
     {
       id: 'text',
@@ -1906,7 +2021,7 @@ function Tools({
           ),
         ].join(' ')
       : '';
-  async function content() {
+  async function content(fresh = false) {
     if (tool === 'text') return text.toUpperCase().split(/\s+/).join(' ').trim();
     let chosen = characters;
     if (tool === 'weak' && progress)
@@ -1919,42 +2034,69 @@ function Tools({
         .slice(0, 6)
         .map((v) => v.symbol)
         .join('');
-    return engine.call<string>('tool_material', tool, chosen, seed(), count);
+    const key = JSON.stringify([tool, chosen, count]);
+    if (!fresh && prepared.current?.key === key) return prepared.current.promise;
+    const promise = engine.call<string>('tool_material', tool, chosen, seed(), count);
+    prepared.current = { key, promise };
+    try {
+      return await promise;
+    } catch (error) {
+      if (prepared.current?.promise === promise) prepared.current = null;
+      throw error;
+    }
   }
   async function listen() {
+    if (listenActive.current) {
+      listenGeneration.current++;
+      listenActive.current = false;
+      setPlaying(false);
+      await audio.stop();
+      return;
+    }
+    const generation = ++listenGeneration.current;
+    listenActive.current = true;
+    setPlaying(true);
     try {
-      if (playing) {
-        await audio.stop();
-        setPlaying(false);
-        return;
-      }
       const value = await content();
+      if (generation !== listenGeneration.current) return;
       setMaterial(value);
       audio.volume = volume;
       audio.frequency = frequency;
-      setPlaying(true);
-      const sound = await audio.play({ text: value, c, e, rescue: false });
+      const sound = await audio.play(
+        { text: value, c, e, rescue: false },
+        () => generation === listenGeneration.current,
+      );
       await sound.finished;
     } catch (error) {
-      onError(error);
+      if (generation === listenGeneration.current) onError(error);
     } finally {
-      setPlaying(false);
+      if (generation === listenGeneration.current) {
+        listenActive.current = false;
+        setPlaying(false);
+      }
     }
   }
   async function drill(mode: string) {
+    const generation = listenGeneration.current;
     try {
       const value = await content();
+      if (generation !== listenGeneration.current) return;
+      listenGeneration.current++;
+      listenActive.current = false;
+      setPlaying(false);
       onStart(mode, {
         text: mode === 'copying' ? value : undefined,
         characters:
-          tool === 'weak' && progress
-            ? [...progress.characters]
-                .filter((v) => v.introduced)
-                .sort((a, b) => a.recognition.mean - b.recognition.mean)
-                .slice(0, 6)
-                .map((v) => v.symbol)
-                .join('')
-            : characters,
+          tool === 'callsigns'
+            ? [...SYMBOLS].filter((symbol) => value.includes(symbol)).join('')
+            : tool === 'weak' && progress
+              ? [...progress.characters]
+                  .filter((v) => v.introduced)
+                  .sort((a, b) => a.recognition.mean - b.recognition.mean)
+                  .slice(0, 6)
+                  .map((v) => v.symbol)
+                  .join('')
+              : characters,
         c,
         e,
       });
@@ -2060,10 +2202,15 @@ function Tools({
               ) : (
                 <>
                   {tool === 'callsigns' ? (
-                    <p className="tool-description">
-                      Freshly generated callsigns for listening practice. These are synthetic
-                      examples, not a lookup of assigned stations.
-                    </p>
+                    <div className="tool-description">
+                      <p>
+                        Prepared callsigns for listening and copying. These are synthetic examples,
+                        not a lookup of assigned stations.
+                      </p>
+                      <button className="text-button" onClick={onCallsigns}>
+                        Train whole callsigns <ArrowUpRight size={14} />
+                      </button>
+                    </div>
                   ) : tool === 'weak' ? (
                     <p className="tool-description">
                       Your six lowest recognition estimates among introduced characters. This is
@@ -2135,11 +2282,23 @@ function Tools({
                 </Button>
                 <Button
                   secondary
-                  disabled={!!unsupported || !text.trim()}
+                  disabled={
+                    (tool === 'text' && (!!unsupported || !text.trim())) ||
+                    (tool !== 'text' && tool !== 'callsigns' && !characters)
+                  }
                   onClick={() => void drill('copying')}
                 >
                   <Keyboard size={16} /> Try copying
                 </Button>
+                {tool !== 'text' && (
+                  <button
+                    className="text-button"
+                    disabled={playing || (tool !== 'callsigns' && !characters)}
+                    onClick={() => void content(true).then(setMaterial).catch(onError)}
+                  >
+                    <Shuffle size={14} /> New material
+                  </button>
+                )}
                 {['characters', 'groups', 'weak'].includes(tool) && (
                   <button className="text-button" onClick={() => void drill('recognition')}>
                     Try recognition <ArrowUpRight size={14} />

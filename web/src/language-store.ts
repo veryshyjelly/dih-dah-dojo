@@ -6,7 +6,7 @@ export type Activity = {
   id: string;
   item: string;
   sentence: number;
-  kind: 'word' | 'story';
+  kind: 'word' | 'story' | 'callsign';
   input: string;
   c: number;
   e: number;
@@ -19,6 +19,13 @@ export type Activity = {
   finished: boolean;
   self_report: boolean | null;
   created: number;
+  // Callsign packets extend the interface without changing legacy word/story bytes.
+  latency_ms?: number | null;
+  speed_mode?: 'fixed' | 'adaptive';
+  exchange_answer?: string | null;
+  exchange_attempts?: string[];
+  trial_id?: string;
+  revision?: number;
 };
 export type Outcome = {
   eligible: boolean;
@@ -187,8 +194,7 @@ export class LanguageStore {
   }
   async previewImport(bytes: Uint8Array) {
     const parsed = await parseBackup(bytes);
-    if (parsed.kind !== 'language')
-      throw new Error('Choose a browser word/story .bin backup here.');
+    if (parsed.kind !== 'language') throw new Error('Choose a browser activity .bin backup here.');
     await this.open();
     if (this.owner !== 'guest' && this.status !== 'Synced')
       throw new Error('Go online and sync this account before importing.');
@@ -212,7 +218,7 @@ export class LanguageStore {
   async importPreview(preview: Awaited<ReturnType<LanguageStore['previewImport']>>) {
     if (this.owner !== 'guest') {
       const result = await request<{ imported: number }>(
-        `/api/language/import?epoch=${encodeURIComponent(preview.epoch)}&cursor=${preview.cursor}`,
+        `/api/language/import?epoch=${encodeURIComponent(preview.epoch)}&cursor=${preview.cursor}&owner=${encodeURIComponent(this.owner)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/octet-stream' },
@@ -281,7 +287,7 @@ export class LanguageStore {
           sequences: number[];
           cursor: number;
           more: boolean;
-        }>(`/api/language?after=${after}`);
+        }>(`/api/language?after=${after}&owner=${encodeURIComponent(this.owner)}`);
         if (!current()) {
           this.entries = [];
           this.status = 'Activity changed · reopen this page';
@@ -337,7 +343,11 @@ export class LanguageStore {
           }
           const saved = await request<{ seq: number }>('/api/language', {
             method: 'POST',
-            body: JSON.stringify({ epoch: this.epoch, packet: toBase64(row.packet) }),
+            body: JSON.stringify({
+              owner: this.owner,
+              epoch: this.epoch,
+              packet: toBase64(row.packet),
+            }),
           });
           if (!current()) return;
           this.cursor = Math.max(this.cursor, saved.seq);

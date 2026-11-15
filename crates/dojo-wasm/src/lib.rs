@@ -210,6 +210,15 @@ impl Engine {
         )))
     }
     pub fn language_encode(&self, json: &str) -> Result<Vec<u8>> {
+        let kind: Value = serde_json::from_str(json).map_err(error)?;
+        if kind["kind"] == "callsign" {
+            if json.len() > dojo_core::callsigns::MAX_PACKET {
+                return Err(error("Activity too large"));
+            }
+            let activity: dojo_core::callsigns::Activity =
+                serde_json::from_str(json).map_err(error)?;
+            return dojo_core::callsigns::encode(&activity).map_err(error);
+        }
         let a: dojo_core::language::Activity = serde_json::from_str(json).map_err(error)?;
         dojo_core::language::evaluate(&a).map_err(error)?;
         postcard::to_allocvec(&a).map_err(error)
@@ -218,9 +227,36 @@ impl Engine {
         if bytes.len() > 65536 {
             return Err(error("Activity too large"));
         }
+        if bytes.starts_with(dojo_core::callsigns::MAGIC) {
+            let (activity, outcome) = dojo_core::callsigns::decode(bytes).map_err(error)?;
+            return Ok(view(json!({"activity":activity,"outcome":outcome})));
+        }
         let a: dojo_core::language::Activity = postcard::from_bytes(bytes).map_err(error)?;
         let outcome = dojo_core::language::evaluate(&a).map_err(error)?;
         Ok(view(json!({"activity":a,"outcome":outcome})))
+    }
+    pub fn callsign_catalog(&self) -> String {
+        view(json!(dojo_core::callsigns::catalog()))
+    }
+    pub fn callsign_generate(&self, config_json: &str) -> Result<String> {
+        if config_json.len() > 4096 {
+            return Err(error("Callsign configuration too large"));
+        }
+        let config: dojo_core::callsigns::Config =
+            serde_json::from_str(config_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::callsigns::generate(&config).map_err(error)?
+        )))
+    }
+    pub fn callsign_evaluate(&self, activity_json: &str) -> Result<String> {
+        if activity_json.len() > dojo_core::callsigns::MAX_PACKET {
+            return Err(error("Activity too large"));
+        }
+        let activity: dojo_core::callsigns::Activity =
+            serde_json::from_str(activity_json).map_err(error)?;
+        Ok(view(json!(
+            dojo_core::callsigns::evaluate(&activity).map_err(error)?
+        )))
     }
     pub fn tool_material(
         &self,
@@ -229,6 +265,25 @@ impl Engine {
         seed: f64,
         count: u32,
     ) -> Result<String> {
+        if kind == "callsigns" {
+            if !seed.is_finite() || !(0.0..=u32::MAX as f64).contains(&seed) || seed.fract() != 0.0
+            {
+                return Err(error(
+                    "Callsign seed must be a finite unsigned 32-bit integer",
+                ));
+            }
+            let config = dojo_core::callsigns::Config {
+                seed: seed as u32,
+                count,
+                ..Default::default()
+            };
+            return Ok(dojo_core::callsigns::generate(&config)
+                .map_err(error)?
+                .into_iter()
+                .map(|item| item.text)
+                .collect::<Vec<_>>()
+                .join(" "));
+        }
         let symbols: Vec<_> = assessment::canonical_repertoire(characters)
             .chars()
             .collect();
@@ -238,21 +293,9 @@ impl Engine {
         let mut rng = Random::new(seed as u64);
         let words: Vec<String> = (0..count)
             .map(|_| {
-                if kind == "callsigns" {
-                    let prefix = ['K', 'N', 'W'][(rng.next_u64() % 3) as usize];
-                    format!(
-                        "{}{}{}{}{}",
-                        prefix,
-                        (b'0' + (rng.next_u64() % 10) as u8) as char,
-                        (b'A' + (rng.next_u64() % 26) as u8) as char,
-                        (b'A' + (rng.next_u64() % 26) as u8) as char,
-                        (b'A' + (rng.next_u64() % 26) as u8) as char
-                    )
-                } else {
-                    (0..5)
-                        .map(|_| symbols[rng.next_u64() as usize % symbols.len()])
-                        .collect()
-                }
+                (0..5)
+                    .map(|_| symbols[rng.next_u64() as usize % symbols.len()])
+                    .collect()
             })
             .collect();
         Ok(words.join(" "))

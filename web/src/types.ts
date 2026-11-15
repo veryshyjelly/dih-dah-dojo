@@ -72,7 +72,14 @@ export type Progress = {
   characters: CharacterEstimate[];
   history: { kind: string; details: string[] }[];
 };
-export type AudioSpec = { text: string; c: number; e: number; rescue: boolean };
+export type AudioSpec = {
+  text: string;
+  c: number;
+  e: number;
+  rescue: boolean;
+  condition?: 'clean' | 'noise' | 'fading' | 'pileup';
+  interferer?: string;
+};
 export type Plan = {
   mode: 'recognition' | 'copying';
   placement: boolean;

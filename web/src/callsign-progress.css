@@ -1,0 +1,338 @@
+.callsign-progress {
+  min-width: 0;
+}
+.callsign-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.callsign-progress-heading h1,
+.callsign-progress-gate h1 {
+  font-size: clamp(36px, 5vw, 64px);
+  letter-spacing: -3px;
+  line-height: 1.08;
+  margin: 30px 0 24px;
+}
+.callsign-progress-heading h1 em,
+.callsign-progress-gate h1 em {
+  color: var(--theme-accent-text, #789171);
+  font-style: normal;
+}
+.callsign-progress-heading p,
+.callsign-progress-gate p {
+  max-width: 650px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+.callsign-progress-heading > .tool-icon {
+  flex-shrink: 0;
+  margin-top: 36px;
+}
+.callsign-progress-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 36px;
+}
+.callsign-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  margin-right: auto;
+}
+.callsign-progress-gate .tool-icon {
+  margin-bottom: 26px;
+}
+.callsign-progress-gate > .eyebrow {
+  display: block;
+}
+.callsign-progress-gate .button {
+  margin-top: 20px;
+}
+.callsign-progress-empty,
+.callsign-progress-graph,
+.callsign-progress-parts,
+.callsign-progress-history {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 26px;
+}
+.callsign-progress-empty {
+  padding: 44px;
+}
+.callsign-progress-empty > svg {
+  color: var(--theme-accent-text, #789171);
+}
+.callsign-progress-empty h2 {
+  font-size: 26px;
+  margin: 20px 0 14px;
+}
+.callsign-progress-empty p {
+  max-width: 650px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.callsign-progress-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.callsign-progress-filters label,
+.callsign-point-detail label {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+.callsign-progress-filters select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 13px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+}
+.callsign-progress .callsign-progress-stats {
+  margin-bottom: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+.callsign-progress .callsign-progress-stats > div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.callsign-progress .callsign-progress-stats span {
+  font-size: 10px;
+  line-height: 1.6;
+}
+.callsign-progress-note,
+.callsign-progress-notice {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.callsign-progress-notice {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+}
+.callsign-progress-graphs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+  margin: 30px 0 20px;
+}
+.callsign-progress-graph {
+  min-width: 0;
+  padding: 22px;
+}
+.callsign-progress-graph h3 {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+.callsign-progress-graph > p {
+  min-height: 58px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.callsign-progress-graph .text-button {
+  margin-top: 18px;
+}
+.callsign-point-detail {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  overflow-wrap: anywhere;
+}
+.callsign-point-detail p {
+  font-size: 10px;
+  line-height: 1.8;
+}
+.callsign-point-detail input {
+  width: 100%;
+  margin-top: 10px;
+  accent-color: var(--green);
+}
+.callsign-progress-evidence {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-bottom: 30px;
+}
+.callsign-progress-evidence svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.callsign-progress-evidence p {
+  margin: 0;
+}
+.callsign-progress-parts,
+.callsign-progress-history {
+  margin-top: 26px;
+}
+.callsign-progress-parts h2,
+.callsign-progress-history h2 {
+  font-size: 22px;
+  margin: 0 0 14px;
+}
+.callsign-progress-parts h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.callsign-progress-parts > p,
+.callsign-progress-history > p,
+.callsign-history-heading p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.callsign-progress-table-wrap {
+  overflow-x: auto;
+}
+.callsign-progress table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 11px;
+}
+.callsign-progress th,
+.callsign-progress td {
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.callsign-progress thead {
+  color: var(--muted);
+}
+.callsign-history-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+  text-align: left;
+}
+.callsign-history-row > span {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.callsign-history-row strong {
+  font-size: 17px;
+}
+.callsign-history-row small {
+  display: block;
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.callsign-history-row > svg {
+  flex-shrink: 0;
+}
+.callsign-trial-detail {
+  margin-top: 16px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+  overflow-wrap: anywhere;
+}
+.callsign-trial-detail h3 {
+  font-size: 26px;
+  margin: 0 0 14px;
+}
+.callsign-trial-detail p,
+.callsign-trial-detail dl {
+  font-size: 11px;
+  line-height: 1.9;
+}
+.callsign-trial-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.callsign-trial-detail dt {
+  color: var(--muted);
+}
+.callsign-trial-detail dd {
+  margin: 4px 0 0;
+}
+.callsign-trial-detail .button {
+  margin-top: 18px;
+}
+.callsign-progress-footnote {
+  margin-top: 30px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.9;
+}
+@media (max-width: 1000px) {
+  .callsign-progress-graphs {
+    grid-template-columns: 1fr;
+  }
+  .callsign-progress-graph > p {
+    min-height: 0;
+  }
+}
+@media (max-width: 600px) {
+  .callsign-progress .callsign-progress-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .callsign-progress-heading > .tool-icon {
+    display: none;
+  }
+  .callsign-progress-filters {
+    grid-template-columns: 1fr;
+  }
+  .callsign-progress-heading h1,
+  .callsign-progress-gate h1 {
+    letter-spacing: -2px;
+  }
+  .callsign-progress-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .callsign-progress-empty,
+  .callsign-progress-parts,
+  .callsign-progress-history {
+    padding: 22px 18px;
+  }
+  .callsign-history-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .callsign-history-row > span:first-child {
+    flex-basis: 100%;
+  }
+  .callsign-trial-detail dl {
+    grid-template-columns: 1fr;
+  }
+  .callsign-progress th,
+  .callsign-progress td {
+    padding: 12px 6px;
+    font-size: 10px;
+  }
+}

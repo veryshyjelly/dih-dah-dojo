@@ -16,6 +16,8 @@ The header theme toggle follows your device initially and remembers your choice 
 See [web development](web/README.md) and [deployment evidence](docs/web-verification.md).
 Settings supports [exporting and restoring web progress](docs/web-backups.md),
 with a preview before importing and explicit confirmation for account replacement.
+The [callsign trainer](docs/callsign-training.md) adds whole-call reception,
+international formats, exchange/recovery exercises and its own synced progress.
 
 ## Start practicing natively
 

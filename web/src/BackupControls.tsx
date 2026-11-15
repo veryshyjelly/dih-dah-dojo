@@ -86,7 +86,7 @@ export function BackupControls({
         setMessage('Your saved account progress has been restored.');
       } else {
         const n = await selection.store!.importPreview(selection.language!);
-        setMessage(`${n} word/story records imported. ${selection.store!.status}.`);
+        setMessage(`${n} activity records imported. ${selection.store!.status}.`);
       }
       setSelection(null);
       setConfirmation('');
@@ -134,7 +134,7 @@ export function BackupControls({
             <h3>Account backup</h3>
             <p>
               Training state, keyboard and touch profiles, practice history, words and story
-              bookmarks.
+              bookmarks, plus callsign practice.
             </p>
             <button className="backup-action" disabled={busy} onClick={() => void download()}>
               <Download size={17} />
@@ -143,8 +143,10 @@ export function BackupControls({
           </article>
         )}
         <article>
-          <h3>Browser word &amp; story backup</h3>
-          <p>Includes activity on this browser, including anything still waiting to sync.</p>
+          <h3>Browser activity backup</h3>
+          <p>
+            Words, stories and callsigns on this browser, including anything still waiting to sync.
+          </p>
           <button
             className="backup-action"
             disabled={busy}
@@ -163,7 +165,7 @@ export function BackupControls({
         <article>
           <h3>Import a saved backup</h3>
           <p>
-            Choose a .cwweb account backup or .bin word/story export. Files are checked before
+            Choose a .cwweb account backup or .bin activity export. Files are checked before
             anything changes. Up to 32 MiB.
           </p>
           <label className="backup-action backup-file">
@@ -195,7 +197,7 @@ export function BackupControls({
             <>
               <p>
                 {selection.account.profiles} input profiles · {selection.account.blocks} practice
-                blocks · {selection.account.language} word/story records
+                blocks · {selection.account.language} activity records
               </p>
               <p>
                 This replaces your current account progress, including saved speeds and bookmarks.

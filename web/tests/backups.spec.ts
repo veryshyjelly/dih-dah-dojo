@@ -56,7 +56,7 @@ test('browser backup import previews, merges and deduplicates without detached S
     buffer: Buffer.from(bytes),
   });
   await page.getByRole('button', { name: 'Import activity', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('1 word/story records imported');
+  await expect(page.getByRole('status')).toContainText('1 activity records imported');
   await input.setInputFiles({
     name: 'dojo-language.bin',
     mimeType: 'application/octet-stream',
@@ -358,7 +358,7 @@ test('signed-in browser backup import uses an atomic account batch', async ({ pa
       'your signed-in account',
     );
     await page.getByRole('button', { name: 'Import activity', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('1 word/story records imported');
+    await expect(page.getByRole('status')).toContainText('1 activity records imported');
     expect(posts).toBe(1);
     expect(JSON.parse(fixture.engine.snapshot(Date.now())).introduced).toBe('KM');
     await page.goto('/progress?mode=words');

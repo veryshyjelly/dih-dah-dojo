@@ -1,0 +1,1233 @@
+.callsign-practice {
+  padding: 64px 0 80px;
+  color: var(--ink);
+  min-width: 0;
+}
+.callsign-practice button,
+.callsign-practice input,
+.callsign-practice select {
+  max-width: 100%;
+}
+.callsign-practice button > svg,
+.callsign-practice .eyebrow > svg {
+  flex-shrink: 0;
+}
+.callsign-practice .button {
+  transition: transform 0.18s;
+}
+.callsign-page-heading {
+  margin-bottom: 54px;
+}
+.callsign-page-heading .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.callsign-page-heading h1 {
+  font-size: clamp(40px, 5.1vw, 66px);
+  letter-spacing: -3.5px;
+  line-height: 1.15;
+  margin: 26px 0 24px;
+  font-weight: 500;
+}
+.callsign-page-heading h1 em {
+  font-style: normal;
+  color: var(--theme-detail-text, #7c946b);
+}
+.callsign-page-heading > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.callsign-setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 286px;
+  gap: 28px;
+  align-items: start;
+}
+.callsign-setup-main {
+  min-width: 0;
+}
+.callsign-section-heading,
+.callsign-section-heading > span,
+.callsign-pace-row h3,
+.callsign-launch strong {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.callsign-section-heading {
+  justify-content: space-between;
+  margin-bottom: 19px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.callsign-section-heading small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.callsign-section-heading svg {
+  color: var(--theme-detail-text, #819871);
+  flex-shrink: 0;
+}
+.callsign-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  margin-bottom: 25px;
+}
+.callsign-mode-card {
+  min-width: 0;
+  padding: 22px 19px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+.callsign-mode-card:hover,
+.callsign-mode-card.selected {
+  background: var(--sage);
+}
+.callsign-mode-card.selected {
+  border-color: var(--theme-decoration, #8ea477);
+}
+.callsign-mode-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  color: var(--theme-detail-text, #819871);
+}
+.callsign-mode-card strong {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.callsign-mode-card small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+.callsign-config-card {
+  background: var(--surface);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+.callsign-config-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin: 28px 0;
+}
+.callsign-config-card label,
+.callsign-answer-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 10px;
+  min-width: 0;
+}
+.callsign-config-card label small {
+  font-size: 9px;
+  line-height: 1.7;
+}
+.callsign-readiness-note {
+  display: flex;
+  gap: 11px;
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--sage);
+  font-size: 9px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin: -4px 0 25px;
+}
+.callsign-readiness-note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.callsign-config-card input,
+.callsign-config-card select {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--surface);
+  min-height: 46px;
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 12px;
+}
+.callsign-pace-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  padding: 25px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.callsign-pace-row h3 {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+.callsign-pace-row p {
+  font-size: 10px;
+  color: var(--muted);
+  margin: 0;
+}
+.callsign-pace-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 0 0 245px;
+}
+.callsign-speed-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 24px;
+}
+.callsign-speed-choice button,
+.callsign-conditions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 10px;
+  min-height: 42px;
+}
+.callsign-speed-choice button.selected,
+.callsign-conditions button.selected {
+  border-color: var(--theme-decoration, #8ea477);
+  background: var(--sage);
+}
+.callsign-small-note {
+  font-size: 9px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+.callsign-condition-details {
+  border-top: 1px solid var(--line);
+  margin-top: 25px;
+  padding-top: 22px;
+}
+.callsign-condition-details summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+.callsign-condition-details summary > span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+}
+.callsign-condition-details > p {
+  font-size: 10px;
+  line-height: 1.9;
+  color: var(--muted);
+  max-width: 520px;
+  margin: 18px 0;
+}
+.callsign-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.callsign-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 28px;
+  margin-top: 25px;
+  border-top: 1px solid var(--line);
+}
+.callsign-launch strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.callsign-launch small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.callsign-launch .button {
+  flex-shrink: 0;
+}
+.callsign-review-link,
+.callsign-text-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  font-size: 11px;
+  padding: 9px 0;
+  min-height: 40px;
+  text-align: left;
+}
+.callsign-review-link {
+  margin-top: 18px;
+  color: var(--theme-detail-text, #6d855d);
+}
+.callsign-setup-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 39px;
+}
+.callsign-listening-note {
+  background: var(--sage);
+  border: 1px solid var(--line);
+  padding: 28px;
+  border-radius: 15px;
+}
+.callsign-example {
+  display: flex;
+  gap: 5px;
+  margin: 34px 0 8px;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -1px;
+}
+.callsign-example span {
+  border-bottom: 1px solid var(--theme-decoration, #9cab8e);
+  padding-bottom: 7px;
+}
+.callsign-example span:nth-child(2) {
+  color: var(--theme-detail-text, #6d855d);
+}
+.callsign-example-labels {
+  display: flex;
+  gap: 10px;
+  font-size: 8px;
+  color: var(--muted);
+}
+.callsign-listening-note h2 {
+  margin: 29px 0 17px;
+  font-size: 25px;
+  line-height: 1.4;
+  letter-spacing: -1.2px;
+  font-weight: 500;
+}
+.callsign-listening-note p,
+.callsign-progress-teaser p {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.callsign-aside-note {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+  margin-top: 25px;
+  border-top: 1px solid var(--line);
+}
+.callsign-aside-note > svg {
+  flex-shrink: 0;
+  color: var(--theme-detail-text, #819871);
+  margin-top: 2px;
+}
+.callsign-aside-note p {
+  margin: 0;
+}
+.callsign-progress-teaser {
+  padding: 27px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface);
+}
+.callsign-progress-teaser > svg {
+  color: var(--theme-detail-text, #819871);
+}
+.callsign-progress-teaser h3 {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  margin: 18px 0 8px;
+}
+.callsign-progress-teaser .callsign-text-action {
+  font-size: 10px;
+  margin-top: 12px;
+}
+.callsign-signin {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  padding: 25px 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  margin-bottom: 34px;
+}
+.callsign-signin > div {
+  flex: 1;
+}
+.callsign-signin h2 {
+  font-size: 20px;
+  letter-spacing: -0.8px;
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+.callsign-signin p {
+  font-size: 10px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin: 0;
+}
+.callsign-icon {
+  width: 52px;
+  height: 52px;
+  background: var(--lime);
+  color: var(--theme-detail-text, #6d855d);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.callsign-reference {
+  border-top: 1px solid var(--line);
+  margin-top: 55px;
+  padding-top: 42px;
+}
+.callsign-reference-heading {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.callsign-reference-heading h2 {
+  font-size: 25px;
+  letter-spacing: -1.2px;
+  font-weight: 500;
+  margin: 7px 0;
+}
+.callsign-reference-heading p {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 0;
+}
+.callsign-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.callsign-reference-card {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 0;
+}
+.callsign-reference-card h3 {
+  font-size: 27px;
+  letter-spacing: -1.2px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  margin: 14px 0 23px;
+}
+.callsign-reference-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+.callsign-reference-parts strong,
+.callsign-reference-parts small {
+  display: block;
+}
+.callsign-reference-parts strong {
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+}
+.callsign-reference-parts small {
+  font-size: 8px;
+  color: var(--muted);
+}
+.callsign-outline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 15px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 10px;
+  background: transparent;
+}
+.callsign-outline-button:not(:disabled):hover,
+.callsign-part-list button:not(:disabled):hover,
+.callsign-symbol-reference button:not(:disabled):hover {
+  background: var(--sage);
+}
+.callsign-round-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: -15px 0 22px;
+}
+.callsign-round-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.callsign-practice kbd {
+  font: inherit;
+  font-size: 9px;
+  opacity: 0.65;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.callsign-round-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 245px;
+  gap: 26px;
+  align-items: start;
+}
+.callsign-focus-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 28px 32px 0;
+  min-width: 0;
+}
+.callsign-focus-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.callsign-phase-pill {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 6px 11px;
+  color: var(--ink);
+}
+.callsign-phase-pill > span {
+  display: inline-block;
+  border: 1px solid var(--muted);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.callsign-phase-pill .callsign-live-dot {
+  background: var(--theme-decoration, #819871);
+  border-color: var(--theme-decoration, #819871);
+}
+.callsign-prompt {
+  text-align: center;
+  padding: 36px 0 25px;
+}
+.callsign-round-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--sage);
+  color: var(--theme-detail-text, #819871);
+  margin: 0 auto 23px;
+}
+.callsign-prompt > .eyebrow {
+  font-size: 9px;
+}
+.callsign-prompt h2 {
+  font-size: clamp(24px, 3.2vw, 36px);
+  letter-spacing: -1.8px;
+  line-height: 1.3;
+  font-weight: 500;
+  margin: 17px 0;
+}
+.callsign-prompt p {
+  font-size: 10px;
+  color: var(--muted);
+  max-width: 470px;
+  line-height: 1.9;
+  margin: 0 auto;
+}
+.callsign-answer-form {
+  display: flex;
+  align-items: end;
+  gap: 13px;
+  margin: 12px 0 20px;
+}
+.callsign-answer-form label {
+  flex: 1;
+}
+.callsign-answer-form input {
+  width: 100%;
+  min-height: 59px;
+  color: var(--ink);
+  background: var(--page-background, #f7f8f2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 24px;
+  letter-spacing: 1px;
+  line-height: 1.4;
+}
+.callsign-answer-form input::placeholder {
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.callsign-answer-form > .button {
+  min-height: 59px;
+  padding: 12px 18px;
+  font-size: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.callsign-answer-form.with-exchange {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+}
+.callsign-answer-form.with-exchange > .button {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-height: 46px;
+}
+.callsign-listening-actions {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+.callsign-skip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 16px;
+}
+.callsign-skip-actions .callsign-text-action {
+  font-size: 9px;
+}
+.callsign-feedback {
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+  margin-top: 24px;
+}
+.callsign-comparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+.callsign-comparison div {
+  min-width: 0;
+}
+.callsign-comparison span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+}
+.callsign-comparison strong {
+  display: block;
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 500;
+  letter-spacing: -1px;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.callsign-comparison div:last-child strong {
+  color: var(--theme-detail-text, #7b9468);
+}
+.callsign-comparison > svg {
+  color: var(--theme-decoration, #9cab8e);
+}
+.callsign-feedback-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 13px 0 23px;
+}
+.callsign-feedback-labels span {
+  font-size: 9px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 9px;
+}
+.callsign-exchange-feedback {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--muted);
+  margin: 12px 0;
+}
+.callsign-exchange-feedback strong {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 500;
+}
+.callsign-exchange-feedback small {
+  font-size: 9px;
+}
+.callsign-part-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.callsign-part-list button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 14px;
+  text-align: left;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  min-width: 94px;
+}
+.callsign-part-list button > span {
+  grid-column: 1 / -1;
+  font-size: 8px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.callsign-part-list strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.callsign-part-list svg {
+  align-self: center;
+  color: var(--muted);
+}
+.callsign-symbol-reference {
+  margin: 20px 0;
+  font-size: 10px;
+}
+.callsign-symbol-reference summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.callsign-symbol-reference > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 16px 0;
+}
+.callsign-symbol-reference button {
+  min-width: 41px;
+  min-height: 42px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 15px;
+}
+.callsign-symbol-reference p {
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.callsign-feedback-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 25px 0;
+}
+.callsign-workspace-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding: 17px 0;
+  margin-top: 30px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.callsign-workspace-strip small {
+  font-size: 8px;
+}
+.callsign-round-aside {
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 26px;
+}
+.callsign-round-aside > .eyebrow {
+  font-size: 9px;
+}
+.callsign-round-number {
+  display: block;
+  font-size: 66px;
+  font-weight: 500;
+  letter-spacing: -4px;
+  line-height: 1.4;
+  margin: 28px 0 16px;
+}
+.callsign-round-number span {
+  font-size: 23px;
+  color: var(--muted);
+  letter-spacing: -1px;
+}
+.callsign-round-aside p {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.callsign-round-mini-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-top: 22px;
+  margin-top: 25px;
+  border-top: 1px solid var(--line);
+}
+.callsign-round-mini-stats > span {
+  font-size: 9px;
+  color: var(--muted);
+}
+.callsign-round-mini-stats strong {
+  display: block;
+  font-size: 24px;
+  color: var(--ink);
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 3px;
+}
+.callsign-round-aside > .callsign-outline-button {
+  margin: 27px 0 19px;
+}
+.callsign-round-aside > small {
+  display: block;
+  font-size: 8px;
+  color: var(--muted);
+  line-height: 1.9;
+}
+.callsign-paused {
+  text-align: center;
+  padding: 100px 20px;
+}
+.callsign-paused > svg {
+  color: var(--theme-detail-text, #819871);
+}
+.callsign-paused h2 {
+  font-size: 40px;
+  letter-spacing: -2px;
+  font-weight: 500;
+  margin: 23px 0 10px;
+}
+.callsign-paused p {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 30px;
+}
+.callsign-summary {
+  text-align: center;
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 40px 30px 45px;
+}
+.callsign-summary > .callsign-icon {
+  width: 78px;
+  height: 78px;
+  display: flex;
+  margin: 0 auto 28px;
+}
+.callsign-summary h1 {
+  font-size: clamp(32px, 4.5vw, 50px);
+  letter-spacing: -2.8px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 22px 0;
+}
+.callsign-summary > p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.callsign-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 42px 0;
+  padding: 25px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  gap: 20px;
+}
+.callsign-summary-stats.with-exchange {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.callsign-summary-stats strong,
+.callsign-summary-stats span {
+  display: block;
+}
+.callsign-summary-stats strong {
+  font-size: 36px;
+  letter-spacing: -1.5px;
+  font-weight: 500;
+}
+.callsign-summary-stats span {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 7px;
+}
+.callsign-summary-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+.callsign-message {
+  padding: 13px 17px;
+  background: var(--sage);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 10px;
+  line-height: 1.9;
+  margin-top: 24px;
+}
+.callsign-page-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 28px;
+}
+.callsign-page-footer > span:first-child {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 1100px) {
+  .callsign-setup-layout {
+    grid-template-columns: minmax(0, 1fr) 245px;
+    gap: 22px;
+  }
+  .callsign-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .callsign-pace-row,
+  .callsign-launch {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .callsign-pace-fields {
+    flex: auto;
+    width: 100%;
+  }
+  .callsign-round-layout {
+    grid-template-columns: minmax(0, 1fr) 215px;
+    gap: 18px;
+  }
+  .callsign-focus-card {
+    padding: 24px 24px 0;
+  }
+}
+@media (max-width: 780px) {
+  .callsign-summary-stats.with-exchange {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .callsign-practice {
+    padding-top: 42px;
+  }
+  .callsign-page-heading {
+    margin-bottom: 35px;
+  }
+  .callsign-page-heading h1 {
+    font-size: clamp(34px, 7vw, 48px);
+    letter-spacing: -2.1px;
+    margin-top: 23px;
+  }
+  .callsign-page-heading > p {
+    font-size: 11px;
+  }
+  .callsign-page-heading .eyebrow {
+    font-size: 9px;
+  }
+  .callsign-setup-layout,
+  .callsign-round-layout {
+    grid-template-columns: 1fr;
+  }
+  .callsign-setup-aside {
+    padding-top: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .callsign-mode-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .callsign-config-card {
+    padding: 25px;
+  }
+  .callsign-pace-row,
+  .callsign-launch {
+    align-items: center;
+    flex-direction: row;
+  }
+  .callsign-pace-fields {
+    width: auto;
+    flex: 0 0 235px;
+  }
+  .callsign-signin {
+    flex-wrap: wrap;
+  }
+  .callsign-signin > .button {
+    margin-left: 74px;
+  }
+  .callsign-reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .callsign-round-aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 25px;
+  }
+  .callsign-round-aside > .eyebrow,
+  .callsign-round-aside > .callsign-aside-note,
+  .callsign-round-aside > small {
+    grid-column: 1 / -1;
+  }
+  .callsign-round-number {
+    margin: 15px 0;
+    font-size: 50px;
+  }
+  .callsign-round-aside > p {
+    margin-top: 26px;
+  }
+  .callsign-round-mini-stats {
+    margin-top: 0;
+    border-top: 0;
+    padding-top: 12px;
+  }
+  .callsign-round-aside .callsign-aside-note {
+    display: none;
+  }
+  .callsign-round-aside > .callsign-outline-button {
+    align-self: end;
+    justify-self: end;
+  }
+  .callsign-round-aside > small {
+    margin-top: 10px;
+  }
+}
+@media (max-width: 540px) {
+  .callsign-wide-break {
+    display: none;
+  }
+  .callsign-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .callsign-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .callsign-mode-card {
+    padding: 18px 14px;
+  }
+  .callsign-mode-top {
+    margin-bottom: 24px;
+  }
+  .callsign-mode-card strong {
+    font-size: 11px;
+  }
+  .callsign-mode-card small {
+    font-size: 9px;
+  }
+  .callsign-config-card {
+    padding: 23px 18px;
+  }
+  .callsign-config-grid,
+  .callsign-reference-grid,
+  .callsign-setup-aside {
+    grid-template-columns: 1fr;
+  }
+  .callsign-config-grid {
+    gap: 22px;
+  }
+  .callsign-pace-row,
+  .callsign-launch {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 21px;
+  }
+  .callsign-pace-fields {
+    flex: auto;
+    width: 100%;
+    gap: 12px;
+  }
+  .callsign-speed-choice {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .callsign-condition-details summary {
+    flex-wrap: wrap;
+  }
+  .callsign-condition-details summary > span {
+    margin-left: 26px;
+  }
+  .callsign-launch > .button {
+    width: 100%;
+  }
+  .callsign-signin {
+    padding: 23px 20px;
+    gap: 17px;
+  }
+  .callsign-signin > .callsign-icon {
+    width: 45px;
+    height: 45px;
+  }
+  .callsign-signin > div {
+    flex: 1 1 145px;
+  }
+  .callsign-signin h2 {
+    font-size: 18px;
+  }
+  .callsign-signin > .button {
+    margin-left: 0;
+    width: 100%;
+  }
+  .callsign-reference-heading {
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .callsign-reference-heading .callsign-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .callsign-reference-heading h2 {
+    font-size: 22px;
+  }
+  .callsign-round-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: -15px;
+  }
+  .callsign-focus-card {
+    padding: 21px 18px 0;
+  }
+  .callsign-focus-top {
+    font-size: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .callsign-prompt {
+    padding-top: 30px;
+  }
+  .callsign-prompt h2 {
+    font-size: 26px;
+    letter-spacing: -1.3px;
+  }
+  .callsign-round-icon {
+    width: 76px;
+    height: 76px;
+  }
+  .callsign-answer-form,
+  .callsign-answer-form.with-exchange {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 17px;
+  }
+  .callsign-answer-form > .button {
+    min-height: 47px;
+  }
+  .callsign-answer-form input {
+    font-size: 21px;
+    min-height: 57px;
+    padding: 12px;
+  }
+  .callsign-listening-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .callsign-comparison {
+    gap: 9px;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+  }
+  .callsign-comparison > svg {
+    width: 16px;
+  }
+  .callsign-comparison strong {
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .callsign-comparison span {
+    font-size: 8px;
+  }
+  .callsign-feedback-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .callsign-workspace-strip {
+    justify-content: flex-start;
+    gap: 7px 15px;
+    font-size: 8px;
+  }
+  .callsign-workspace-strip small {
+    display: block;
+  }
+  .callsign-paused {
+    padding: 65px 0;
+  }
+  .callsign-summary {
+    padding: 15px 0 35px;
+  }
+  .callsign-summary-stats,
+  .callsign-summary-stats.with-exchange {
+    grid-template-columns: 1fr;
+    gap: 25px;
+    margin: 32px 0;
+  }
+  .callsign-summary h1 {
+    font-size: 34px;
+    letter-spacing: -1.7px;
+  }
+  .callsign-summary-actions {
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .callsign-mode-card {
+    transition: none;
+  }
+}

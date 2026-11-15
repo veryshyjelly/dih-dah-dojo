@@ -138,6 +138,8 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
 
   app.get('/api/language', (c) => {
     const owner = c.get('user').id;
+    if (c.req.query('owner') !== undefined && c.req.query('owner') !== owner)
+      return c.json({ error: 'The signed-in account changed. Reopen this page.' }, 409);
     const after = Number(c.req.query('after') || 0);
     if (!Number.isSafeInteger(after) || after < 0) return c.json({ error: 'Invalid cursor' }, 400);
     const rows = store.db
@@ -157,6 +159,8 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
     const owner = c.get('user').id,
       epoch = c.req.query('epoch'),
       cursor = Number(c.req.query('cursor'));
+    if (c.req.query('owner') !== undefined && c.req.query('owner') !== owner)
+      return c.json({ error: 'The signed-in account changed. Reopen this page.' }, 409);
     const latest = () =>
       Number(
         (
@@ -212,6 +216,8 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
   app.post('/api/language', async (c) => {
     const owner = c.get('user').id,
       body = await c.req.json();
+    if (body.owner !== undefined && body.owner !== owner)
+      return c.json({ error: 'The signed-in account changed. Reopen this page.' }, 409);
     if (body.epoch !== store.epoch(owner))
       return c.json({ error: 'Activity was reset. Refresh before continuing.' }, 410);
     if (typeof body.packet !== 'string' || body.packet.length > 90000)

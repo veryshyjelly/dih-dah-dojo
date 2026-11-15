@@ -1,5 +1,6 @@
 //! Shared platform-independent Morse learning engine.
 pub mod assessment;
+pub mod callsigns;
 pub mod control;
 pub mod events;
 pub mod learner;
