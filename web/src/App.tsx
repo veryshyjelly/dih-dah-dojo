@@ -1,6 +1,8 @@
 import { BackupControls } from './BackupControls';
 import { CallsignPractice } from './CallsignPractice';
 import { CallsignProgress } from './CallsignProgress';
+import { ProsignPractice } from './ProsignPractice';
+import { ProsignProgress } from './ProsignProgress';
 import { MiniGraph } from './MiniGraph';
 import { LanguageProgress, LanguageData } from './LanguageProgress';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -79,6 +81,7 @@ type Route =
   | 'words'
   | 'stories'
   | 'callsigns'
+  | 'prosigns'
   | 'tools'
   | 'progress'
   | 'settings'
@@ -90,6 +93,7 @@ const routeFromPath = (): Route => {
     'words',
     'stories',
     'callsigns',
+    'prosigns',
     'tools',
     'progress',
     'settings',
@@ -616,7 +620,7 @@ export default function App() {
     await navigate('home');
   }
   const busy = training.active || session.phase === 'summary';
-  const progressMode = ['words', 'stories', 'callsigns'].includes(
+  const progressMode = ['words', 'stories', 'callsigns', 'prosigns'].includes(
     new URLSearchParams(query).get('mode') || '',
   )
     ? new URLSearchParams(query).get('mode')!
@@ -636,7 +640,16 @@ export default function App() {
         </button>
         <nav aria-label="Main navigation">
           {(
-            ['home', 'practice', 'words', 'stories', 'callsigns', 'tools', 'progress'] as Route[]
+            [
+              'home',
+              'practice',
+              'words',
+              'stories',
+              'callsigns',
+              'prosigns',
+              'tools',
+              'progress',
+            ] as Route[]
           ).map((item, i) => (
             <button
               key={item}
@@ -651,6 +664,7 @@ export default function App() {
                   'Words',
                   'Stories',
                   'Callsigns',
+                  'Prosigns',
                   'Tools',
                   'Your progress',
                 ][i]
@@ -711,6 +725,7 @@ export default function App() {
                 onWords={() => void navigate('words')}
                 onStories={() => void navigate('stories')}
                 onCallsigns={() => void navigate('callsigns')}
+                onProsigns={() => void navigate('prosigns')}
                 user={user}
               />
             )}
@@ -914,6 +929,7 @@ export default function App() {
                 onError={notify}
                 onSignin={() => setSignin(true)}
                 onCallsigns={() => void navigate('callsigns')}
+                onProsigns={() => void navigate('prosigns')}
               />
             )}
             {route === 'callsigns' && (
@@ -928,6 +944,18 @@ export default function App() {
                 onSignin={() => setSignin(true)}
               />
             )}
+            {route === 'prosigns' && (
+              <ProsignPractice
+                key={`prosigns-${user?.id || 'guest'}-${query}`}
+                engine={engine}
+                owner={user?.id || 'guest'}
+                snapshot={snapshot}
+                input={profile}
+                reviewItems={callsignReview(query)}
+                onProgress={() => void navigate('progress', '?mode=prosigns')}
+                onSignin={() => setSignin(true)}
+              />
+            )}
             {route === 'progress' && (
               <>
                 <div
@@ -935,7 +963,7 @@ export default function App() {
                   role="group"
                   aria-label="Progress category"
                 >
-                  {['practice', 'words', 'stories', 'callsigns'].map((mode) => (
+                  {['practice', 'words', 'stories', 'callsigns', 'prosigns'].map((mode) => (
                     <button
                       key={mode}
                       aria-pressed={progressMode === mode}
@@ -949,11 +977,25 @@ export default function App() {
                           ? 'Words'
                           : mode === 'stories'
                             ? 'Stories'
-                            : 'Callsigns'}
+                            : mode === 'callsigns'
+                              ? 'Callsigns'
+                              : 'Prosigns'}
                     </button>
                   ))}
                 </div>
-                {progressMode === 'callsigns' ? (
+                {progressMode === 'prosigns' ? (
+                  <ProsignProgress
+                    engine={engine}
+                    owner={user?.id || 'guest'}
+                    onSignin={() => setSignin(true)}
+                    onPractice={(items) =>
+                      void navigate(
+                        'prosigns',
+                        items?.length ? `?review=${encodeURIComponent(JSON.stringify(items))}` : '',
+                      )
+                    }
+                  />
+                ) : progressMode === 'callsigns' ? (
                   <CallsignProgress
                     engine={engine}
                     owner={user?.id || 'guest'}
@@ -1196,6 +1238,7 @@ function Home({
   onWords,
   onStories,
   onCallsigns,
+  onProsigns,
   user,
 }: {
   onStart: () => void;
@@ -1204,6 +1247,7 @@ function Home({
   onWords: () => void;
   onStories: () => void;
   onCallsigns: () => void;
+  onProsigns: () => void;
   user: User | null;
 }) {
   return (
@@ -1396,6 +1440,20 @@ function Home({
             </p>
             <span className="feature-link">
               Train with callsigns <ArrowUpRight size={18} />
+            </span>
+          </button>
+          <button className="feature-card sage" onClick={onProsigns}>
+            <span className="card-number">05 / PROSIGN TRAINING</span>
+            <Signal className="feature-icon" />
+            <h3>
+              A joined sound.
+              <br />A clear intention.
+            </h3>
+            <p>
+              Hear the signals that shape a conversation, from a brief wait to a final sign-off.
+            </p>
+            <span className="feature-link">
+              Discover prosigns <ArrowUpRight size={18} />
             </span>
           </button>
         </div>
@@ -1923,6 +1981,7 @@ function Tools({
   onError,
   onSignin,
   onCallsigns,
+  onProsigns,
 }: {
   engine: EngineClient;
   reference: { symbol: string; pattern: string }[];
@@ -1935,6 +1994,7 @@ function Tools({
   onError: (error: unknown) => void;
   onSignin: () => void;
   onCallsigns: () => void;
+  onProsigns: () => void;
 }) {
   const [tool, setTool] = useState('text');
   const [text, setText] = useState('HELLO WORLD');
@@ -2164,6 +2224,19 @@ function Tools({
                     <Volume2 size={13} />
                   </button>
                 ))}
+              </div>
+              <div className="reference-prosign-note">
+                <Signal size={23} aria-hidden="true" />
+                <div>
+                  <h3>Some signals belong together.</h3>
+                  <p>
+                    Prosigns join their letters into one sound. Hear the difference and learn what
+                    they mean in a conversation.
+                  </p>
+                </div>
+                <button className="button secondary" onClick={onProsigns}>
+                  Explore prosigns <ArrowUpRight size={16} />
+                </button>
               </div>
             </>
           ) : tool === 'weak' && !user ? (

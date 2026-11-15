@@ -1,4 +1,4 @@
-import { Headphones, Keyboard, Hand, Radio } from 'lucide-react';
+import { Headphones, Keyboard, Hand, Radio, Signal } from 'lucide-react';
 
 export function HelpGuide({
   onClose,
@@ -77,6 +77,16 @@ export function HelpGuide({
               <p>
                 Listen to a whole call, type it, and press Enter. First attempts and repaired copies
                 stay separate. Optional band conditions and exchanges have their own progress.
+              </p>
+            </article>
+            <article>
+              <h3>
+                <Signal size={17} aria-hidden="true" /> Prosigns
+              </h3>
+              <p>
+                A prosign joins its letters into one signal. Identify the sound, recall its meaning
+                or choose it for a situation. Type the whole token and press Enter. Replays and
+                reveals are assisted; your first answer stays in progress.
               </p>
             </article>
             <article>

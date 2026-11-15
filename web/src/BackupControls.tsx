@@ -134,7 +134,7 @@ export function BackupControls({
             <h3>Account backup</h3>
             <p>
               Training state, keyboard and touch profiles, practice history, words and story
-              bookmarks, plus callsign practice.
+              bookmarks, callsign practice and prosigns.
             </p>
             <button className="backup-action" disabled={busy} onClick={() => void download()}>
               <Download size={17} />
@@ -145,7 +145,8 @@ export function BackupControls({
         <article>
           <h3>Browser activity backup</h3>
           <p>
-            Words, stories and callsigns on this browser, including anything still waiting to sync.
+            Words, stories, callsigns and prosigns on this browser, including anything still waiting
+            to sync.
           </p>
           <button
             className="backup-action"

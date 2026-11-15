@@ -5,7 +5,7 @@ Open **Settings → Your progress, backed up**.
 - **Export my history** downloads a full account `.cwweb` backup when signed in.
   It contains synchronized training state, both input profiles, acknowledged
   practice history, words and story bookmarks. Sync pending results first.
-- **Export this browser's activity** downloads a word/story/callsign `.bin` backup,
+- **Export this browser's activity** downloads a word/story/callsign/prosign `.bin` backup,
   including local activity still waiting to sync.
 - **Choose backup** checks a file and shows its destination and contents before
   importing. Files must be under 32 MiB and contain no more than 10,000 records.

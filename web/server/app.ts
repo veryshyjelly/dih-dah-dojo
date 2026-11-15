@@ -175,7 +175,7 @@ export async function createApp(store: Store, pool: Pick<EnginePool, 'run'>, con
       return c.json({ error: 'Account activity changed. Preview the backup again.' }, 409);
     try {
       const parsed = await parseBackup(new Uint8Array(await c.req.arrayBuffer()));
-      if (parsed.kind !== 'language') throw new Error('Choose a browser word/story backup.');
+      if (parsed.kind !== 'language') throw new Error('Choose a browser activity backup.');
       const incoming = new Map<string, Buffer>();
       let duplicates = 0;
       for (const f of parsed.frames) {

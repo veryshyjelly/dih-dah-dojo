@@ -6,7 +6,7 @@ export type Activity = {
   id: string;
   item: string;
   sentence: number;
-  kind: 'word' | 'story' | 'callsign';
+  kind: 'word' | 'story' | 'callsign' | 'prosign';
   input: string;
   c: number;
   e: number;
@@ -19,7 +19,7 @@ export type Activity = {
   finished: boolean;
   self_report: boolean | null;
   created: number;
-  // Callsign packets extend the interface without changing legacy word/story bytes.
+  // Independent practice packets extend this interface without changing legacy bytes.
   latency_ms?: number | null;
   speed_mode?: 'fixed' | 'adaptive';
   exchange_answer?: string | null;

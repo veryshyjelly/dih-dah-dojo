@@ -623,6 +623,27 @@ svg {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
+.feature-grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.reference-prosign-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding-top: 25px;
+  margin-top: 25px;
+  border-top: 1px solid var(--line);
+}
+.reference-prosign-note > div {
+  flex: 1 1 240px;
+}
+.reference-prosign-note h3 {
+  margin: 0 0 8px;
+}
+.reference-prosign-note p {
+  margin: 0;
+}
 .feature-card {
   text-align: left;
   padding: 27px 27px 22px;

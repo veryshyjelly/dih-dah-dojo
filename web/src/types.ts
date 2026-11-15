@@ -74,6 +74,7 @@ export type Progress = {
 };
 export type AudioSpec = {
   text: string;
+  tokens?: boolean;
   c: number;
   e: number;
   rescue: boolean;

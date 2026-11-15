@@ -10,7 +10,9 @@ class DojoProcessor extends AudioWorkletProcessor {
     this.port.onmessage = ({ data }) => {
       try {
         if (data.type === 'prepare') {
-          this.kernel.prepare(
+          const prepare = data.tokens ? this.kernel.prepare_tokens : this.kernel.prepare;
+          prepare.call(
+            this.kernel,
             data.id,
             data.text,
             data.c,
