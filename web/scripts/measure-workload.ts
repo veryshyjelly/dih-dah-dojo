@@ -17,6 +17,7 @@ const duration = Number(process.env.DOJO_MEASURE_SECONDS || 60);
 if (!Number.isInteger(duration) || duration < 10 || duration > 1800)
   throw new Error('Use 10–1800 seconds');
 const base = process.env.DOJO_MEASURE_ORIGIN || 'http://127.0.0.1:5173';
+const tokenAudio = process.env.DOJO_MEASURE_TOKENS === '1';
 const directory = mkdtempSync(join(tmpdir(), 'dojo-web-load-'));
 const store = new Store(join(directory, 'workload.sqlite'));
 const pool = new EnginePool(
@@ -99,7 +100,9 @@ try {
       { capture: true },
     );
   });
-  audio.prepare(1, 'PARIS '.repeat(12), 20, 5, 48000, 600, 0, false);
+  if (tokenAudio)
+    audio.prepare_tokens(1, '<AR><BT><HH><SK>'.repeat(8), 20, 5, 48000, 600, 0, false);
+  else audio.prepare(1, 'PARIS '.repeat(12), 20, 5, 48000, 600, 0, false);
   let frame = 0;
   async function pump() {
     if (busy) return;
@@ -183,6 +186,7 @@ try {
   verify.close();
   const report = {
     durationSeconds: duration,
+    instrumentedAudio: tokenAudio ? 'joined-prosigns' : 'ordinary-text',
     inputs,
     renderSamples: render.length,
     backgroundCommits: writes,

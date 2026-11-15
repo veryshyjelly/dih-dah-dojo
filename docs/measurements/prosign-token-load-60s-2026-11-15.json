@@ -1,0 +1,16 @@
+{
+  "durationSeconds": 60,
+  "instrumentedAudio": "joined-prosigns",
+  "inputs": 567,
+  "renderSamples": 22990,
+  "backgroundCommits": 121,
+  "restoredBlocks": 122,
+  "integrity": "ok",
+  "inputReceiptP99Ms": 0.2000000011175871,
+  "inputToNextFrameP99Ms": 17,
+  "wasmRenderP99Ms": 0.007666999999855761,
+  "wasmRenderMaxMs": 0.6225419999973383,
+  "serverEvaluateCommitP99Ms": 3.8047499999993306,
+  "errors": [],
+  "physicalTiming": "unverified"
+}
