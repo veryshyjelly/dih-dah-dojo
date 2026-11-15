@@ -125,7 +125,7 @@ export function MessageProgressView({
           <ProgressChart key={graph.title} graph={graph} />
         ))}
       </div>
-      <section className="lp-record-section" aria-labelledby="message-history-heading">
+      <section className="lp-record-section" aria-label="Recorded message activity">
         <div className="lp-section-heading">
           <div>
             <h2 id="message-history-heading">Your messages, one by one</h2>

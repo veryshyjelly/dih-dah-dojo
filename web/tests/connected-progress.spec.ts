@@ -236,6 +236,7 @@ test('unavailable remote history cannot look like a first-ever empty account and
 });
 test('message progress isolates task and familiarity while retaining original errors and repairs', async ({
   page,
+  browserName,
 }) => {
   const fixture = await accountFixture(page),
     packets: string[] = [];
@@ -317,6 +318,9 @@ test('message progress isolates task and familiarity while retaining original er
     await expect(page.locator('.lp-stats')).toContainText('Self-reported understood');
     await expect(page.locator('.lp-stats strong').first()).toHaveText('1');
     await expect(page.locator('.lp-stats')).toContainText('0 / 1');
+    await expect(
+      page.getByRole('region', { name: 'Recorded message activity', exact: true }),
+    ).toBeVisible();
     const conditions = page.getByLabel('Message progress conditions', { exact: true });
     const context = await conditions
       .locator('option')
@@ -330,6 +334,15 @@ test('message progress isolates task and familiarity while retaining original er
             ) as HTMLOptionElement
           ).value,
       );
+    // Firefox previously crashed while focusing the conditions selector when the
+    // history region's accessible name referenced its descendant heading.
+    await conditions.focus();
+    await expect(conditions).toBeFocused();
+    if (browserName === 'firefox') {
+      await page.keyboard.press('End');
+      await page.keyboard.press('Enter');
+      await expect(conditions).toHaveValue(context);
+    }
     await conditions.selectOption(context);
     await expect(page.locator('.lp-stats strong').first()).toHaveText('9');
     await expect(page.locator('.lp-stats strong').nth(1)).toHaveText('89%');
