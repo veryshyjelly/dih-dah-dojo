@@ -68,3 +68,16 @@ production database snapshot and `PRAGMA integrity_check` returned `ok`:
 
 These checks establish software behavior, not physical audio/input timing or
 learning effectiveness. The physical timing gate remains open.
+
+## Button consistency follow-up — 2026-11-15
+
+The two export buttons now share the file-picker's outlined rounded style, icon
+spacing and 44-pixel minimum height. Desktop actions align along their bottom edge;
+long labels wrap on narrow screens. Six signed-in layout fixtures at 320/780/1440
+pixels in both themes rendered without overflow. All six existing guest/account
+backup interaction checks passed across Chromium, WebKit and mobile, as did the
+production build, formatting, whitespace and strict OpenSpec checks.
+
+Frontend version `15f92745-cfb0-438c-8929-bcffcd3b0f4b` is live. Anonymous production
+smoke checked the shared border/radius/touch-target style at desktop/mobile sizes,
+browser export download and invalid-file rejection. No account data changed.

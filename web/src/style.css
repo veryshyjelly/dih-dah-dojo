@@ -5324,6 +5324,9 @@ kbd {
 }
 .backup-options article {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .backup-options p,
 .backup-workspace > p,
@@ -5331,21 +5334,29 @@ kbd {
   font-size: 11px;
   line-height: 1.9;
 }
-.backup-options .setting-link {
-  padding: 12px 0;
-  font-size: 11px;
-}
-.backup-file {
-  position: relative;
-  overflow: hidden;
+.backup-action {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
+  max-width: 100%;
+  margin-top: auto;
   border: 1px solid var(--line);
   border-radius: 99px;
   padding: 10px 16px;
   cursor: pointer;
   font-size: 11px;
+  text-align: left;
+}
+.backup-action > svg {
+  flex-shrink: 0;
+}
+.backup-action:not(:disabled):hover {
+  background: var(--sage);
+}
+.backup-file {
+  position: relative;
+  overflow: hidden;
 }
 .backup-file input {
   position: absolute;
@@ -5420,11 +5431,6 @@ kbd {
 }
 .guest-backup-options {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.backup-options .setting-link {
-  display: inline-flex;
-  justify-content: flex-start;
-  gap: 10px;
 }
 @media (max-width: 780px) {
   .guest-backup-options {

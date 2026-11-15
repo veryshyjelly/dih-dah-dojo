@@ -136,7 +136,7 @@ export function BackupControls({
               Training state, keyboard and touch profiles, practice history, words and story
               bookmarks.
             </p>
-            <button className="setting-link" disabled={busy} onClick={() => void download()}>
+            <button className="backup-action" disabled={busy} onClick={() => void download()}>
               <Download size={17} />
               Export my history
             </button>
@@ -146,7 +146,7 @@ export function BackupControls({
           <h3>Browser word &amp; story backup</h3>
           <p>Includes activity on this browser, including anything still waiting to sync.</p>
           <button
-            className="setting-link"
+            className="backup-action"
             disabled={busy}
             onClick={() => {
               setMessage('');
@@ -166,7 +166,7 @@ export function BackupControls({
             Choose a .cwweb account backup or .bin word/story export. Files are checked before
             anything changes. Up to 32 MiB.
           </p>
-          <label className="btn backup-file">
+          <label className="backup-action backup-file">
             <Upload size={17} />
             Choose backup
             <input

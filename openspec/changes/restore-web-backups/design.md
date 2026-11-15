@@ -2,6 +2,8 @@
 
 Settings contains sound/account cards, one compact backup workspace and then reset/delete controls. The backup workspace has no page min-height. Full account export/import is available when signed in; browser language export/import works for the current guest or account. Importing another browser file into an account is explicit, never automatic on login.
 
+Export and file-selection actions share outlined rounded buttons with matching icon spacing and a minimum 44-pixel touch target. Desktop actions align at the bottom of their columns; compact layouts allow labels to wrap without overflow.
+
 Account format CWDOJOW2 retains the eight-byte magic plus SHA-256 body checksum and six-byte frame header (type, input, little-endian u32 payload length). Type 0 is a profile checkpoint, type 2 a language packet, and type 3 a rich block: applied u8, created f64 LE, ID length u16 LE and UTF-8 ID, packet length u32 LE and packet, then derived record bytes. Account files contain no identity credentials. Legacy CWDOJOW1 type-1 block packets lack IDs and server-applied flags: restore saved profiles, retain these blocks as explicitly labeled extra/imported history, and do not treat them as qualifying chart evidence. The preview explains this limitation.
 
 Import accepts at most 32 MiB, 10,000 frames and 8 MiB per packet/checkpoint. Reject wrong magic/checksum, truncation, unknown frame types, invalid profiles, duplicate/conflicting IDs, invalid records and unsupported versions before writes. Binary files are persisted; JSON is only transient interface/preview metadata. Browser CWLANG01 retains its existing length-framed layout.
