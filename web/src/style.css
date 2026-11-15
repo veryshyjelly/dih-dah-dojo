@@ -1,12 +1,5 @@
-@font-face {
-  font-family: Monaspace;
-  src: url('/fonts/MonaspaceNeon.woff2') format('woff2');
-  font-style: normal;
-  font-weight: 200 800;
-  font-display: swap;
-}
 :root {
-  font-family: Monaspace, ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-body, ui-monospace, SFMono-Regular, monospace);
   color: var(--ink);
   background: var(--page-background, #f7f8f2);
   font-synthesis: none;
@@ -1880,7 +1873,7 @@ kbd {
 .chart-wrap svg text {
   font-size: 6px;
   fill: var(--theme-detail-text, #a3ae94);
-  font-family: Monaspace, monospace;
+  font-family: var(--font-instrument, monospace);
 }
 .chart-legend {
   display: flex;

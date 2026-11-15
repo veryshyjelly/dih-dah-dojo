@@ -792,8 +792,8 @@ export function ProsignPractice({
                 Heard as one.
               </h2>
               <p>
-                A prosign joins its letters without the usual letter gap. {'<AR>'} is one signal; A
-                then R are two letters.
+                A prosign joins its letters without the usual letter gap. <code>{'<AR>'}</code> is
+                one signal; <code>A</code> then <code>R</code> are two letters.
               </p>
               <div className="prosign-joined-example" aria-hidden="true">
                 <span>·−</span>
@@ -802,8 +802,9 @@ export function ProsignPractice({
               <small>Angle brackets are a written cue. You will not hear the brackets.</small>
               <hr />
               <p className="prosign-note-detail">
-                {'<AR>'} shares its sound with +, and {'<BT>'} with =. Sound alone cannot tell those
-                names apart.
+                <code>{'<AR>'}</code> shares its sound with <code>+</code>, and{' '}
+                <code>{'<BT>'}</code> with <code>=</code>. Sound alone cannot tell those names
+                apart.
               </p>
               {owner !== 'guest' && (
                 <button className="prosign-text-button" onClick={onProgress}>

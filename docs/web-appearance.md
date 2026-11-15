@@ -70,7 +70,7 @@ closed it through both Escape and Got it without browser errors.
 
 ## Monaspace audit and family research — 2026-11-15
 
-The website currently loads **Neon only**, under the generic CSS family alias
+At the start of this audit, the website loaded **Neon only**, under the generic CSS family alias
 `Monaspace`. Its 510,832-byte WOFF2 matches the official v1.400 release by SHA-256.
 The face is variable, not a single static weight: CSS declares 200–800, with body
 weight 400 and other weights used for hierarchy. Width and slant are not used.
@@ -79,8 +79,7 @@ and `slnt` −11–0. The WOFF2 container's `version 1.0` reported by `file` is 
 the typeface's release version.
 
 [GitHub Next's overview](https://monaspace.githubnext.com/) distinguishes five
-metric-compatible families. The following allocation is a design recommendation,
-not a typography rollout already applied to the website:
+metric-compatible families. This allocation informed the role-based rollout below:
 
 | Family | Character | Recommended Dojo role |
 | --- | --- | --- |
@@ -90,7 +89,7 @@ not a typography rollout already applied to the website:
 | Xenon | Slab serif | Occasional reading or editorial accents, rather than another global heading style |
 | Radon | Handwriting | Brief coaching accents; avoid transcripts, callsigns, answers, numbers and dense help |
 
-Start with a Neon/Argon/Krypton core. Keep expressive accents scarce and tied to
+The research recommended a Neon/Argon/Krypton core. Keep expressive accents scarce and tied to
 meaning. Metric compatibility permits family mixing at matching axes; it is not
 evidence that every family has equal readability at every size. Check 0/O, 1/I/l,
 all 42 response symbols, prosign brackets and slash-bearing callsigns at actual
@@ -152,3 +151,42 @@ but was not observed in these responses; see its
 Words-fix deployment: `f017e34f-378a-4768-8cb3-cded518023e8`. Live Chromium and
 Firefox sessions opened Words from Prosigns, selected 1 effective WPM and started
 a stopped word round without the unrelated duration error or any page errors.
+
+## Implemented Monaspace roles — 2026-11-15
+
+`web/src/typography.css` now defines the five-family system across the application:
+
+- **Argon:** page headings, card titles and section headings.
+- **Neon:** everyday controls and all literal practice responses/transcripts.
+- **Krypton:** overlines, instrument labels, pace controls, chart labels and progress values.
+- **Xenon Regular:** introductory prose, help explanations and selected listening notes.
+- **Radon Medium:** the floating listening note, home sign-off, brief practice encouragement,
+  and short coaching headings in Words, connected listening and prosigns.
+
+The accents follow semantic roles rather than rotating by page or changing fonts
+inside an answer. Prosign identifiers in explanatory prose use literal `code`
+markup. Explicit literal boundaries disable contextual and coding ligatures and
+override existing form `font: inherit` resets; ordinary form controls retain Neon,
+while numeric instrument controls use Krypton. Coaching text uses its real Medium
+cut, roomier tracking and a minimum 13px for small notes. Existing synthetic-font
+suppression remains in place.
+
+All fonts are unmodified, self-hosted official v1.400 assets with retained OFL
+licensing and checksums in `web/public/fonts/README.md`. Variable Argon/Krypton
+retain the weights used throughout the UI; the two accents use only their needed
+static cuts. The complete portfolio is 1,945,356 bytes, versus 2,876,612 for five
+variable faces. Only the existing Neon file is preloaded. New filenames are
+versioned, use the existing immutable font cache, and require no CSP changes,
+external font service or new application dependencies.
+
+Verification includes 54 appearance/help/studio checks, 20 populated/sparse
+progress checks across all four engines, and 98 individual-word, connected,
+callsign and prosign checks across Chromium/WebKit/mobile (four duplicate visual
+fixtures intentionally skipped). Four additional Firefox checks passed for public
+pages, word answers, connected detail recall and Farnsworth prosign responses.
+TypeScript, production build, all 29 API/query
+tests, formatting and strict OpenSpec validation pass. Six real pages were also
+inspected at 320/1440 pixels in both themes; the audit reported no missing fonts,
+page errors or viewport overflow. Literal input computed to Neon with `calt`,
+`liga`, `clig` and `dlig` disabled. Physical timing and learning effectiveness
+remain unverified; no new claims are made by this presentation change.

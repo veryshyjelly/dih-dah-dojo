@@ -1,0 +1,177 @@
+/* Official, unmodified Monaspace v1.400. See public/fonts/README.md. */
+@font-face {
+  font-family: 'Monaspace Neon';
+  src: url('/fonts/MonaspaceNeon.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 100% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Monaspace Argon';
+  src: url('/fonts/MonaspaceArgonVar-v1.400.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 100% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Monaspace Krypton';
+  src: url('/fonts/MonaspaceKryptonVar-v1.400.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 100% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Monaspace Xenon';
+  src: url('/fonts/MonaspaceXenon-Regular-v1.400.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Monaspace Radon';
+  src: url('/fonts/MonaspaceRadon-Medium-v1.400.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --font-body: 'Monaspace Neon', ui-monospace, SFMono-Regular, monospace;
+  --font-heading: 'Monaspace Argon', var(--font-body);
+  --font-instrument: 'Monaspace Krypton', var(--font-body);
+  --font-reading: 'Monaspace Xenon', var(--font-body);
+  --font-coaching: 'Monaspace Radon', var(--font-body);
+  --font-literal: var(--font-body);
+}
+
+/* The welcoming voice, shared by every page and card. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-feature-settings:
+    'calt' 1,
+    'liga' 0;
+}
+
+/* The console's instrument rail: labels and observed numeric values. */
+:root input[type='number'],
+:where(
+  .eyebrow,
+  .field-label,
+  .card-number,
+  .visual-label,
+  .visual-caption,
+  .sound-card-top,
+  .sound-card-bottom small,
+  .intro-strip strong,
+  .pace-orbit,
+  .workspace-top,
+  .workspace-bottom,
+  .story-metrics,
+  .story-pace-caption,
+  .progress-stat-row,
+  .prosign-summary-stats,
+  .message-summary-stats,
+  .callsign-round-mini-stats,
+  .callsign-workspace-strip,
+  .callsign-pace-row,
+  .chart-legend,
+  .summary-grid > div > strong,
+  time,
+  output
+) {
+  font-family: var(--font-instrument);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reading passages, rather than controls or recorded practice material. */
+:where(
+  .hero-copy > p,
+  .page-heading > p,
+  .word-intro,
+  .story-intro,
+  .callsign-page-heading > p,
+  .prosign-page-heading > p,
+  .message-page-heading > p,
+  .lp-heading p,
+  .help-intro,
+  .help-section > p,
+  .help-practice article > p,
+  .help-details p,
+  .message-learning-note > p,
+  .prosign-listening-note > p
+) {
+  font-family: var(--font-reading);
+  font-weight: 400;
+  font-feature-settings:
+    'calt' 1,
+    'liga' 0;
+}
+
+/* A handwritten aside: short encouragement, never a task or an answer. */
+.floating-note strong,
+.hero-footnote > span,
+.closing-note h2,
+.aside-note p,
+.word-launch-copy > h2,
+.message-learning-note > h2,
+.prosign-listening-note > h2,
+.type-coach {
+  font-family: var(--font-coaching);
+  font-weight: 500;
+  font-style: normal;
+  letter-spacing: -0.025em;
+  font-feature-settings:
+    'calt' 1,
+    'liga' 0;
+}
+.hero-footnote > span,
+.aside-note p {
+  font-size: max(13px, 1em);
+  line-height: 1.6;
+}
+
+/* Root specificity also protects this boundary from form font:inherit shorthands. */
+/* Literal data stays neutral, even inside headings or reading prose. */
+:root
+  :is(
+    input:not([type='number']),
+    textarea,
+    kbd,
+    code,
+    pre,
+    .answer-readout,
+    .response-caption,
+    .response-keyboard,
+    .character-picker,
+    .progress-character-grid,
+    .word-letter-picker,
+    .story-character-chips,
+    .morse-caption,
+    .copy-tail,
+    .material-preview,
+    .callsign-example,
+    .callsign-comparison strong,
+    .prosign-reference-token,
+    .prosign-reference-pattern,
+    .prosign-joined-example,
+    .prosign-token-choices,
+    .prosign-comparison strong,
+    .message-answer-comparison strong,
+    .message-disclosed-text,
+    .language-readout strong,
+    .lp-message-detail blockquote,
+    .lp-focused-detail dd
+  ) {
+  font-family: var(--font-literal);
+  font-variant-ligatures: none;
+  font-feature-settings:
+    'calt' 0,
+    'liga' 0,
+    'clig' 0,
+    'dlig' 0;
+}
