@@ -1225,6 +1225,9 @@ export default function App() {
           >
             <GithubIcon /> GitHub <ArrowUpRight size={13} />
           </a>
+          <a href="https://veryshyjelly.in" target="_blank" rel="noopener noreferrer">
+            Portfolio <ArrowUpRight size={13} />
+          </a>
           <span>Made for curious ears.</span>
         </div>
       </footer>

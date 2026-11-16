@@ -16,7 +16,10 @@ Theme selection SHALL change only presentation, without pausing, restarting or a
 - **WHEN** a learner changes theme while waiting for a recognition response
 - **THEN** the active exercise continues and a subsequent Morse response is captured normally
 ### Requirement: Public source access
-The footer SHALL link to the published public GitHub source repository, and the repository SHALL identify the live website as its homepage.
+The footer SHALL link to the published public GitHub source repository and the creator's portfolio at https://veryshyjelly.in, and the repository SHALL identify the live website as its homepage.
 #### Scenario: Source link
 - **WHEN** a visitor activates the footer GitHub link
 - **THEN** the public repository opens separately without replacing an active exercise
+#### Scenario: Portfolio link
+- **WHEN** a visitor activates the footer Portfolio link
+- **THEN** https://veryshyjelly.in opens separately without replacing an active exercise
