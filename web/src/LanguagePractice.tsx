@@ -6,7 +6,6 @@ import {
   BookOpen,
   Headphones,
   SlidersHorizontal,
-  Target,
   Shuffle,
   Play,
   Pause,
@@ -596,10 +595,11 @@ export function LanguagePractice({
             <section className="word-letter-section" aria-labelledby="word-letters-title">
               <div className="word-section-heading">
                 <div>
-                  <h3 id="word-letters-title">
-                    <Target size={14} aria-hidden="true" />
-                    Letters for this round <span>{new Set(repertoire).size} / 26</span>
-                  </h3>
+                  <h3 id="word-letters-title">Letters for this round</h3>
+                  <div className="word-letter-count">
+                    {new Set(repertoire).size}
+                    <span> / 26</span>
+                  </div>
                   <p>
                     {owner === 'guest'
                       ? 'Choose the sounds you want to practise.'

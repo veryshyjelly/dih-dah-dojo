@@ -6,6 +6,7 @@ remain secondary. All controls SHALL fit compact and wide layouts in both themes
 #### Scenario: Choose letters
 - **WHEN** a learner selects a letter chip using keyboard or touch
 - **THEN** its pressed state and selected count update without changing other round settings
+- **AND** the selected count is visually prominent beside a smaller, muted alphabet total
 #### Scenario: Clear or restore letters
 - **WHEN** the learner clears letters or chooses all or introduced letters
 - **THEN** the corresponding selection is reflected in alphabetical chips and Start is disabled while no letters are selected

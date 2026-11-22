@@ -4252,13 +4252,6 @@ kbd {
   font-weight: 600;
   margin: 0;
 }
-.word-section-heading h3 span {
-  display: inline-block;
-  margin-left: 10px;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--muted);
-}
 .word-section-heading p {
   font-size: 10px;
   color: var(--muted);
@@ -4427,14 +4420,12 @@ kbd {
 .language-title :is(h1, h2) {
   margin-top: 9px;
 }
-.story-pace-caption strong,
-.word-section-heading h3 {
+.story-pace-caption strong {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .story-pace-caption strong > svg,
-.word-section-heading h3 > svg,
 .word-round-settings legend > svg {
   color: var(--muted);
   flex-shrink: 0;
@@ -4840,20 +4831,21 @@ kbd {
   align-items: flex-start;
   gap: 22px;
 }
-.word-setup .word-section-heading h3 {
-  font-size: 12px;
-}
-.word-setup .word-section-heading h3 > svg {
-  display: none;
-}
-.word-setup .word-section-heading h3 > span {
-  display: block;
+.word-letter-count {
   margin: 22px 0 16px;
+  font-family: var(--font-heading);
   font-size: 40px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.06em;
   color: var(--ink);
+  white-space: nowrap;
+}
+.word-letter-count > span {
+  font-size: 0.5em;
+  letter-spacing: -0.05em;
+  color: var(--theme-detail-text, #9ca990);
 }
 .word-setup .word-section-heading p {
   font-size: 11px;
@@ -5103,7 +5095,7 @@ kbd {
     align-items: flex-end;
     justify-content: space-between;
   }
-  .word-setup .word-section-heading h3 > span {
+  .word-letter-count {
     font-size: 32px;
     margin: 16px 0;
   }
@@ -5187,12 +5179,6 @@ kbd {
   .language-page .language-save-status {
     font-size: 9px;
   }
-}
-.word-setup .word-section-heading h3 {
-  display: block;
-}
-.word-setup .word-section-heading h3 > span {
-  white-space: nowrap;
 }
 .word-setup .pace-orbit > span {
   color: var(--ink);
