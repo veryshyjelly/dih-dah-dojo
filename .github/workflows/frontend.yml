@@ -57,11 +57,12 @@ jobs:
       - name: Build WebAssembly
         run: WASM_BINDGEN_BIN="$RUNNER_TEMP/dojo-wasm-tools/bin/wasm-bindgen" ./scripts/build-wasm.sh
       - run: npm ci
-      - run: npm test
-      - name: Build the production frontend
+      - name: Build the production frontend and server worker
         env:
           VITE_API_ORIGIN: https://dojoapi.veryshyjelly.in
         run: npm run build
+      # The API tests start the compiled server worker from server-dist/.
+      - run: npm test
       - name: Validate the Cloudflare bundle
         run: ./node_modules/.bin/wrangler deploy --dry-run
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
