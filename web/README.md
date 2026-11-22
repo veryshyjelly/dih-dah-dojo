@@ -41,7 +41,25 @@ browser audio, 10 typing events/second, and concurrent scoring/storage. Set
 `DOJO_MEASURE_SECONDS` (10–1800), `DOJO_MEASURE_ORIGIN`, and `DOJO_MEASURE_REPORT`
 to customize it. Its software measurements do not certify physical timing.
 
-## Build and publish
+## Frontend CI and releases
+
+The [Frontend workflow](../.github/workflows/frontend.yml) builds WebAssembly,
+runs the web tests and validates the static bundle on pull requests targeting
+`main`. Pushes to `main` run the same checks, then deploy the tested `web/dist/`
+bundle to the existing `dih-dah-dojo` Worker and check the production homepage
+and `/words`. Use **Actions → Frontend → Run workflow** on `main` to retry a
+release from the current branch head.
+
+GitHub's `production` environment is restricted to `main`. It uses the
+`CLOUDFLARE_ACCOUNT_ID` environment variable and the `CLOUDFLARE_API_TOKEN`
+environment secret. Create the token with Cloudflare's **Edit Cloudflare Workers**
+template, scoped to the Dojo account and the `veryshyjelly.in` zone.
+See [Cloudflare's GitHub Actions setup](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/).
+
+The API has a [separate release process](../docs/web-operations.md#releases-and-rollback)
+for the Termux host.
+
+### Manual frontend release
 
 ```sh
 ./scripts/build-wasm.sh
