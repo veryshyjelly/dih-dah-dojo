@@ -1,10 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: Consistent expressive typography
-The studio SHALL use Neon for everyday UI and literal responses, Argon for main
-headings, Krypton for instruments, Xenon for selected explanatory prose and Radon
-for brief selected coaching notes. Families SHALL follow semantic roles across
-pages and both themes.
+The studio SHALL use Neon for everyday UI, instruments and literal responses,
+Argon for main headings, overlines and card labels, Xenon for selected explanatory
+prose and Radon for brief selected coaching notes. Families SHALL follow semantic
+roles across pages and both themes.
 
 #### Scenario: Open a practice launcher
 - **WHEN** a learner opens a practice page

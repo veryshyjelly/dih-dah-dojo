@@ -4,7 +4,7 @@ can give its welcoming voice, instruments, explanations and coaching distinct
 identities while keeping literal practice material stable.
 
 ## What Changes
-- Introduce a semantic five-family typography system, with scoped accent roles.
+- Introduce a semantic four-family typography system, with scoped accent roles.
 - Self-host pinned, unmodified official WOFF2 assets; use static cuts for the two
   occasional accents and retain the existing critical-font preload.
 - Preserve controls, practice text, scoring, audio and account data.
