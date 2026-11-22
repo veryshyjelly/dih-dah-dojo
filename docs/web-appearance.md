@@ -201,3 +201,10 @@ all five faces, verified Krypton numeric controls and Neon literal answers with
 ligatures disabled. Font responses have `font/woff2` MIME type and the existing
 one-year immutable cache policy. The script security policy and asset-only
 Cloudflare configuration are unchanged.
+
+## Current Monaspace roles
+
+Argon covers overlines and card labels alongside headings. Neon covers numeric
+inputs, pace controls, chart labels and progress values alongside everyday UI
+and literal practice text. The instrument styles retain tabular numerals.
+Removing the Krypton asset brings the four bundled faces to 1,499,948 bytes.

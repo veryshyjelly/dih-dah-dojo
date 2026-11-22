@@ -16,14 +16,6 @@
   font-display: swap;
 }
 @font-face {
-  font-family: 'Monaspace Krypton';
-  src: url('/fonts/MonaspaceKryptonVar-v1.400.woff2') format('woff2');
-  font-style: normal;
-  font-weight: 200 800;
-  font-stretch: 100% 125%;
-  font-display: swap;
-}
-@font-face {
   font-family: 'Monaspace Xenon';
   src: url('/fonts/MonaspaceXenon-Regular-v1.400.woff2') format('woff2');
   font-style: normal;
@@ -41,13 +33,13 @@
 :root {
   --font-body: 'Monaspace Neon', ui-monospace, SFMono-Regular, monospace;
   --font-heading: 'Monaspace Argon', var(--font-body);
-  --font-instrument: 'Monaspace Krypton', var(--font-body);
+  --font-instrument: var(--font-body);
   --font-reading: 'Monaspace Xenon', var(--font-body);
   --font-coaching: 'Monaspace Radon', var(--font-body);
   --font-literal: var(--font-body);
 }
 
-/* The welcoming voice, shared by every page and card. */
+/* Headings and their companion labels. */
 h1,
 h2,
 h3 {
@@ -57,12 +49,15 @@ h3 {
     'liga' 0;
 }
 
+:where(.eyebrow, .card-number) {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The console's instrument rail: labels and observed numeric values. */
 :root input[type='number'],
 :where(
-  .eyebrow,
   .field-label,
-  .card-number,
   .visual-label,
   .visual-caption,
   .sound-card-top,
